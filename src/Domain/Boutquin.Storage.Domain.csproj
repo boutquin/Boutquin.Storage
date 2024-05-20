@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Boutquin.Domain" Version="0.5.0.1-beta01" />
+    <PackageReference Include="Boutquin.Domain" Version="0.5.0.3-beta01" />
   </ItemGroup>
 
 </Project>

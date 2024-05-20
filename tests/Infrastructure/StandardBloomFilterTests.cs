@@ -19,7 +19,7 @@ namespace Boutquin.Storage.Infrastructure.Tests;
 /// This class contains unit tests for the StandardBloomFilter class.
 /// Each test follows the Arrange-Act-Assert pattern.
 /// </summary>
-public class StandardBloomFilterTests
+public sealed class StandardBloomFilterTests
 {
     /// <summary>
     /// Test to ensure that the Add method correctly adds a key to the Bloom filter.
@@ -107,7 +107,7 @@ public class StandardBloomFilterTests
         var bloomFilter = new StandardBloomFilter<string>(1000000, 3);
 
         // Act: Add a large number of keys to the Bloom filter.
-        for (int i = 0; i < 100000; i++)
+        for (var i = 0; i < 100000; i++)
         {
             bloomFilter.Add($"key{i}");
         }
@@ -115,7 +115,7 @@ public class StandardBloomFilterTests
         // Assert: Check that the keys were added correctly.
         // We use the MightContain method to check if the keys are possibly in the set.
         // Since we just added these keys, they should return true.
-        for (int i = 0; i < 100000; i++)
+        for (var i = 0; i < 100000; i++)
         {
             Assert.True(bloomFilter.MightContain($"key{i}"));
         }

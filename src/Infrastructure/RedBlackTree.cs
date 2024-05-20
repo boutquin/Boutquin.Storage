@@ -51,7 +51,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// balanced, in-memory structure, it allows for quick write operations and provides an ordered set of data that can be efficiently flushed 
 /// to disk as a sorted SSTable, improving the overall performance of the LSM-tree.
 /// </remarks>
-public class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey, TValue> 
+public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey, TValue> 
     where TKey : IComparable<TKey>
 {
     // Enumeration for node colors used in the red-black tree

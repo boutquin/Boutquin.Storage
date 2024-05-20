@@ -19,7 +19,7 @@ namespace Boutquin.Storage.Infrastructure.Tests;
 /// This class contains unit tests for the RedBlackTree class.
 /// Each test follows the Arrange-Act-Assert pattern.
 /// </summary>
-public class RedBlackTreeTests
+public sealed class RedBlackTreeTests
 {
     /// <summary>
     /// Test to ensure that the Add method correctly adds a key-value pair to the tree.

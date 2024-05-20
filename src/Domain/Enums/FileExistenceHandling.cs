@@ -26,12 +26,14 @@ public enum FileExistenceHandling
     Overwrite,
 
     /// <summary>
-    /// Throw an exception if the file already exists.
-    /// </summary>
-    Throw,
-
-    /// <summary>
     /// Skip the creation if the file already exists.
     /// </summary>
-    Skip
+    DoNothingIfExists,
+
+    /// <summary>
+    /// Throw an exception if the file already exists.
+    /// </summary>
+    ThrowIfExists
+
+
 }

@@ -16,327 +16,270 @@
 namespace Boutquin.Storage.Infrastructure;
 
 /// <summary>
-/// Provides a robust, well-performing implementation of the IStorageFile interface.
+/// Provides basic file operations.
 /// </summary>
-public class StorageFile : IStorageFile
+public sealed class StorageFile : IStorageFile
 {
     private readonly string _filePath;
-    private readonly ReaderWriterLockSlim _lock = new();
 
     /// <summary>
-    /// Initializes a new instance of the StorageFile class with the specified file path.
+    /// Initializes a new instance of the <see cref="StorageFile"/> class.
     /// </summary>
-    /// <param name="filePath">The path of the file to manage.</param>
-    /// <exception cref="ArgumentException">Thrown when the filePath is null, empty, or whitespace.</exception>
+    /// <param name="filePath">The file path.</param>
+    /// <exception cref="ArgumentException">Thrown when the <paramref name="filePath"/> is null, empty, or whitespace.</exception>
     public StorageFile(string filePath)
     {
         // Validate the file path to ensure it is not null, empty, or whitespace.
-        // This prevents issues related to invalid file paths early on.
-        Guard.AgainstNullOrWhiteSpace(() => filePath);
+        Guard.AgainstNullOrWhiteSpace(() => filePath); // Throws ArgumentException
 
         _filePath = filePath;
     }
 
     /// <inheritdoc />
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when the file already exists and existenceHandling is set to Throw, or if access to the path is denied.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when the existenceHandling parameter is out of range.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="existenceHandling"/> is not a defined enum value.</exception>
+    /// <exception cref="IOException">Thrown when the file exists and <paramref name="existenceHandling"/> is <see cref="FileExistenceHandling.ThrowIfExists"/>.</exception>
     public void Create(FileExistenceHandling existenceHandling)
     {
-        _lock.EnterWriteLock();
-        try
+        // Validate the existence handling to ensure it is a defined enum value.
+        Guard.AgainstUndefinedEnumValue(() => existenceHandling); // Throws ArgumentOutOfRangeException
+
+        switch (existenceHandling)
         {
-            if (File.Exists(_filePath))
-            {
-                switch (existenceHandling)
-                {
-                    case FileExistenceHandling.Overwrite:
-                        File.Create(_filePath).Dispose();
-                        break;
-                    case FileExistenceHandling.Throw:
-                        throw new IOException("File already exists.");
-                    case FileExistenceHandling.Skip:
-                        return;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(existenceHandling), existenceHandling, null);
-                }
-            }
-            else
-            {
+            case FileExistenceHandling.Overwrite:
                 File.Create(_filePath).Dispose();
-            }
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (DirectoryNotFoundException ex)
-        {
-            throw new IOException("The specified path is invalid.", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException("An I/O error occurred while creating the file.", ex);
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
+                break;
+            case FileExistenceHandling.DoNothingIfExists:
+                if (!File.Exists(_filePath))
+                {
+                    File.Create(_filePath).Dispose();
+                }
+                break;
+            case FileExistenceHandling.ThrowIfExists:
+                if (File.Exists(_filePath))
+                {
+                    throw new IOException($"File '{_filePath}' already exists.");
+                }
+                File.Create(_filePath).Dispose();
+                break;
+            default:
+                // Guard.AgainstUndefinedEnumValue should prevent this from happening.
+                throw new ArgumentOutOfRangeException(nameof(existenceHandling), $"Undefined enum value: {existenceHandling}");
         }
     }
 
     /// <inheritdoc />
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied or the specified path is too long.</exception>
     public bool Exists()
     {
-        _lock.EnterReadLock();
-        try
-        {
-            return File.Exists(_filePath);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (PathTooLongException ex)
-        {
-            throw new IOException("The specified path is too long.", ex);
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
+        return File.Exists(_filePath);
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the specified file is not found.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the path is read-only or the caller does not have required permission.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
     public Stream Open()
     {
-        _lock.EnterReadLock();
-        try
-        {
-            return new FileStream(_filePath, FileMode.Open, FileAccess.ReadWrite);
-        }
-        catch (FileNotFoundException)
-        {
-            throw;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException("An I/O error occurred while opening the file.", ex);
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
+        return new FileStream(_filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the specified file is not found.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
     public void Delete()
     {
-        _lock.EnterWriteLock();
-        try
+        if (File.Exists(_filePath))
         {
-            if (File.Exists(_filePath))
-            {
-                File.Delete(_filePath);
-            }
-            else
-            {
-                throw new FileNotFoundException("The specified file was not found.");
-            }
-        }
-        catch (FileNotFoundException)
-        {
-            throw;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException("An I/O error occurred while deleting the file.", ex);
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
+            File.Delete(_filePath);
         }
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the specified file is not found.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
     public long GetFileSize()
     {
-        _lock.EnterReadLock();
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                return new FileInfo(_filePath).Length;
-            }
-            throw new FileNotFoundException("File not found.");
-        }
-        catch (FileNotFoundException)
-        {
-            throw;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException("An I/O error occurred while getting the file size.", ex);
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
+        return new FileInfo(_filePath).Length;
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the specified file is not found.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
     public string GetFileName()
     {
-        _lock.EnterReadLock();
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                return Path.GetFileName(_filePath);
-            }
-            throw new FileNotFoundException("File not found.");
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
+        return Path.GetFileName(_filePath);
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the specified file is not found.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
     public string GetFileLocation()
     {
-        _lock.EnterReadLock();
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                return Path.GetDirectoryName(_filePath);
-            }
-            throw new FileNotFoundException("File not found.");
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
+        return _filePath;
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the specified file is not found.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
     public byte[] ReadAllBytes()
     {
-        _lock.EnterReadLock();
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                return File.ReadAllBytes(_filePath);
-            }
-            throw new FileNotFoundException("File not found.");
-        }
-        catch (FileNotFoundException)
-        {
-            throw;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException("An I/O error occurred while reading the file.", ex);
-        }
-        finally
-        {
-            _lock.ExitReadLock();
-        }
+        return File.ReadAllBytes(_filePath);
     }
 
     /// <inheritdoc />
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    public async Task<byte[]> ReadAllBytesAsync(CancellationToken cancellationToken = default)
+    {
+        // Check for cancellation before starting the I/O operation
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return await File.ReadAllBytesAsync(_filePath, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="encoding"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
+    public string ReadAllText(Encoding encoding)
+    {
+        return File.ReadAllText(_filePath, encoding);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="encoding"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    public async Task<string> ReadAllTextAsync(Encoding encoding, CancellationToken cancellationToken = default)
+    {
+        // Check for cancellation before starting the I/O operation
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return await File.ReadAllTextAsync(_filePath, encoding, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
     public void WriteAllBytes(byte[] content)
     {
-        _lock.EnterWriteLock();
-        try
-        {
-            File.WriteAllBytes(_filePath, content);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException("An I/O error occurred while writing to the file.", ex);
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
-        }
+        File.WriteAllBytes(_filePath, content);
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the specified file is not found.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs, such as when access to the path is denied.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    public async Task WriteAllBytesAsync(byte[] content, CancellationToken cancellationToken = default)
+    {
+        // Check for cancellation before starting the I/O operation
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await File.WriteAllBytesAsync(_filePath, content, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    public void WriteAllText(string content, Encoding encoding)
+    {
+        File.WriteAllText(_filePath, content, encoding);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    public async Task WriteAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default)
+    {
+        // Check for cancellation before starting the I/O operation
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await File.WriteAllTextAsync(_filePath, content, encoding, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
     public void AppendAllBytes(byte[] content)
     {
-        _lock.EnterWriteLock();
-        try
-        {
-            if (File.Exists(_filePath))
-            {
-                using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write);
-                stream.Write(content, 0, content.Length);
-            }
-            else
-            {
-                throw new FileNotFoundException("File not found.");
-            }
-        }
-        catch (FileNotFoundException)
-        {
-            throw;
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            throw new IOException("Access to the path is denied.", ex);
-        }
-        catch (IOException ex)
-        {
-            throw new IOException("An I/O error occurred while appending to the file.", ex);
-        }
-        finally
-        {
-            _lock.ExitWriteLock();
-        }
+        using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        stream.Write(content, 0, content.Length);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    public async Task AppendAllBytesAsync(byte[] content, CancellationToken cancellationToken = default)
+    {
+        // Check for cancellation before starting the I/O operation
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        await stream.WriteAsync(content, 0, content.Length, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    public void AppendAllText(string content, Encoding encoding)
+    {
+        File.AppendAllText(_filePath, content, encoding);
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
+    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    public async Task AppendAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default)
+    {
+        // Check for cancellation before starting the I/O operation
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await File.AppendAllTextAsync(_filePath, content, encoding, cancellationToken);
     }
 }

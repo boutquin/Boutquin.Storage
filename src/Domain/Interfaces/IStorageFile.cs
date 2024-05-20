@@ -13,7 +13,10 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
 namespace Boutquin.Storage.Domain.Interfaces;
+
+using System.Text;
 
 /// <summary>
 /// Interface for basic file operations.
@@ -68,14 +71,84 @@ public interface IStorageFile
     byte[] ReadAllBytes();
 
     /// <summary>
+    /// Reads the entire file content as a byte array asynchronously.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation, with a result of the file content as a byte array.</returns>
+    Task<byte[]> ReadAllBytesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reads the entire file content as a string using the specified encoding.
+    /// </summary>
+    /// <param name="encoding">The encoding to use.</param>
+    /// <returns>The file content as a string.</returns>
+    string ReadAllText(Encoding encoding);
+
+    /// <summary>
+    /// Reads the entire file content as a string asynchronously using the specified encoding.
+    /// </summary>
+    /// <param name="encoding">The encoding to use.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation, with a result of the file content as a string.</returns>
+    Task<string> ReadAllTextAsync(Encoding encoding, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Writes a byte array to the file.
     /// </summary>
     /// <param name="content">The byte array to write.</param>
     void WriteAllBytes(byte[] content);
 
     /// <summary>
+    /// Writes a byte array to the file asynchronously.
+    /// </summary>
+    /// <param name="content">The byte array to write.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task WriteAllBytesAsync(byte[] content, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes a string to the file using the specified encoding.
+    /// </summary>
+    /// <param name="content">The string to write.</param>
+    /// <param name="encoding">The encoding to use.</param>
+    void WriteAllText(string content, Encoding encoding);
+
+    /// <summary>
+    /// Writes a string to the file asynchronously using the specified encoding.
+    /// </summary>
+    /// <param name="content">The string to write.</param>
+    /// <param name="encoding">The encoding to use.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task WriteAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Appends a byte array to the end of the file.
     /// </summary>
     /// <param name="content">The byte array to append.</param>
     void AppendAllBytes(byte[] content);
+
+    /// <summary>
+    /// Appends a byte array to the end of the file asynchronously.
+    /// </summary>
+    /// <param name="content">The byte array to append.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task AppendAllBytesAsync(byte[] content, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Appends a string to the end of the file using the specified encoding.
+    /// </summary>
+    /// <param name="content">The string to append.</param>
+    /// <param name="encoding">The encoding to use.</param>
+    void AppendAllText(string content, Encoding encoding);
+
+    /// <summary>
+    /// Appends a string to the end of the file asynchronously using the specified encoding.
+    /// </summary>
+    /// <param name="content">The string to append.</param>
+    /// <param name="encoding">The encoding to use.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    Task AppendAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default);
 }

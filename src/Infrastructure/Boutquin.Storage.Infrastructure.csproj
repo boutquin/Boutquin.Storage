@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Domain\Boutquin.Storage.Domain.csproj" />
   </ItemGroup>
 

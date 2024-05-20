@@ -77,20 +77,26 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// 
 /// The choice of storage engine implementation depends on the specific requirements of the application, such as read/write performance, data consistency, scalability, and cost considerations.
 /// </remarks>
-public interface IStorageEngine<TKey, TValue>
+public interface IStorageEngine<in TKey, TValue> where TKey : IComparable<TKey>
 {
     /// <summary>
     /// Writes a key-value pair to the storage engine.
     /// </summary>
     /// <param name="key">The key of the item to write.</param>
     /// <param name="value">The value of the item to write.</param>
-    Task WriteAsync(TKey key, TValue value);
+    /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+    /// <returns>A task representing the asynchronous write operation.</returns>
+    Task WriteAsync(TKey key, TValue value, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reads the value associated with the specified key from the storage engine.
     /// </summary>
     /// <param name="key">The key to read.</param>
-    /// <param name="value">When this method returns, contains the value associated with the specified key, if the key is found; otherwise, the default value for the type of the value parameter.</param>
-    /// <returns><c>true</c> if the key was found; otherwise, <c>false</c>.</returns>
-    Task<bool> ReadAsync(TKey key, out TValue value);
+    /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+    /// <returns>
+    /// A task representing the asynchronous read operation. The task result contains a tuple with a boolean indicating 
+    /// if the key was found and the value associated with the specified key, if found; otherwise, the default value for 
+    /// the type of the value parameter.
+    /// </returns>
+    Task<(bool found, TValue value)> ReadAsync(TKey key, CancellationToken cancellationToken = default);
 }

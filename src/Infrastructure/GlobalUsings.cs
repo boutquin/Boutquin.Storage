@@ -19,8 +19,10 @@
 global using System;
 global using System.Collections;
 global using System.IO;
+global using System.IO.Abstractions;
 global using System.Security.Cryptography;
 global using System.Text;
+global using System.Text.Json;
 global using System.Threading;
 global using Boutquin.Domain.Helpers;
 global using Boutquin.Storage.Domain.Enums;

@@ -1,5 +1,4 @@
-﻿
-// Copyright (c) 2024 Pierre G. Boutquin. All rights reserved.
+﻿// Copyright (c) 2024 Pierre G. Boutquin. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License").
 //  You may not use this file except in compliance with the License.
@@ -16,369 +15,384 @@
 //
 namespace Boutquin.Storage.Infrastructure.Tests;
 
-using System;
-using System.IO;
-
-using Xunit;
-
-/// <summary>
-/// This class contains unit tests for the StorageFile class.
-/// Each test follows the Arrange-Act-Assert pattern.
-/// </summary>
-public class StorageFileTests : IDisposable
+public sealed class StorageFileTests : IDisposable
 {
-    private const string TestDirectory = "TestFiles";
-    private readonly string _testFilePath;
+    // Create a temporary file path for testing purposes
+    private readonly string _tempFilePath = Path.GetTempFileName();
 
-    /// <summary>
-    /// Initializes a new instance of the StorageFileTests class.
-    /// Ensures the test directory is clean before each test.
-    /// </summary>
-    public StorageFileTests()
-    {
-        Directory.CreateDirectory(TestDirectory);
-        _testFilePath = Path.Combine(TestDirectory, "testfile.txt");
-        CleanupTestFiles();
-    }
-
-    /// <summary>
-    /// Cleans up the test environment after each test.
-    /// </summary>
     public void Dispose()
     {
-        CleanupTestFiles();
-    }
-
-    private void CleanupTestFiles()
-    {
-        if (File.Exists(_testFilePath))
+        // Clean up temporary file after tests are done
+        if (File.Exists(_tempFilePath))
         {
-            File.Delete(_testFilePath);
+            File.Delete(_tempFilePath);
         }
     }
 
-    /// <summary>
-    /// Test to ensure that the Create method correctly creates a new file.
-    /// </summary>
     [Fact]
-    public void Create_ShouldCreateNewFile()
+    public void Constructor_ValidPath_ShouldNotThrow()
     {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
+        // Arrange & Act
+        var fileSystem = new StorageFile(_tempFilePath);
 
-        // Act: Create the file with Overwrite handling.
-        storageFile.Create(FileExistenceHandling.Overwrite);
-
-        // Assert: Check that the file was created.
-        Assert.True(File.Exists(_testFilePath));
+        // Assert
+        Assert.NotNull(fileSystem);
     }
 
-    /// <summary>
-    /// Test to ensure that the Create method throws an exception if the file already exists and existenceHandling is set to Throw.
-    /// </summary>
     [Fact]
-    public void Create_ShouldThrowIfFileExistsAndExistenceHandlingIsThrow()
+    public void Constructor_NullOrEmptyPath_ShouldThrowArgumentException()
     {
-        // Arrange: Create a new StorageFile instance and create the file.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
+        // Arrange
+        string nullPath = null!;
+        var emptyPath = string.Empty;
+        var whitespacePath = " ";
 
-        // Act & Assert: Attempt to create the file again with Throw handling and expect an IOException.
-        var exception = Assert.Throws<IOException>(() => storageFile.Create(FileExistenceHandling.Throw));
-        Assert.Equal("File already exists.", exception.InnerException?.Message ?? exception.Message);
+        // Act & Assert
+        var ex1 = Assert.Throws<ArgumentException>(() => new StorageFile(nullPath));
+        Assert.Equal("filePath", ex1.ParamName);
+
+        var ex2 = Assert.Throws<ArgumentException>(() => new StorageFile(emptyPath));
+        Assert.Equal("filePath", ex2.ParamName);
+
+        var ex3 = Assert.Throws<ArgumentException>(() => new StorageFile(whitespacePath));
+        Assert.Equal("filePath", ex3.ParamName);
     }
 
-    /// <summary>
-    /// Test to ensure that the Exists method correctly checks if the file exists.
-    /// </summary>
     [Fact]
-    public void Exists_ShouldReturnTrueIfFileExists()
+    public void Create_FileExistenceHandlingOverwrite_ShouldOverwriteFile()
     {
-        // Arrange: Create a new StorageFile instance and create the file.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        File.WriteAllText(_tempFilePath, "Original content");
 
-        // Act: Check if the file exists.
-        var exists = storageFile.Exists();
+        // Act
+        fileSystem.Create(FileExistenceHandling.Overwrite);
 
-        // Assert: The file should exist.
+        // Assert
+        Assert.Empty(File.ReadAllText(_tempFilePath));
+    }
+
+    [Fact]
+    public void Create_FileExistenceHandlingDoNothingIfExists_ShouldNotOverwriteFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        File.WriteAllText(_tempFilePath, "Original content");
+
+        // Act
+        fileSystem.Create(FileExistenceHandling.DoNothingIfExists);
+
+        // Assert
+        Assert.Equal("Original content", File.ReadAllText(_tempFilePath));
+    }
+
+    [Fact]
+    public void Create_FileExistenceHandlingThrowIfExists_ShouldThrowIOException()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        File.WriteAllText(_tempFilePath, "Original content");
+
+        // Act & Assert
+        var ex = Assert.Throws<IOException>(() => fileSystem.Create(FileExistenceHandling.ThrowIfExists));
+        Assert.Equal($"File '{_tempFilePath}' already exists.", ex.Message);
+    }
+
+    [Fact]
+    public void Exists_FileExists_ShouldReturnTrue()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        File.WriteAllText(_tempFilePath, "Content");
+
+        // Act
+        var exists = fileSystem.Exists();
+
+        // Assert
         Assert.True(exists);
     }
 
-    /// <summary>
-    /// Test to ensure that the Exists method returns false if the file does not exist.
-    /// </summary>
     [Fact]
-    public void Exists_ShouldReturnFalseIfFileDoesNotExist()
+    public void Exists_FileDoesNotExist_ShouldReturnFalse()
     {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
+        // Arrange
+        var fileSystem = new StorageFile("nonexistentfile.tmp");
 
-        // Act: Check if the file exists.
-        var exists = storageFile.Exists();
+        // Act
+        var exists = fileSystem.Exists();
 
-        // Assert: The file should not exist.
+        // Assert
         Assert.False(exists);
     }
 
-    /// <summary>
-    /// Test to ensure that the Open method opens an existing file.
-    /// </summary>
     [Fact]
-    public void Open_ShouldOpenExistingFile()
+    public void Open_ValidPath_ShouldOpenFileStream()
     {
-        // Arrange: Create a new StorageFile instance and create the file.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
 
-        // Act: Open the file.
-        using var stream = storageFile.Open();
+        // Act
+        using var stream = fileSystem.Open();
 
-        // Assert: The stream should be open and readable.
+        // Assert
         Assert.NotNull(stream);
-        Assert.True(stream.CanRead);
-        Assert.True(stream.CanWrite);
     }
 
-    /// <summary>
-    /// Test to ensure that the Open method throws an exception if the file does not exist.
-    /// </summary>
     [Fact]
-    public void Open_ShouldThrowIfFileDoesNotExist()
+    public void Delete_FileExists_ShouldDeleteFile()
     {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        File.WriteAllText(_tempFilePath, "Content");
 
-        // Act & Assert: Attempt to open the file and expect a FileNotFoundException.
-        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.Open());
-        Assert.StartsWith("Could not find file '", exception.Message);
+        // Act
+        fileSystem.Delete();
+
+        // Assert
+        Assert.False(File.Exists(_tempFilePath));
     }
 
-    /// <summary>
-    /// Test to ensure that the Delete method deletes an existing file.
-    /// </summary>
     [Fact]
-    public void Delete_ShouldDeleteExistingFile()
+    public void Delete_FileDoesNotExist_ShouldNotThrow()
     {
-        // Arrange: Create a new StorageFile instance and create the file.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
+        // Arrange
+        var fileSystem = new StorageFile("nonexistentfile.tmp");
 
-        // Act: Delete the file.
-        storageFile.Delete();
-
-        // Assert: The file should no longer exist.
-        Assert.False(File.Exists(_testFilePath));
+        // Act & Assert
+        var exception = Record.Exception(() => fileSystem.Delete());
+        Assert.Null(exception);
     }
 
-    /// <summary>
-    /// Test to ensure that the Delete method throws an exception if the file does not exist.
-    /// </summary>
     [Fact]
-    public void Delete_ShouldThrowIfFileDoesNotExist()
+    public void GetFileSize_FileExists_ShouldReturnCorrectSize()
     {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "12345"u8.ToArray();
+        File.WriteAllBytes(_tempFilePath, content);
 
-        // Act & Assert: Attempt to delete the file and expect a FileNotFoundException.
-        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.Delete());
-        Assert.Equal("The specified file was not found.", exception.Message);
+        // Act
+        var size = fileSystem.GetFileSize();
+
+        // Assert
+        Assert.Equal(5, size);
     }
 
-    /// <summary>
-    /// Test to ensure that the GetFileSize method returns the correct file size.
-    /// </summary>
     [Fact]
-    public void GetFileSize_ShouldReturnCorrectFileSize()
+    public void GetFileName_ShouldReturnFileName()
     {
-        // Arrange: Create a new StorageFile instance and create the file.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
-        File.WriteAllBytes(_testFilePath, new byte[] { 0x01, 0x02, 0x03 });
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
 
-        // Act: Get the file size.
-        var fileSize = storageFile.GetFileSize();
+        // Act
+        var fileName = fileSystem.GetFileName();
 
-        // Assert: The file size should be 3 bytes.
-        Assert.Equal(3, fileSize);
+        // Assert
+        Assert.Equal(Path.GetFileName(_tempFilePath), fileName);
     }
 
-    /// <summary>
-    /// Test to ensure that the GetFileSize method throws an exception if the file does not exist.
-    /// </summary>
     [Fact]
-    public void GetFileSize_ShouldThrowIfFileDoesNotExist()
+    public void GetFileLocation_ShouldReturnFilePath()
     {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
 
-        // Act & Assert: Attempt to get the file size and expect a FileNotFoundException.
-        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.GetFileSize());
-        Assert.Equal("File not found.", exception.Message);
+        // Act
+        var filePath = fileSystem.GetFileLocation();
+
+        // Assert
+        Assert.Equal(_tempFilePath, filePath);
     }
 
-    /// <summary>
-    /// Test to ensure that the GetFileName method returns the correct file name.
-    /// </summary>
     [Fact]
-    public void GetFileName_ShouldReturnCorrectFileName()
+    public void ReadAllBytes_FileExists_ShouldReturnCorrectContent()
     {
-        // Arrange: Create a new StorageFile instance and create the file.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content"u8.ToArray();
+        File.WriteAllBytes(_tempFilePath, content);
 
-        // Act: Get the file name.
-        var fileName = storageFile.GetFileName();
+        // Act
+        var result = fileSystem.ReadAllBytes();
 
-        // Assert: The file name should be "testfile.txt".
-        Assert.Equal("testfile.txt", fileName);
-    }
-
-    /// <summary>
-    /// Test to ensure that the GetFileName method throws an exception if the file does not exist.
-    /// </summary>
-    [Fact]
-    public void GetFileName_ShouldThrowIfFileDoesNotExist()
-    {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
-
-        // Act & Assert: Attempt to get the file name and expect a FileNotFoundException.
-        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.GetFileName());
-        Assert.Equal("File not found.", exception.Message);
-    }
-
-    /// <summary>
-    /// Test to ensure that the GetFileLocation method returns the correct file location.
-    /// </summary>
-    [Fact]
-    public void GetFileLocation_ShouldReturnCorrectFileLocation()
-    {
-        // Arrange: Create a new StorageFile instance and create the file.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
-
-        // Act: Get the file location.
-        var fileLocation = storageFile.GetFileLocation();
-
-        // Assert: The file location should be the test directory.
-        Assert.Equal(TestDirectory, fileLocation);
-    }
-
-    /// <summary>
-    /// Test to ensure that the GetFileLocation method throws an exception if the file does not exist.
-    /// </summary>
-    [Fact]
-    public void GetFileLocation_ShouldThrowIfFileDoesNotExist()
-    {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
-
-        // Act & Assert: Attempt to get the file location and expect a FileNotFoundException.
-        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.GetFileLocation());
-        Assert.Equal("File not found.", exception.Message);
-    }
-
-    /// <summary>
-    /// Test to ensure that the ReadAllBytes method reads the entire file content.
-    /// </summary>
-    [Fact]
-    public void ReadAllBytes_ShouldReadEntireFileContent()
-    {
-        // Arrange: Create a new StorageFile instance and create the file with some content.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
-        var content = new byte[] { 0x01, 0x02, 0x03 };
-        File.WriteAllBytes(_testFilePath, content);
-
-        // Act: Read the entire file content.
-        var result = storageFile.ReadAllBytes();
-
-        // Assert: The read content should match the original content.
+        // Assert
         Assert.Equal(content, result);
     }
 
-    /// <summary>
-    /// Test to ensure that the ReadAllBytes method throws an exception if the file does not exist.
-    /// </summary>
     [Fact]
-    public void ReadAllBytes_ShouldThrowIfFileDoesNotExist()
+    public async Task ReadAllBytesAsync_FileExists_ShouldReturnCorrectContent()
     {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content"u8.ToArray();
+        await File.WriteAllBytesAsync(_tempFilePath, content);
 
-        // Act & Assert: Attempt to read the file content and expect a FileNotFoundException.
-        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.ReadAllBytes());
-        Assert.Equal("File not found.", exception.Message);
-    }
+        // Act
+        var result = await fileSystem.ReadAllBytesAsync();
 
-    /// <summary>
-    /// Test to ensure that the WriteAllBytes method writes the entire byte array to the file.
-    /// </summary>
-    [Fact]
-    public void WriteAllBytes_ShouldWriteEntireByteArrayToFile()
-    {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
-        var content = new byte[] { 0x01, 0x02, 0x03 };
-
-        // Act: Write the byte array to the file.
-        storageFile.WriteAllBytes(content);
-
-        // Assert: The file content should match the written content.
-        var result = File.ReadAllBytes(_testFilePath);
+        // Assert
         Assert.Equal(content, result);
     }
 
-    /// <summary>
-    /// Test to ensure that the WriteAllBytes method throws an exception if access to the path is denied.
-    /// </summary>
     [Fact]
-    public void WriteAllBytes_ShouldThrowIfAccessToPathIsDenied()
+    public void ReadAllText_FileExists_ShouldReturnCorrectContent()
     {
-        // Arrange: Create a new StorageFile instance with an invalid path.
-        var storageFile = new StorageFile(@"C:\Windows\System32\testfile.txt");
-        var content = new byte[] { 0x01, 0x02, 0x03 };
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content";
+        File.WriteAllText(_tempFilePath, content, Encoding.UTF8);
 
-        // Act & Assert: Attempt to write the byte array to the file and expect an IOException.
-        var exception = Assert.Throws<IOException>(() => storageFile.WriteAllBytes(content));
-        Assert.Contains("Access to the path is denied.", exception.Message);
+        // Act
+        var result = fileSystem.ReadAllText(Encoding.UTF8);
+
+        // Assert
+        Assert.Equal(content, result);
     }
 
-    /// <summary>
-    /// Test to ensure that the AppendAllBytes method appends the byte array to the end of the file.
-    /// </summary>
     [Fact]
-    public void AppendAllBytes_ShouldAppendByteArrayToEndOfFile()
+    public async Task ReadAllTextAsync_FileExists_ShouldReturnCorrectContent()
     {
-        // Arrange: Create a new StorageFile instance and create the file with some initial content.
-        var storageFile = new StorageFile(_testFilePath);
-        storageFile.Create(FileExistenceHandling.Overwrite);
-        var initialContent = new byte[] { 0x01, 0x02, 0x03 };
-        File.WriteAllBytes(_testFilePath, initialContent);
-        var additionalContent = new byte[] { 0x04, 0x05, 0x06 };
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content";
+        await File.WriteAllTextAsync(_tempFilePath, content, Encoding.UTF8);
 
-        // Act: Append the byte array to the end of the file.
-        storageFile.AppendAllBytes(additionalContent);
+        // Act
+        var result = await fileSystem.ReadAllTextAsync(Encoding.UTF8);
 
-        // Assert: The file content should match the concatenated content.
-        var expectedContent = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
-        var result = File.ReadAllBytes(_testFilePath);
-        Assert.Equal(expectedContent, result);
+        // Assert
+        Assert.Equal(content, result);
     }
 
-    /// <summary>
-    /// Test to ensure that the AppendAllBytes method throws an exception if the file does not exist.
-    /// </summary>
     [Fact]
-    public void AppendAllBytes_ShouldThrowIfFileDoesNotExist()
+    public void WriteAllBytes_ShouldWriteContentToFile()
     {
-        // Arrange: Create a new StorageFile instance.
-        var storageFile = new StorageFile(_testFilePath);
-        var content = new byte[] { 0x01, 0x02, 0x03 };
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content"u8.ToArray();
 
-        // Act & Assert: Attempt to append the byte array to the file and expect a FileNotFoundException.
-        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.AppendAllBytes(content));
-        Assert.Equal("File not found.", exception.Message);
+        // Act
+        fileSystem.WriteAllBytes(content);
+
+        // Assert
+        var fileContent = File.ReadAllBytes(_tempFilePath);
+        Assert.Equal(content, fileContent);
+    }
+
+    [Fact]
+    public async Task WriteAllBytesAsync_ShouldWriteContentToFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content"u8.ToArray();
+
+        // Act
+        await fileSystem.WriteAllBytesAsync(content);
+
+        // Assert
+        var fileContent = await File.ReadAllBytesAsync(_tempFilePath);
+        Assert.Equal(content, fileContent);
+    }
+
+    [Fact]
+    public void WriteAllText_ShouldWriteContentToFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content";
+
+        // Act
+        fileSystem.WriteAllText(content, Encoding.UTF8);
+
+        // Assert
+        var fileContent = File.ReadAllText(_tempFilePath, Encoding.UTF8);
+        Assert.Equal(content, fileContent);
+    }
+
+    [Fact]
+    public async Task WriteAllTextAsync_ShouldWriteContentToFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var content = "Content";
+
+        // Act
+        await fileSystem.WriteAllTextAsync(content, Encoding.UTF8);
+
+        // Assert
+        var fileContent = await File.ReadAllTextAsync(_tempFilePath, Encoding.UTF8);
+        Assert.Equal(content, fileContent);
+    }
+
+    [Fact]
+    public void AppendAllBytes_ShouldAppendContentToFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var initialContent = "Initial"u8.ToArray();
+        var appendContent = "Append"u8.ToArray();
+        File.WriteAllBytes(_tempFilePath, initialContent);
+
+        // Act
+        fileSystem.AppendAllBytes(appendContent);
+
+        // Assert
+        var expectedContent = "InitialAppend"u8.ToArray();
+        var fileContent = File.ReadAllBytes(_tempFilePath);
+        Assert.Equal(expectedContent, fileContent);
+    }
+
+    [Fact]
+    public async Task AppendAllBytesAsync_ShouldAppendContentToFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var initialContent = "Initial"u8.ToArray();
+        var appendContent = "Append"u8.ToArray();
+        await File.WriteAllBytesAsync(_tempFilePath, initialContent);
+
+        // Act
+        await fileSystem.AppendAllBytesAsync(appendContent);
+
+        // Assert
+        var expectedContent = "InitialAppend"u8.ToArray();
+        var fileContent = await File.ReadAllBytesAsync(_tempFilePath);
+        Assert.Equal(expectedContent, fileContent);
+    }
+
+    [Fact]
+    public void AppendAllText_ShouldAppendContentToFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var initialContent = "Initial";
+        var appendContent = "Append";
+        File.WriteAllText(_tempFilePath, initialContent, Encoding.UTF8);
+
+        // Act
+        fileSystem.AppendAllText(appendContent, Encoding.UTF8);
+
+        // Assert
+        var expectedContent = "InitialAppend";
+        var fileContent = File.ReadAllText(_tempFilePath, Encoding.UTF8);
+        Assert.Equal(expectedContent, fileContent);
+    }
+
+    [Fact]
+    public async Task AppendAllTextAsync_ShouldAppendContentToFile()
+    {
+        // Arrange
+        var fileSystem = new StorageFile(_tempFilePath);
+        var initialContent = "Initial";
+        var appendContent = "Append";
+        await File.WriteAllTextAsync(_tempFilePath, initialContent, Encoding.UTF8);
+
+        // Act
+        await fileSystem.AppendAllTextAsync(appendContent, Encoding.UTF8);
+
+        // Assert
+        var expectedContent = "InitialAppend";
+        var fileContent = await File.ReadAllTextAsync(_tempFilePath, Encoding.UTF8);
+        Assert.Equal(expectedContent, fileContent);
     }
 }

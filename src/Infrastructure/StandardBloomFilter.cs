@@ -44,7 +44,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// is not present in an SSTable, it reduces the number of disk reads, significantly improving read performance. However, the filter must be carefully 
 /// tuned to balance false positive rates and memory usage.
 /// </remarks>
-public class StandardBloomFilter<TKey> : IBloomFilter<TKey> 
+public sealed class StandardBloomFilter<TKey> : IBloomFilter<TKey> 
 {
     private readonly BitArray _bitArray;
     private readonly int _numHashFunctions;
