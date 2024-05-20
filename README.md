@@ -4,6 +4,7 @@ Boutquin.Storage is a collection of data storage algorithms implemented in C# us
 
 ## Features
 
+- Log-Structured Merge Trees
 - Red Black Trees
 - B+ Trees
 - Consistent Hashing

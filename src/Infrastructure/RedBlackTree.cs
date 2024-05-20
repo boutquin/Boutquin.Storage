@@ -14,8 +14,6 @@
 //
 namespace Boutquin.Storage.Infrastructure;
 
-using Domain.Interfaces;
-
 /// <summary>
 /// Implementation of a red-black tree data structure.
 /// </summary>
