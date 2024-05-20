@@ -9,8 +9,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{60562153
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{3CAB4CED-1004-4B18-8D42-EBF9B4564BAD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Boutquin.Storage.Domain", "src\Boutquin.Storage.Domain\Boutquin.Storage.Domain.csproj", "{BFB4D137-9CBE-4110-B6CC-1AADE7BE2817}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3E37E8AF-B071-4538-9B8E-4E4360CF74B7}"
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
@@ -21,22 +19,38 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Boutquin.Storage.Domain", "src\Domain\Boutquin.Storage.Domain.csproj", "{1C365AB2-B9FB-4689-BFD6-786DC8C3C585}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Boutquin.Storage.Infrastructure", "src\Infrastructure\Boutquin.Storage.Infrastructure.csproj", "{9D82878D-3315-49DF-B148-9C39D2A97BF7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Boutquin.Storage.Infrastructure.Tests", "tests\Infrastructure\Boutquin.Storage.Infrastructure.Tests.csproj", "{389FD512-3FA1-4511-AA77-D7CAEFF05850}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{BFB4D137-9CBE-4110-B6CC-1AADE7BE2817}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BFB4D137-9CBE-4110-B6CC-1AADE7BE2817}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BFB4D137-9CBE-4110-B6CC-1AADE7BE2817}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BFB4D137-9CBE-4110-B6CC-1AADE7BE2817}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C365AB2-B9FB-4689-BFD6-786DC8C3C585}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C365AB2-B9FB-4689-BFD6-786DC8C3C585}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C365AB2-B9FB-4689-BFD6-786DC8C3C585}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C365AB2-B9FB-4689-BFD6-786DC8C3C585}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D82878D-3315-49DF-B148-9C39D2A97BF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D82878D-3315-49DF-B148-9C39D2A97BF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D82878D-3315-49DF-B148-9C39D2A97BF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D82878D-3315-49DF-B148-9C39D2A97BF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{389FD512-3FA1-4511-AA77-D7CAEFF05850}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{389FD512-3FA1-4511-AA77-D7CAEFF05850}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{389FD512-3FA1-4511-AA77-D7CAEFF05850}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{389FD512-3FA1-4511-AA77-D7CAEFF05850}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{BFB4D137-9CBE-4110-B6CC-1AADE7BE2817} = {91814512-0BDD-46DB-A4FE-C3D8CF4EB9EE}
+		{1C365AB2-B9FB-4689-BFD6-786DC8C3C585} = {91814512-0BDD-46DB-A4FE-C3D8CF4EB9EE}
+		{9D82878D-3315-49DF-B148-9C39D2A97BF7} = {91814512-0BDD-46DB-A4FE-C3D8CF4EB9EE}
+		{389FD512-3FA1-4511-AA77-D7CAEFF05850} = {60562153-9885-4130-923B-D732DDBF3DC5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AE4E9FE1-0BE3-42EB-85F1-510D9D00E688}

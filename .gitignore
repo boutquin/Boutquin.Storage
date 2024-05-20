@@ -1,6 +1,4 @@
-
 ### .gitignore
-```gitignore
 bin/
 obj/
 *.user
