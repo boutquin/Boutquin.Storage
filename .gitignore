@@ -1,0 +1,11 @@
+
+### .gitignore
+```gitignore
+bin/
+obj/
+*.user
+*.vspscc
+*.vssscc
+*.suo
+*.DS_Store
+/.vs/Boutquin.Storage
