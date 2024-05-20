@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2024 Pierre G. Boutquin. All rights reserved.
+// Copyright (c) 2024 Pierre G. Boutquin. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License").
 //  You may not use this file except in compliance with the License.
@@ -13,25 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Domain.Enums;
 
-/// <summary>
-/// Specifies how to handle the existence of a file during creation.
-/// </summary>
-public enum FileExistenceHandling
-{
-    /// <summary>
-    /// Overwrite the existing file.
-    /// </summary>
-    Overwrite,
 
-    /// <summary>
-    /// Throw an exception if the file already exists.
-    /// </summary>
-    Throw,
-
-    /// <summary>
-    /// Skip the creation if the file already exists.
-    /// </summary>
-    Skip
-}
+// Global using directives
+global using Boutquin.Storage.Domain.Enums;
