@@ -62,6 +62,23 @@ public interface IStorageFile
     string GetFileLocation();
 
     /// <summary>
+    /// Reads a specified number of bytes from the file at the given offset.
+    /// </summary>
+    /// <param name="offset">The offset in the file to start reading from.</param>
+    /// <param name="count">The number of bytes to read.</param>
+    /// <returns>The bytes read from the file.</returns>
+    byte[] ReadBytes(int offset, int count);
+
+    /// <summary>
+    /// Reads a specified number of bytes from the file at the given offset asynchronously.
+    /// </summary>
+    /// <param name="offset">The offset in the file to start reading from.</param>
+    /// <param name="count">The number of bytes to read.</param>
+    /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+    /// <returns>A task representing the asynchronous read operation. The task result contains the bytes read from the file.</returns>
+    
+    Task<byte[]> ReadBytesAsync(int offset, int count, CancellationToken cancellationToken = default);
+    /// <summary>
     /// Reads the entire file content as a byte array.
     /// </summary>
     /// <returns>The file content as a byte array.</returns>

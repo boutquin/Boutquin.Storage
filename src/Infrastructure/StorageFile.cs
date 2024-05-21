@@ -115,6 +115,93 @@ public sealed class StorageFile : IStorageFile
         return _filePath;
     }
 
+    /// <summary>
+    /// Reads a specified number of bytes from the file starting at a specified offset.
+    /// </summary>
+    /// <param name="offset">The offset at which to begin reading.</param>
+    /// <param name="count">The number of bytes to read.</param>
+    /// <returns>A byte array containing the data read from the file.</returns>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> was not found.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset"/> or <paramref name="count"/> is less than zero.</exception>
+    public byte[] ReadBytes(int offset, int count)
+    {
+        Guard.AgainstNegative(() => offset); // Throws ArgumentOutOfRangeException
+        Guard.AgainstNegative(() => count); // Throws ArgumentOutOfRangeException
+
+        using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
+        if (offset >= stream.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
+        }
+
+        stream.Seek(offset, SeekOrigin.Begin);
+
+        var buffer = new byte[count];
+        var bytesRead = 0;
+        while (bytesRead < count)
+        {
+            var read = stream.Read(buffer, bytesRead, count - bytesRead);
+            if (read == 0) break; // End of file reached
+            bytesRead += read;
+        }
+
+        // If fewer bytes were read than requested, resize the buffer.
+        if (bytesRead < count)
+        {
+            Array.Resize(ref buffer, bytesRead);
+        }
+
+        return buffer;
+    }
+
+    /// <summary>
+    /// Asynchronously reads a specified number of bytes from the file starting at a specified offset.
+    /// </summary>
+    /// <param name="offset">The offset at which to begin reading.</param>
+    /// <param name="count">The number of bytes to read.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+    /// <returns>A task that represents the asynchronous read operation. The value of the TResult parameter contains a byte array with the data read from the file.</returns>
+    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
+    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> was not found.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset"/> or <paramref name="count"/> is less than zero.</exception>
+    public async Task<byte[]> ReadBytesAsync(int offset, int count, CancellationToken cancellationToken = default)
+    {
+        Guard.AgainstNegative(() => offset); // Throws ArgumentOutOfRangeException
+        Guard.AgainstNegative(() => count); // Throws ArgumentOutOfRangeException
+
+        await using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+        if (offset >= stream.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
+        }
+
+        stream.Seek(offset, SeekOrigin.Begin);
+
+        var buffer = new byte[count];
+        var bytesRead = 0;
+        while (bytesRead < count)
+        {
+            var read = await stream.ReadAsync(buffer.AsMemory(bytesRead, count - bytesRead), cancellationToken).ConfigureAwait(false);
+            if (read == 0) break; // End of file reached
+            bytesRead += read;
+        }
+
+        // If fewer bytes were read than requested, resize the buffer.
+        if (bytesRead < count)
+        {
+            Array.Resize(ref buffer, bytesRead);
+        }
+
+        return buffer;
+    }
+
     /// <inheritdoc />
     /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>

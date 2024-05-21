@@ -13,12 +13,15 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using System.Text;
+
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 public sealed class StorageFileTests : IDisposable
 {
     // Create a temporary file path for testing purposes
     private readonly string _tempFilePath = Path.GetTempFileName();
+    private const string TestContent = "Hello, World!";
 
     public void Dispose()
     {
@@ -33,10 +36,10 @@ public sealed class StorageFileTests : IDisposable
     public void Constructor_ValidPath_ShouldNotThrow()
     {
         // Arrange & Act
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
 
         // Assert
-        Assert.NotNull(fileSystem);
+        Assert.NotNull(storageFile);
     }
 
     [Fact]
@@ -62,11 +65,11 @@ public sealed class StorageFileTests : IDisposable
     public void Create_FileExistenceHandlingOverwrite_ShouldOverwriteFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         File.WriteAllText(_tempFilePath, "Original content");
 
         // Act
-        fileSystem.Create(FileExistenceHandling.Overwrite);
+        storageFile.Create(FileExistenceHandling.Overwrite);
 
         // Assert
         Assert.Empty(File.ReadAllText(_tempFilePath));
@@ -76,11 +79,11 @@ public sealed class StorageFileTests : IDisposable
     public void Create_FileExistenceHandlingDoNothingIfExists_ShouldNotOverwriteFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         File.WriteAllText(_tempFilePath, "Original content");
 
         // Act
-        fileSystem.Create(FileExistenceHandling.DoNothingIfExists);
+        storageFile.Create(FileExistenceHandling.DoNothingIfExists);
 
         // Assert
         Assert.Equal("Original content", File.ReadAllText(_tempFilePath));
@@ -90,11 +93,11 @@ public sealed class StorageFileTests : IDisposable
     public void Create_FileExistenceHandlingThrowIfExists_ShouldThrowIOException()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         File.WriteAllText(_tempFilePath, "Original content");
 
         // Act & Assert
-        var ex = Assert.Throws<IOException>(() => fileSystem.Create(FileExistenceHandling.ThrowIfExists));
+        var ex = Assert.Throws<IOException>(() => storageFile.Create(FileExistenceHandling.ThrowIfExists));
         Assert.Equal($"File '{_tempFilePath}' already exists.", ex.Message);
     }
 
@@ -102,11 +105,11 @@ public sealed class StorageFileTests : IDisposable
     public void Exists_FileExists_ShouldReturnTrue()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         File.WriteAllText(_tempFilePath, "Content");
 
         // Act
-        var exists = fileSystem.Exists();
+        var exists = storageFile.Exists();
 
         // Assert
         Assert.True(exists);
@@ -116,10 +119,10 @@ public sealed class StorageFileTests : IDisposable
     public void Exists_FileDoesNotExist_ShouldReturnFalse()
     {
         // Arrange
-        var fileSystem = new StorageFile("nonexistentfile.tmp");
+        var storageFile = new StorageFile("nonexistentfile.tmp");
 
         // Act
-        var exists = fileSystem.Exists();
+        var exists = storageFile.Exists();
 
         // Assert
         Assert.False(exists);
@@ -129,10 +132,10 @@ public sealed class StorageFileTests : IDisposable
     public void Open_ValidPath_ShouldOpenFileStream()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
 
         // Act
-        using var stream = fileSystem.Open();
+        using var stream = storageFile.Open();
 
         // Assert
         Assert.NotNull(stream);
@@ -142,11 +145,11 @@ public sealed class StorageFileTests : IDisposable
     public void Delete_FileExists_ShouldDeleteFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         File.WriteAllText(_tempFilePath, "Content");
 
         // Act
-        fileSystem.Delete();
+        storageFile.Delete();
 
         // Assert
         Assert.False(File.Exists(_tempFilePath));
@@ -156,10 +159,10 @@ public sealed class StorageFileTests : IDisposable
     public void Delete_FileDoesNotExist_ShouldNotThrow()
     {
         // Arrange
-        var fileSystem = new StorageFile("nonexistentfile.tmp");
+        var storageFile = new StorageFile("nonexistentfile.tmp");
 
         // Act & Assert
-        var exception = Record.Exception(() => fileSystem.Delete());
+        var exception = Record.Exception(() => storageFile.Delete());
         Assert.Null(exception);
     }
 
@@ -167,12 +170,12 @@ public sealed class StorageFileTests : IDisposable
     public void GetFileSize_FileExists_ShouldReturnCorrectSize()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "12345"u8.ToArray();
         File.WriteAllBytes(_tempFilePath, content);
 
         // Act
-        var size = fileSystem.GetFileSize();
+        var size = storageFile.GetFileSize();
 
         // Assert
         Assert.Equal(5, size);
@@ -182,10 +185,10 @@ public sealed class StorageFileTests : IDisposable
     public void GetFileName_ShouldReturnFileName()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
 
         // Act
-        var fileName = fileSystem.GetFileName();
+        var fileName = storageFile.GetFileName();
 
         // Assert
         Assert.Equal(Path.GetFileName(_tempFilePath), fileName);
@@ -195,25 +198,150 @@ public sealed class StorageFileTests : IDisposable
     public void GetFileLocation_ShouldReturnFilePath()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
 
         // Act
-        var filePath = fileSystem.GetFileLocation();
+        var filePath = storageFile.GetFileLocation();
 
         // Assert
         Assert.Equal(_tempFilePath, filePath);
     }
 
+    /// <summary>
+    /// Tests the normal case for reading bytes from a file.
+    /// </summary>
+    [Fact]
+    public async Task ReadBytes_NormalCase_ReturnsCorrectBytes()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+        var bytes = Encoding.UTF8.GetBytes(TestContent);
+        await File.WriteAllTextAsync(_tempFilePath, TestContent);
+        var result = storageFile.ReadBytes(0, bytes.Length);
+
+        Assert.Equal(TestContent, Encoding.UTF8.GetString(result));
+    }
+
+    /// <summary>
+    /// Tests reading bytes with an offset.
+    /// </summary>
+    [Fact]
+    public void ReadBytes_WithOffset_ReturnsCorrectBytes()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+        File.WriteAllText(_tempFilePath, TestContent);
+        var result = storageFile.ReadBytes(7, 5);
+
+        Assert.Equal("World", Encoding.UTF8.GetString(result));
+    }
+
+    /// <summary>
+    /// Tests reading bytes with a negative offset.
+    /// </summary>
+    [Fact]
+    public void ReadBytes_NegativeOffset_ThrowsArgumentOutOfRangeException()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => storageFile.ReadBytes(-1, 5));
+        Assert.Equal("Parameter 'offset' cannot be negative. (Parameter 'offset')", exception.Message);
+    }
+
+    /// <summary>
+    /// Tests reading bytes with a negative count.
+    /// </summary>
+    [Fact]
+    public void ReadBytes_NegativeCount_ThrowsArgumentOutOfRangeException()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => storageFile.ReadBytes(0, -1));
+        Assert.Equal("Parameter 'count' cannot be negative. (Parameter 'count')", exception.Message);
+    }
+
+    /// <summary>
+    /// Tests reading bytes from a non-existent file.
+    /// </summary>
+    [Fact]
+    public void ReadBytes_FileNotFound_ThrowsFileNotFoundException()
+    {
+        var storageFile = new StorageFile("nonexistentfile.bin");
+
+        var exception = Assert.Throws<FileNotFoundException>(() => storageFile.ReadBytes(0, 5));
+        Assert.StartsWith("Could not find file '", exception.Message);
+    }
+
+    /// <summary>
+    /// Tests the normal case for asynchronously reading bytes from a file.
+    /// </summary>
+    [Fact]
+    public async Task ReadBytesAsync_NormalCase_ReturnsCorrectBytes()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+        var bytes = Encoding.UTF8.GetBytes(TestContent);
+        await File.WriteAllTextAsync(_tempFilePath, TestContent);
+        var result = await storageFile.ReadBytesAsync(0, bytes.Length);
+
+        Assert.Equal(TestContent, Encoding.UTF8.GetString(result));
+    }
+
+    /// <summary>
+    /// Tests asynchronously reading bytes with an offset.
+    /// </summary>
+    [Fact]
+    public async Task ReadBytesAsync_WithOffset_ReturnsCorrectBytes()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+        await File.WriteAllTextAsync(_tempFilePath, TestContent);
+        var result = await storageFile.ReadBytesAsync(7, 5);
+
+        Assert.Equal("World", Encoding.UTF8.GetString(result));
+    }
+
+    /// <summary>
+    /// Tests asynchronously reading bytes with a negative offset.
+    /// </summary>
+    [Fact]
+    public async Task ReadBytesAsync_NegativeOffset_ThrowsArgumentOutOfRangeException()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => storageFile.ReadBytesAsync(-1, 5));
+        Assert.Equal("Parameter 'offset' cannot be negative. (Parameter 'offset')", exception.Message);
+    }
+
+    /// <summary>
+    /// Tests asynchronously reading bytes with a negative count.
+    /// </summary>
+    [Fact]
+    public async Task ReadBytesAsync_NegativeCount_ThrowsArgumentOutOfRangeException()
+    {
+        var storageFile = new StorageFile(_tempFilePath);
+
+        var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => storageFile.ReadBytesAsync(0, -1));
+        Assert.Equal("Parameter 'count' cannot be negative. (Parameter 'count')", exception.Message);
+    }
+
+    /// <summary>
+    /// Tests asynchronously reading bytes from a non-existent file.
+    /// </summary>
+    [Fact]
+    public async Task ReadBytesAsync_FileNotFound_ThrowsFileNotFoundException()
+    {
+        var storageFile = new StorageFile("nonexistentfile.bin");
+
+        var exception = await Assert.ThrowsAsync<FileNotFoundException>(() => storageFile.ReadBytesAsync(0, 5));
+        Assert.StartsWith("Could not find file '", exception.Message);
+    }
     [Fact]
     public void ReadAllBytes_FileExists_ShouldReturnCorrectContent()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content"u8.ToArray();
         File.WriteAllBytes(_tempFilePath, content);
 
         // Act
-        var result = fileSystem.ReadAllBytes();
+        var result = storageFile.ReadAllBytes();
 
         // Assert
         Assert.Equal(content, result);
@@ -223,12 +351,12 @@ public sealed class StorageFileTests : IDisposable
     public async Task ReadAllBytesAsync_FileExists_ShouldReturnCorrectContent()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content"u8.ToArray();
         await File.WriteAllBytesAsync(_tempFilePath, content);
 
         // Act
-        var result = await fileSystem.ReadAllBytesAsync();
+        var result = await storageFile.ReadAllBytesAsync();
 
         // Assert
         Assert.Equal(content, result);
@@ -238,12 +366,12 @@ public sealed class StorageFileTests : IDisposable
     public void ReadAllText_FileExists_ShouldReturnCorrectContent()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content";
         File.WriteAllText(_tempFilePath, content, Encoding.UTF8);
 
         // Act
-        var result = fileSystem.ReadAllText(Encoding.UTF8);
+        var result = storageFile.ReadAllText(Encoding.UTF8);
 
         // Assert
         Assert.Equal(content, result);
@@ -253,12 +381,12 @@ public sealed class StorageFileTests : IDisposable
     public async Task ReadAllTextAsync_FileExists_ShouldReturnCorrectContent()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content";
         await File.WriteAllTextAsync(_tempFilePath, content, Encoding.UTF8);
 
         // Act
-        var result = await fileSystem.ReadAllTextAsync(Encoding.UTF8);
+        var result = await storageFile.ReadAllTextAsync(Encoding.UTF8);
 
         // Assert
         Assert.Equal(content, result);
@@ -268,11 +396,11 @@ public sealed class StorageFileTests : IDisposable
     public void WriteAllBytes_ShouldWriteContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content"u8.ToArray();
 
         // Act
-        fileSystem.WriteAllBytes(content);
+        storageFile.WriteAllBytes(content);
 
         // Assert
         var fileContent = File.ReadAllBytes(_tempFilePath);
@@ -283,11 +411,11 @@ public sealed class StorageFileTests : IDisposable
     public async Task WriteAllBytesAsync_ShouldWriteContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content"u8.ToArray();
 
         // Act
-        await fileSystem.WriteAllBytesAsync(content);
+        await storageFile.WriteAllBytesAsync(content);
 
         // Assert
         var fileContent = await File.ReadAllBytesAsync(_tempFilePath);
@@ -298,11 +426,11 @@ public sealed class StorageFileTests : IDisposable
     public void WriteAllText_ShouldWriteContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content";
 
         // Act
-        fileSystem.WriteAllText(content, Encoding.UTF8);
+        storageFile.WriteAllText(content, Encoding.UTF8);
 
         // Assert
         var fileContent = File.ReadAllText(_tempFilePath, Encoding.UTF8);
@@ -313,11 +441,11 @@ public sealed class StorageFileTests : IDisposable
     public async Task WriteAllTextAsync_ShouldWriteContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var content = "Content";
 
         // Act
-        await fileSystem.WriteAllTextAsync(content, Encoding.UTF8);
+        await storageFile.WriteAllTextAsync(content, Encoding.UTF8);
 
         // Assert
         var fileContent = await File.ReadAllTextAsync(_tempFilePath, Encoding.UTF8);
@@ -328,13 +456,13 @@ public sealed class StorageFileTests : IDisposable
     public void AppendAllBytes_ShouldAppendContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var initialContent = "Initial"u8.ToArray();
         var appendContent = "Append"u8.ToArray();
         File.WriteAllBytes(_tempFilePath, initialContent);
 
         // Act
-        fileSystem.AppendAllBytes(appendContent);
+        storageFile.AppendAllBytes(appendContent);
 
         // Assert
         var expectedContent = "InitialAppend"u8.ToArray();
@@ -346,13 +474,13 @@ public sealed class StorageFileTests : IDisposable
     public async Task AppendAllBytesAsync_ShouldAppendContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var initialContent = "Initial"u8.ToArray();
         var appendContent = "Append"u8.ToArray();
         await File.WriteAllBytesAsync(_tempFilePath, initialContent);
 
         // Act
-        await fileSystem.AppendAllBytesAsync(appendContent);
+        await storageFile.AppendAllBytesAsync(appendContent);
 
         // Assert
         var expectedContent = "InitialAppend"u8.ToArray();
@@ -364,13 +492,13 @@ public sealed class StorageFileTests : IDisposable
     public void AppendAllText_ShouldAppendContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var initialContent = "Initial";
         var appendContent = "Append";
         File.WriteAllText(_tempFilePath, initialContent, Encoding.UTF8);
 
         // Act
-        fileSystem.AppendAllText(appendContent, Encoding.UTF8);
+        storageFile.AppendAllText(appendContent, Encoding.UTF8);
 
         // Assert
         var expectedContent = "InitialAppend";
@@ -382,13 +510,13 @@ public sealed class StorageFileTests : IDisposable
     public async Task AppendAllTextAsync_ShouldAppendContentToFile()
     {
         // Arrange
-        var fileSystem = new StorageFile(_tempFilePath);
+        var storageFile = new StorageFile(_tempFilePath);
         var initialContent = "Initial";
         var appendContent = "Append";
         await File.WriteAllTextAsync(_tempFilePath, initialContent, Encoding.UTF8);
 
         // Act
-        await fileSystem.AppendAllTextAsync(appendContent, Encoding.UTF8);
+        await storageFile.AppendAllTextAsync(appendContent, Encoding.UTF8);
 
         // Assert
         var expectedContent = "InitialAppend";
