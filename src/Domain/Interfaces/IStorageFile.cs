@@ -13,10 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-
 namespace Boutquin.Storage.Domain.Interfaces;
-
-using System.Text;
 
 /// <summary>
 /// Interface for basic file operations.

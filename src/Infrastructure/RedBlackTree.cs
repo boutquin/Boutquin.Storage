@@ -18,38 +18,12 @@ namespace Boutquin.Storage.Infrastructure;
 /// <summary>
 /// Implementation of a red-black tree data structure.
 /// </summary>
-/// <remarks>
-/// Initializes a new instance of the <see cref="RedBlackTree{TKey, TValue}"/> class.
-/// </remarks>
-/// <param name="maxSize">The maximum size of the red-black tree.</param>
 /// <typeparam name="TKey">The type of the keys in the tree.</typeparam>
 /// <typeparam name="TValue">The type of the values in the tree.</typeparam>
 /// <remarks>
-/// <b>Theory of Red-Black Tree:</b>
-/// A red-black tree is a self-balancing binary search tree that ensures the tree remains balanced, providing O(log n) time complexity for 
+/// <para>A red-black tree is a self-balancing binary search tree that ensures the tree remains balanced, providing O(log n) time complexity for 
 /// insertion, deletion, and lookup operations. It achieves balance by enforcing properties on the nodes, such as node color (red or black) 
-/// and constraints on the relationships between parent and child nodes. The key properties include:
-/// - Each node is either red or black.
-/// - The root is always black.
-/// - Red nodes cannot have red children (no two red nodes can be adjacent).
-/// - Every path from a node to its descendant null nodes must have the same number of black nodes.
-/// 
-/// <b>Pros and Cons in the Context of an LSM-tree:</b>
-/// 
-/// Pros:
-/// - **Efficient Operations**: The self-balancing nature ensures O(log n) complexity for insertions, deletions, and lookups, making it efficient 
-///   for handling dynamic data.
-/// - **Balanced Structure**: Maintains a balanced tree, preventing the performance degradation that can occur with unbalanced trees.
-/// - **Sorted Order**: Keeps key-value pairs in sorted order, which is essential for the efficient creation of SSTables during the flush process.
-/// 
-/// Cons:
-/// - **Complexity**: Red-black trees are more complex to implement and manage compared to simpler data structures like hash tables or linked lists.
-/// - **Overhead**: The balancing operations (rotations and color changes) introduce some overhead during insertions and deletions, although this 
-///   is generally mitigated by the balanced structure.
-/// 
-/// In the context of an LSM-tree, the red-black tree is particularly effective for optimizing write operations. By maintaining an efficient, 
-/// balanced, in-memory structure, it allows for quick write operations and provides an ordered set of data that can be efficiently flushed 
-/// to disk as a sorted SSTable, improving the overall performance of the LSM-tree.
+/// and constraints on the relationships between parent and child nodes.</para>
 /// </remarks>
 public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey, TValue> 
     where TKey : IComparable<TKey>

@@ -21,29 +21,29 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <typeparam name="TKey">The type of the keys in the SSTable.</typeparam>
 /// <typeparam name="TValue">The type of the values in the SSTable.</typeparam>
 /// <remarks>
-/// <b>Theory:</b>
-/// A Sorted String Table (SSTable) is an immutable data structure used in the Log-Structured Merge-Tree (LSM-tree) architecture. 
+/// <para><b>Theory:</b></para>
+/// <para>A Sorted String Table (SSTable) is an immutable data structure used in the Log-Structured Merge-Tree (LSM-tree) architecture. 
 /// SSTables are written to disk as the result of flushing the in-memory MemTable when it becomes full. SSTables contain sorted key-value pairs, 
-/// which allows for efficient range queries and merges.
+/// which allows for efficient range queries and merges.</para>
 /// 
-/// In the LSM-tree, write operations are first handled by the MemTable, an in-memory data structure. When the MemTable reaches its size threshold, 
+/// <para>In the LSM-tree, write operations are first handled by the MemTable, an in-memory data structure. When the MemTable reaches its size threshold, 
 /// it is flushed to disk, creating a new SSTable. This process is efficient because the MemTable already maintains the key-value pairs in sorted 
-/// order, allowing the SSTable to be written sequentially to disk.
+/// order, allowing the SSTable to be written sequentially to disk.</para>
 /// 
-/// SSTables are immutable, meaning once they are written, they do not change. This immutability ensures that read operations can be performed 
+/// <para>SSTables are immutable, meaning once they are written, they do not change. This immutability ensures that read operations can be performed 
 /// without locking, thus improving read performance. To manage deleted and updated records, compaction processes merge and reorganize SSTables, 
-/// discarding obsolete data.
+/// discarding obsolete data.</para>
 /// 
-/// <b>Choices of Implementation:</b>
-/// - **Standard SSTable**: Stores sorted key-value pairs with indexing for efficient lookups. Simple to implement and provides good read performance.
-/// - **Indexed SSTable**: Extends the standard SSTable by adding more advanced indexing structures to further speed up read operations. More complex 
-///   to implement but can significantly improve performance for large datasets.
-/// - **Compressed SSTable**: Uses compression techniques to reduce the storage footprint. Involves additional computational overhead for compression 
-///   and decompression but can save significant disk space.
+/// <para><b>Choices of Implementation:</b></para>
+/// <para>- <b>Standard SSTable:</b> Stores sorted key-value pairs with indexing for efficient lookups. Simple to implement and provides good read performance.</para>
+/// <para>- <b>Indexed SSTable:</b> Extends the standard SSTable by adding more advanced indexing structures to further speed up read operations. More complex 
+///   to implement but can significantly improve performance for large datasets.</para>
+/// <para>- <b>Compressed SSTable:</b> Uses compression techniques to reduce the storage footprint. Involves additional computational overhead for compression 
+///   and decompression but can save significant disk space.</para>
 /// 
-/// The choice of SSTable implementation depends on the specific requirements of the application, such as the need for read performance, storage 
-/// efficiency, and complexity.
-/// </remarks>\
+/// <para>The choice of SSTable implementation depends on the specific requirements of the application, such as the need for read performance, storage 
+/// efficiency, and complexity.</para>
+/// </remarks>
 public interface ISortedStringTable<TKey, TValue> : IStorageFile where TKey : IComparable<TKey>
 {
     /// <summary>

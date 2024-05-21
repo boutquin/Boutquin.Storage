@@ -20,29 +20,29 @@ namespace Boutquin.Storage.Infrastructure;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the Bloom filter.</typeparam>
 /// <remarks>
-/// <b>Theory of Standard Bloom Filter:</b>
-/// A standard Bloom filter is a straightforward implementation that uses a bit array and multiple hash functions to provide probabilistic set 
+/// <para><b>Theory of Standard Bloom Filter:</b></para>
+/// <para>A standard Bloom filter is a straightforward implementation that uses a bit array and multiple hash functions to provide probabilistic set 
 /// membership testing. When an element is added, each hash function processes the element and sets corresponding bits in the bit array. To check 
 /// if an element is in the set, the Bloom filter processes the element with the same hash functions and checks the bits. If all the bits are set, 
-/// the element might be in the set; if any bit is not set, the element is definitely not in the set.
+/// the element might be in the set; if any bit is not set, the element is definitely not in the set.</para>
 /// 
-/// <b>Pros and Cons in the Context of an LSM-tree:</b>
+/// <para><b>Pros and Cons in the Context of an LSM-tree:</b></para>
 /// 
-/// Pros:
-/// - **Space-Efficient**: Uses a fixed-size bit array, making it very memory efficient.
-/// - **Fast Operations**: Both adding elements and checking membership are fast operations, typically O(k) where k is the number of hash functions.
-/// - **Simplicity**: Easy to implement and integrate with existing systems.
+/// <para><b>Pros:</b></para>
+/// <para>- <b>Space-Efficient:</b> Uses a fixed-size bit array, making it very memory efficient.</para>
+/// <para>- <b>Fast Operations:</b> Both adding elements and checking membership are fast operations, typically O(k) where k is the number of hash functions.</para>
+/// <para>- <b>Simplicity:</b> Easy to implement and integrate with existing systems.</para>
 /// 
-/// Cons:
-/// - **False Positives**: There is a probability of false positives, meaning the filter might indicate that an element is in the set when it is not. 
-///   This requires careful tuning of the bit array size and number of hash functions to minimize false positives.
-/// - **No Deletions**: Once an element is added, it cannot be removed. This makes the standard Bloom filter unsuitable for dynamic datasets where 
-///   elements need to be deleted.
-/// - **Fixed Size**: The size of the bit array is fixed at creation, which means it cannot dynamically adjust to the size of the dataset.
+/// <para><b>Cons:</b></para>
+/// <para>- <b>False Positives:</b> There is a probability of false positives, meaning the filter might indicate that an element is in the set when it is not. 
+///   This requires careful tuning of the bit array size and number of hash functions to minimize false positives.</para>
+/// <para>- <b>No Deletions:</b> Once an element is added, it cannot be removed. This makes the standard Bloom filter unsuitable for dynamic datasets where 
+///   elements need to be deleted.</para>
+/// <para>- <b>Fixed Size:</b> The size of the bit array is fixed at creation, which means it cannot dynamically adjust to the size of the dataset.</para>
 /// 
-/// In the context of an LSM-tree, the standard Bloom filter is particularly effective for optimizing read operations. By quickly determining if a key 
+/// <para>In the context of an LSM-tree, the standard Bloom filter is particularly effective for optimizing read operations. By quickly determining if a key 
 /// is not present in an SSTable, it reduces the number of disk reads, significantly improving read performance. However, the filter must be carefully 
-/// tuned to balance false positive rates and memory usage.
+/// tuned to balance false positive rates and memory usage.</para>
 /// </remarks>
 public sealed class StandardBloomFilter<TKey> : IBloomFilter<TKey> 
 {
