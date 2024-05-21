@@ -89,14 +89,14 @@ public interface IStorageEngine<in TKey, TValue> where TKey : IComparable<TKey>
     Task WriteAsync(TKey key, TValue value, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Reads the value associated with the specified key from the storage engine.
+    /// Finds the value associated with the specified key in the storage engine.
     /// </summary>
-    /// <param name="key">The key to read.</param>
+    /// <param name="key">The key to locate.</param>
     /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
     /// <returns>
-    /// A task representing the asynchronous read operation. The task result contains a tuple with a boolean indicating 
+    /// A task representing the asynchronous locate operation. The task result contains a tuple with a boolean indicating 
     /// if the key was found and the value associated with the specified key, if found; otherwise, the default value for 
     /// the type of the value parameter.
     /// </returns>
-    Task<(bool found, TValue value)> ReadAsync(TKey key, CancellationToken cancellationToken = default);
+    Task<(bool found, TValue value)> FindAsync(TKey key, CancellationToken cancellationToken = default);
 }
