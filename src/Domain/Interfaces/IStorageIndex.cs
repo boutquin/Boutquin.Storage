@@ -16,86 +16,35 @@
 namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Interface for the storage index, which manages the mapping of keys to their respective file offsets and sizes.
-/// 
-/// <para>Implementation Choices for IStorageIndex Algorithms:</para>
-/// 
-/// <para>1. B+ Tree:</para>
-/// <para>- <strong>Description</strong>: A balanced tree data structure that maintains sorted data and allows searches, 
-/// sequential access, insertions, and deletions in logarithmic time.</para>
-/// <para>- <strong>Pros</strong>:</para>
-/// <para>  - Efficient range queries due to the sorted order of keys.</para>
-/// <para>  - Good performance for both read and write operations.</para>
-/// <para>  - Well-suited for disk-based storage due to minimized I/O operations.</para>
-/// <para>- <strong>Cons</strong>:</para>
-/// <para>  - More complex to implement compared to simpler data structures.</para>
-/// <para>  - Requires rebalancing operations on insertions and deletions, which can be computationally expensive.</para>
-/// 
-/// <para>2. Hash Table:</para>
-/// <para>- <strong>Description</strong>: A data structure that maps keys to values using a hash function to compute 
-/// an index into an array of buckets.</para>
-/// <para>- <strong>Pros</strong>:</para>
-/// <para>  - Very fast lookups on average (O(1) time complexity).</para>
-/// <para>  - Simple and straightforward to implement.</para>
-/// <para>- <strong>Cons</strong>:</para>
-/// <para>  - Does not maintain order, making range queries inefficient.</para>
-/// <para>  - Performance can degrade if the hash function results in many collisions or if the table needs to be resized frequently.</para>
-/// 
-/// <para>3. Skip List:</para>
-/// <para>- <strong>Description</strong>: A probabilistic data structure that allows fast search, insertion, and 
-/// deletion operations, similar to a balanced tree but easier to implement.</para>
-/// <para>- <strong>Pros</strong>:</para>
-/// <para>  - Easier to implement than balanced trees.</para>
-/// <para>  - Good average-case performance for search, insertion, and deletion (O(log n) time complexity).</para>
-/// <para>- <strong>Cons</strong>:</para>
-/// <para>  - Performance can degrade in the worst case.</para>
-/// <para>  - Requires additional space for the levels of the skip list.</para>
-/// 
-/// <para>4. Trie (Prefix Tree):</para>
-/// <para>- <strong>Description</strong>: A tree-like data structure that stores a dynamic set of strings, where the keys 
-/// are usually strings or sequences of characters.</para>
-/// <para>- <strong>Pros</strong>:</para>
-/// <para>  - Very efficient for prefix-based searches and autocomplete functionality.</para>
-/// <para>  - Fast lookups with predictable time complexity (O(m), where m is the length of the key).</para>
-/// <para>- <strong>Cons</strong>:</para>
-/// <para>  - Can be memory-intensive, especially for large datasets with long common prefixes.</para>
-/// <para>  - More complex to implement and manage compared to hash tables.</para>
-/// 
-/// <para>5. AVL Tree:</para>
-/// <para>- <strong>Description</strong>: A self-balancing binary search tree where the difference in heights between 
-/// left and right subtrees is at most one.</para>
-/// <para>- <strong>Pros</strong>:</para>
-/// <para>  - Guarantees O(log n) time complexity for search, insertion, and deletion.</para>
-/// <para>  - Ensures the tree remains balanced, improving performance over unbalanced trees.</para>
-/// <para>- <strong>Cons</strong>:</para>
-/// <para>  - Requires rebalancing on insertions and deletions, which can be computationally expensive.</para>
-/// <para>  - More complex to implement compared to simpler data structures.</para>
-/// 
-/// <para>Each of these algorithms offers different trade-offs in terms of performance, complexity, and suitability 
-/// for various use cases. The choice of algorithm will depend on the specific requirements of your application, 
-/// such as the need for fast lookups, efficient range queries, memory usage constraints, and ease of implementation.</para>
+/// Provides an interface for a storage index with asynchronous operations, 
+/// potentially involving I/O operations. This interface extends the basic 
+/// key-value store functionality, specifically for implementing indexes 
+/// that map keys to values for efficient lookups and updates.
 /// </summary>
-/// <typeparam name="TKey">The type of the keys in the storage index.</typeparam>
-public interface IStorageIndex<in TKey> where TKey : IComparable<TKey>
+/// <typeparam name="TKey">The type of the keys in the index.</typeparam>
+/// <typeparam name="TValue">The type of the values in the index.</typeparam>
+/// <remarks>
+/// <para><b>Usage and Applications:</b></para>
+/// <para>This interface is designed for creating indexes that enhance 
+/// the performance and efficiency of data retrieval operations. Indexes 
+/// can be used to support secondary lookups, optimize query performance, 
+/// and manage large datasets efficiently.</para>
+///
+/// <para><b>Typical Implementations:</b></para>
+/// <para>- **B-Tree Indexes:** Balanced tree structures that maintain sorted 
+/// data and allow searches, sequential access, insertions, and deletions in logarithmic time.</para>
+/// <para>- **Hash Indexes:** Provide fast access to data by mapping keys to values 
+/// through a hash function, suitable for equality comparisons.</para>
+/// <para>- **Full-Text Indexes:** Facilitate efficient searching of text data 
+/// by indexing words or phrases, commonly used in search engines.</para>
+///
+/// <para><b>Methods:</b></para>
+/// <para>- <see cref="IKeyValueStore{TKey, TValue.SetAsync"/>: Sets or updates the value for a specified key.</para>
+/// <para>- <see cref="IKeyValueStore{TKey, TValue.TryGetValueAsync"/>: Attempts to retrieve the value associated with a specified key.</para>
+/// <para>- <see cref="IKeyValueStore{TKey, TValue}.ContainsKeyAsync"/>: Checks whether the index contains the specified key.</para>
+/// <para>- <see cref="IKeyValueStore{TKey, TValue.RemoveAsync"/>: Removes the value associated with the specified key.</para>
+/// </remarks>
+public interface IStorageIndex<in TKey, TValue> : IKeyValueStore<TKey, TValue> where TKey : IComparable<TKey>
 {
-    /// <summary>
-    /// Asynchronously adds or updates the key, offset, and count to the index.
-    /// </summary>
-    /// <param name="key">The key to save.</param>
-    /// <param name="offset">The file offset associated with the key.</param>
-    /// <param name="count">The size of the value in bytes associated with the key.</param>
-    /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-    /// <returns>A task representing the asynchronous add or update operation.</returns>
-    Task AddOrUpdateAsync(TKey key, long offset, int count, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Asynchronously retrieves the offset and count for the specified key from the index.
-    /// </summary>
-    /// <param name="key">The key to retrieve the offset and count for.</param>
-    /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-    /// <returns>
-    /// A task representing the asynchronous retrieve operation. The task result contains a tuple with a boolean indicating 
-    /// if the key was found, the offset, and the count. If the key is not found, the boolean is false, and the offset and count are default values.
-    /// </returns>
-    Task<(bool found, long offset, int count)> RetrieveAsync(TKey key, CancellationToken cancellationToken = default);
+    // Additional methods specific to the index can be added here.
 }
