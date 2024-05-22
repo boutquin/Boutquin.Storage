@@ -49,7 +49,7 @@ namespace Boutquin.Storage.Domain.ValueObjects;
 /// <param name="LastModificationTime">The timestamp when the SSTable was last modified.</param>
 /// <param name="FileName">The name of the SSTable file.</param>
 /// <param name="FileLocation">The location (path) of the SSTable file.</param>
-public readonly record struct SSTableMetadata(
+public readonly record struct SsTableMetadata(
     int EntryCount,
     long FileSize,
     DateTime CreationTime,
