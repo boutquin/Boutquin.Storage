@@ -29,12 +29,16 @@ public static class Program
 
     public static async Task Main(string[] args)
     {
-        var store = new FileKeyValueStore<Key, City>(
+        var index = new InMemoryFileIndex<Key>();
+        var store = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
             "database",
+            index,
             key => key.Value.ToString(),
             str => new Key(long.Parse(str)),
             value => JsonSerializer.Serialize(value),
             str => JsonSerializer.Deserialize<City>(str));
+
+        store.Clear();
 
         // db_set 123456 '{"name":"London","attractions":["Big Ben","London Eye"]}'
         await store.SetAsync(new Key(123456), new City("London",
@@ -50,12 +54,14 @@ public static class Program
         ]));
 
         // db_get 42
+        Console.WriteLine("db_get 42");
         var value = await store.TryGetValueAsync(new Key(42));
         if (value.Found)
         {
             Console.WriteLine(JsonSerializer.Serialize(value.Value));
             // Output: {"name":"San Francisco","attractions":["Golden Gate Bridge"]}
         }
+        Console.WriteLine();
 
         // db_set 42 '{"name":"San Francisco","attractions":["Exploratorium"]}'
         await store.SetAsync(new Key(42), new City("San Francisco",
@@ -64,19 +70,23 @@ public static class Program
         ]));
 
         // db_get 42
+        Console.WriteLine("db_get 42");
         value = await store.TryGetValueAsync(new Key(42));
         if (value.Found)
         {
             Console.WriteLine(JsonSerializer.Serialize(value.Value));
             // Output: {"name":"San Francisco","attractions":["Exploratorium"]}
         }
+        Console.WriteLine();
 
         // cat database
+        Console.WriteLine("cat database");
         var items = await store.GetAllItems();
         foreach (var item in items)
         {
             Console.WriteLine($"{item.Key.Value}, {JsonSerializer.Serialize(item.Value)}");
         }
+        Console.WriteLine();
         // Output:
         // 123456, {"name":"London","attractions":["Big Ben","London Eye"]}
         // 42, {"name":"San Francisco","attractions":["Golden Gate Bridge"]}

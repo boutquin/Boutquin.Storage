@@ -27,3 +27,4 @@ global using System.Threading;
 global using Boutquin.Domain.Helpers;
 global using Boutquin.Storage.Domain.Enums;
 global using Boutquin.Storage.Domain.Interfaces;
+global using Boutquin.Storage.Domain.ValueObjects;

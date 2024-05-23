@@ -23,7 +23,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
 /// <remarks>
-/// <para>The following example demonstrates how to use the <see cref="FileKeyValueStore{K, V}"/> class:</para>
+/// <para>The following example demonstrates how to use the <see cref="AppendOnlyFileStorageEngine{K, V}"/> class:</para>
 /// <code>
 /// public readonly record struct Key(long Value) : IComparable&lt;Key&gt;
 /// {
@@ -35,7 +35,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// public readonly record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
 /// public readonly record struct Attraction(string Name);
 ///
-/// var store = new FileKeyValueStore&lt;Key, City&gt;(
+/// var store = new AppendOnlyFileStorageEngine&lt;Key, City&gt;(
 ///     "database",
 ///     key => key.Value.ToString(),
 ///     str => new Key(long.Parse(str)),
@@ -59,7 +59,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// }
 /// </code>
 /// </remarks>
-public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> where TKey : IComparable<TKey>
+public class AppendOnlyFileStorageEngine<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> where TKey : IComparable<TKey>
 {
     private readonly string _databaseFilePath;
     private readonly Func<TKey, string> _keySerializer;
@@ -68,7 +68,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     private readonly Func<string, TValue> _valueDeserializer;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileKeyValueStore{K, V}"/> class.
+    /// Initializes a new instance of the <see cref="AppendOnlyFileStorageEngine{K, V}"/> class.
     /// </summary>
     /// <param name="databaseFilePath">The path to the database file.</param>
     /// <param name="keySerializer">A function to serialize keys to strings.</param>
@@ -77,7 +77,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     /// <param name="valueDeserializer">A function to deserialize values from strings.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="databaseFilePath"/> is null, empty, or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown when any of the serializer or deserializer functions are null.</exception>
-    public FileKeyValueStore(
+    public AppendOnlyFileStorageEngine(
         string databaseFilePath,
         Func<TKey, string> keySerializer,
         Func<string, TKey> keyDeserializer,
@@ -125,7 +125,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     /// public readonly record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
     /// public readonly record struct Attraction(string Name);
     ///
-    /// var store = new FileKeyValueStore&lt;Key, City&gt;(
+    /// var store = new AppendOnlyFileStorageEngine&lt;Key, City&gt;(
     ///     "database",
     ///     key => key.Value.ToString(),
     ///     str => new Key(long.Parse(str)),
@@ -175,7 +175,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     /// public readonly record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
     /// public readonly record struct Attraction(string Name);
     ///
-    /// var store = new FileKeyValueStore&lt;Key, City&gt;(
+    /// var store = new AppendOnlyFileStorageEngine&lt;Key, City&gt;(
     ///     "database",
     ///     key => key.Value.ToString(),
     ///     str => new Key(long.Parse(str)),
@@ -239,7 +239,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     /// public readonly record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
     /// public readonly record struct Attraction(string Name);
     ///
-    /// var store = new FileKeyValueStore&lt;Key, City&gt;(
+    /// var store = new AppendOnlyFileStorageEngine&lt;Key, City&gt;(
     ///     "database",
     ///     key => key.Value.ToString(),
     ///     str => new Key(long.Parse(str)),
@@ -290,7 +290,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     /// public readonly record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
     /// public readonly record struct Attraction(string Name);
     ///
-    /// var store = new FileKeyValueStore&lt;Key, City&gt;(
+    /// var store = new AppendOnlyFileStorageEngine&lt;Key, City&gt;(
     ///     "database",
     ///     key => key.Value.ToString(),
     ///     str => new Key(long.Parse(str)),
@@ -339,7 +339,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     /// public readonly record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
     /// public readonly record struct Attraction(string Name);
     ///
-    /// var store = new FileKeyValueStore&lt;Key, City&gt;(
+    /// var store = new AppendOnlyFileStorageEngine&lt;Key, City&gt;(
     ///     "database",
     ///     key => key.Value.ToString(),
     ///     str => new Key(long.Parse(str)),
@@ -380,7 +380,7 @@ public class FileKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> 
     /// public readonly record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
     /// public readonly record struct Attraction(string Name);
     ///
-    /// var store = new FileKeyValueStore&lt;Key, City&gt;(
+    /// var store = new AppendOnlyFileStorageEngine&lt;Key, City&gt;(
     ///     "database",
     ///     key => key.Value.ToString(),
     ///     str => new Key(long.Parse(str)),
