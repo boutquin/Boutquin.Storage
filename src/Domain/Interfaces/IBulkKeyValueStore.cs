@@ -29,16 +29,10 @@ namespace Boutquin.Storage.Domain.Interfaces;
 public interface IBulkKeyValueStore<TKey, TValue> : IKeyValueStore<TKey, TValue> where TKey : IComparable<TKey>
 {
     /// <summary>
-    /// Removes all key-value pairs from the store.
-    /// </summary>
-    /// <returns>A task representing the asynchronous clear operation.</returns>
-    Task Clear();
-
-    /// <summary>
     /// Retrieves all key-value pairs from the store.
     /// </summary>
     /// <returns>A task representing the asynchronous operation. 
     /// The task result contains an enumerable collection of all key-value pairs in the store.
     /// </returns>
-    Task<IEnumerable<KeyValuePair<TKey, TValue>>> GetAllItems();
+    Task<IEnumerable<(TKey Key, TValue Value)>> GetAllItemsAsync();
 }

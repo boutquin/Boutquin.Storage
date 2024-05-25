@@ -62,4 +62,10 @@ public class InMemoryStorageIndex<TKey, TValue> : IStorageIndex<TKey, TValue> wh
         _index.Remove(key);
         return Task.CompletedTask;
     }
+
+    public Task Clear()
+    {
+        _index.Clear();
+        return Task.CompletedTask;
+    }
 }

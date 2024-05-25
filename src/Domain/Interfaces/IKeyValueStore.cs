@@ -86,4 +86,10 @@ public interface IKeyValueStore<in TKey, TValue> where TKey : IComparable<TKey>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the key is null.</exception>
     Task RemoveAsync(TKey key);
+
+    /// <summary>
+    /// Removes all key-value pairs from the store.
+    /// </summary>
+    /// <returns>A task representing the asynchronous clear operation.</returns>
+    Task Clear();
 }
