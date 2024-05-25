@@ -15,15 +15,5 @@
 //
 namespace Boutquin.Storage.Samples;
 
-public readonly record struct Attraction(string Name) : ISerializable<Attraction>
-{
-    public void Serialize(BinaryWriter writer)
-    {
-        writer.Write(Name);
-    }
-
-    public static Attraction Deserialize(BinaryReader reader)
-    {
-        return new Attraction(reader.ReadString());
-    }
-}
+[Domain.Attributes.Serializable]
+public partial record struct Attraction(string Name);

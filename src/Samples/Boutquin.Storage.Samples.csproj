@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Boutquin.Storage.Infrastructure.Generator\Boutquin.Storage.Infrastructure.Generator.csproj" />
     <ProjectReference Include="..\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
   </ItemGroup>
 

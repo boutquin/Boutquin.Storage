@@ -24,7 +24,7 @@ public class BinaryEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue
 {
     public async Task WriteEntryAsync(Stream stream, TKey key, TValue value)
     {
-        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
         {
             key.Serialize(writer);
             value.Serialize(writer);
@@ -34,7 +34,7 @@ public class BinaryEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue
 
     public (TKey Key, TValue Value)? ReadEntry(Stream stream)
     {
-        using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        using (var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true))
         {
             if (!CanRead(stream))
             {

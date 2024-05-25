@@ -13,7 +13,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-
 namespace Boutquin.Storage.Samples;
 
 public static class Program
@@ -26,7 +25,7 @@ public static class Program
         index,
         new BinaryEntrySerializer<Key, City>());
 
-        store.Clear();
+        await store.Clear();
 
         // db_set 123456 '{"name":"London","attractions":["Big Ben","London Eye"]}'
         await store.SetAsync(new Key(123456), new City("London",

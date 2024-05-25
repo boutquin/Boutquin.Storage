@@ -15,30 +15,5 @@
 //
 namespace Boutquin.Storage.Samples;
 
-/// <summary>
-/// Represents a city with a name and attractions.
-/// </summary>
-public readonly record struct City(string Name, IEnumerable<Attraction> Attractions) : ISerializable<City>
-{
-    public void Serialize(BinaryWriter writer)
-    {
-        writer.Write(Name);
-        writer.Write(Attractions.Count());
-        foreach (var attraction in Attractions)
-        {
-            attraction.Serialize(writer);
-        }
-    }
-
-    public static City Deserialize(BinaryReader reader)
-    {
-        var name = reader.ReadString();
-        var attractionCount = reader.ReadInt32();
-        var attractions = new List<Attraction>();
-        for (int i = 0; i < attractionCount; i++)
-        {
-            attractions.Add(Attraction.Deserialize(reader));
-        }
-        return new City(name, attractions);
-    }
-}
+[Domain.Attributes.Serializable]
+public partial record struct City(string Name, IEnumerable<Attraction> Attractions);
