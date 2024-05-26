@@ -133,11 +133,9 @@ public sealed class StorageFileTests : IDisposable
         var storageFile = new StorageFile(_tempFilePath);
 
         // Act
-        using (var stream = storageFile.Open())
-        {
-            // Assert
-            Assert.NotNull(stream);
-        }
+        using var stream = storageFile.Open();
+        // Assert
+        Assert.NotNull(stream);
     }
 
     [Fact]

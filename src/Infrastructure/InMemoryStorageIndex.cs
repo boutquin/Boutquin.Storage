@@ -23,48 +23,95 @@ namespace Boutquin.Storage.Infrastructure;
 /// <typeparam name="TValue">The type of the values in the index.</typeparam>
 public class InMemoryStorageIndex<TKey, TValue> : IStorageIndex<TKey, TValue> where TKey : IComparable<TKey>
 {
-    private readonly SortedDictionary<TKey, TValue> _index = [];
+    private readonly SortedDictionary<TKey, TValue> _index = new();
 
     /// <inheritdoc/>
-    public Task SetAsync(TKey key, TValue value)
+    /// <example>
+    /// <code>
+    /// var index = new InMemoryStorageIndex&lt;int, string&gt;();
+    /// await index.SetAsync(1, "value1");
+    /// var (value, found) = await index.TryGetValueAsync(1);
+    /// Console.WriteLine($"Key: 1, Value: {value}, Found: {found}");
+    /// </code>
+    /// </example>
+    public Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
-        // Validate the key to ensure it is not null or default.
         Guard.AgainstNullOrDefault(() => key);
+        Guard.AgainstNullOrDefault(() => value);
+        cancellationToken.ThrowIfCancellationRequested();
 
         _index[key] = value;
         return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    public Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key)
+    /// <example>
+    /// <code>
+    /// var index = new InMemoryStorageIndex&lt;int, string&gt;();
+    /// await index.SetAsync(1, "value1");
+    /// var (value, found) = await index.TryGetValueAsync(1);
+    /// Console.WriteLine($"Key: 1, Value: {value}, Found: {found}");
+    /// </code>
+    /// </example>
+    public Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        // Validate the key to ensure it is not null or default.
         Guard.AgainstNullOrDefault(() => key);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return Task.FromResult(_index.TryGetValue(key, out var value) ? (value, true) : (default(TValue), false));
     }
 
     /// <inheritdoc/>
-    public Task<bool> ContainsKeyAsync(TKey key)
+    /// <example>
+    /// <code>
+    /// var index = new InMemoryStorageIndex&lt;int, string&gt;();
+    /// await index.SetAsync(1, "value1");
+    /// var contains = await index.ContainsKeyAsync(1);
+    /// Console.WriteLine($"Key 1 exists: {contains}");
+    /// </code>
+    /// </example>
+    public Task<bool> ContainsKeyAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        // Validate the key to ensure it is not null or default.
         Guard.AgainstNullOrDefault(() => key);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return Task.FromResult(_index.ContainsKey(key));
     }
 
     /// <inheritdoc/>
-    public Task RemoveAsync(TKey key)
+    /// <example>
+    /// <code>
+    /// var index = new InMemoryStorageIndex&lt;int, string&gt;();
+    /// await index.SetAsync(1, "value1");
+    /// await index.RemoveAsync(1);
+    /// var (value, found) = await index.TryGetValueAsync(1);
+    /// Console.WriteLine($"Key: 1, Value: {value}, Found: {found}"); // Found should be false
+    /// </code>
+    /// </example>
+    public Task RemoveAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        // Validate the key to ensure it is not null or default.
         Guard.AgainstNullOrDefault(() => key);
+        cancellationToken.ThrowIfCancellationRequested();
 
         _index.Remove(key);
         return Task.CompletedTask;
     }
 
-    public Task Clear()
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var index = new InMemoryStorageIndex&lt;int, string&gt;();
+    /// await index.SetAsync(1, "value1");
+    /// await index.SetAsync(2, "value2");
+    /// await index.ClearAsync();
+    /// var items = await index.GetAllItemsAsync();
+    /// Console.WriteLine($"Items count after clear: {items.Count()}");
+    /// </code>
+    /// </example>
+    public Task ClearAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _index.Clear();
         return Task.CompletedTask;
     }

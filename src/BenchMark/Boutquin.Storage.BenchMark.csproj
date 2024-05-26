@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="BenchmarkDotNet.Artifacts\" />
+  </ItemGroup>
+
 </Project>

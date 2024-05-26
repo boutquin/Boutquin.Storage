@@ -16,7 +16,7 @@
 namespace Boutquin.Storage.Infrastructure;
 
 /// <summary>
-/// In-memory implementation of the IBulkKeyValueStore interface using a SortedDictionary.
+/// In-memory implementation of the <see cref="IBulkKeyValueStore{TKey, TValue}"/> interface using a <see cref="SortedDictionary{TKey, TValue}"/>.
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the key-value store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the key-value store.</typeparam>
@@ -25,73 +25,149 @@ public class InMemoryKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TVal
     // SortedDictionary to store key-value pairs in sorted order by key.
     private readonly SortedDictionary<TKey, TValue> _store = new();
 
-    /// <summary>
-    /// Sets or updates the value for the specified key.
-    /// </summary>
-    /// <param name="key">The key to set or update.</param>
-    /// <param name="value">The value to set for the key.</param>
-    /// <returns>A completed task.</returns>
-    public Task SetAsync(TKey key, TValue value)
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var store = new InMemoryKeyValueStore&lt;int, string&gt;();
+    /// await store.SetAsync(1, "value1");
+    /// var (value, found) = await store.TryGetValueAsync(1);
+    /// Console.WriteLine($"Key: 1, Value: {value}, Found: {found}");
+    /// </code>
+    /// </example>
+    public Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
+        Guard.AgainstNullOrDefault(() => key);
+        Guard.AgainstNullOrDefault(() => value);
+        cancellationToken.ThrowIfCancellationRequested();
+
         _store[key] = value; // Set or update the value for the specified key.
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Tries to retrieve the value for the specified key.
-    /// </summary>
-    /// <param name="key">The key to retrieve the value for.</param>
-    /// <returns>A task that returns a tuple containing the value and a boolean indicating whether the key was found.</returns>
-    public Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key)
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var store = new InMemoryKeyValueStore&lt;int, string&gt;();
+    /// await store.SetAsync(1, "value1");
+    /// var (value, found) = await store.TryGetValueAsync(1);
+    /// Console.WriteLine($"Key: 1, Value: {value}, Found: {found}");
+    /// </code>
+    /// </example>
+    public Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
     {
+        Guard.AgainstNullOrDefault(() => key);
+        cancellationToken.ThrowIfCancellationRequested();
+
         var found = _store.TryGetValue(key, out var value); // Try to get the value for the specified key.
         return Task.FromResult((value, found));
     }
 
-    /// <summary>
-    /// Checks if the specified key exists in the store.
-    /// </summary>
-    /// <param name="key">The key to check for existence.</param>
-    /// <returns>A task that returns a boolean indicating whether the key exists.</returns>
-    public Task<bool> ContainsKeyAsync(TKey key)
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var store = new InMemoryKeyValueStore&lt;int, string&gt;();
+    /// await store.SetAsync(1, "value1");
+    /// var contains = await store.ContainsKeyAsync(1);
+    /// Console.WriteLine($"Key 1 exists: {contains}");
+    /// </code>
+    /// </example>
+    public Task<bool> ContainsKeyAsync(TKey key, CancellationToken cancellationToken = default)
     {
+        Guard.AgainstNullOrDefault(() => key);
+        cancellationToken.ThrowIfCancellationRequested();
+
         var contains = _store.ContainsKey(key); // Check if the key exists in the store.
         return Task.FromResult(contains);
     }
 
-    /// <summary>
-    /// Removes the specified key from the store.
-    /// </summary>
-    /// <param name="key">The key to remove.</param>
-    /// <returns>A task that returns an exception as this operation is not supported.</returns>
-    /// <exception cref="NotSupportedException">Thrown because the remove operation is not supported in an append-only storage engine.</exception>
-    public Task RemoveAsync(TKey key)
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var store = new InMemoryKeyValueStore&lt;int, string&gt;();
+    /// await store.SetAsync(1, "value1");
+    /// await store.RemoveAsync(1); // This will throw NotSupportedException.
+    /// </code>
+    /// </example>
+    public Task RemoveAsync(TKey key, CancellationToken cancellationToken = default)
     {
+        Guard.AgainstNullOrDefault(() => key);
+        cancellationToken.ThrowIfCancellationRequested();
+
         throw new NotSupportedException("Remove operation is not supported in an append-only storage engine.");
     }
 
-    /// <summary>
-    /// Clears all entries in the store.
-    /// </summary>
-    /// <returns>A completed task.</returns>
-    public Task Clear()
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var store = new InMemoryKeyValueStore&lt;int, string&gt;();
+    /// await store.SetAsync(1, "value1");
+    /// await store.SetAsync(2, "value2");
+    /// await store.ClearAsync();
+    /// var items = await store.GetAllItemsAsync();
+    /// Console.WriteLine($"Items count after clear: {items.Count()}");
+    /// </code>
+    /// </example>
+    public Task ClearAsync(CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         _store.Clear(); // Clear all entries in the store.
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Retrieves all key-value pairs in the store.
-    /// </summary>
-    /// <returns>A task that returns an IEnumerable of tuples containing the key-value pairs.</returns>
-    public Task<IEnumerable<(TKey Key, TValue Value)>> GetAllItemsAsync()
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var store = new InMemoryKeyValueStore&lt;int, string&gt;();
+    /// await store.SetAsync(1, "value1");
+    /// await store.SetAsync(2, "value2");
+    /// var items = await store.GetAllItemsAsync();
+    /// foreach (var (key, value) in items)
+    /// {
+    ///     Console.WriteLine($"Key: {key}, Value: {value}");
+    /// }
+    /// </code>
+    /// </example>
+    public Task<IEnumerable<(TKey Key, TValue Value)>> GetAllItemsAsync(CancellationToken cancellationToken = default)
     {
-        // Directly iterate over the SortedDictionary to avoid additional memory allocation and copying.
+        cancellationToken.ThrowIfCancellationRequested();
+
         var items = new List<(TKey Key, TValue Value)>();
         foreach (var kvp in _store)
         {
             items.Add((kvp.Key, kvp.Value));
         }
         return Task.FromResult<IEnumerable<(TKey Key, TValue Value)>>(items);
+    }
+
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var store = new InMemoryKeyValueStore&lt;int, string&gt;();
+    /// var items = new List&lt;KeyValuePair&lt;int, string&gt;&gt;
+    /// {
+    ///     new KeyValuePair&lt;int, string&gt;(1, "value1"),
+    ///     new KeyValuePair&lt;int, string&gt;(2, "value2")
+    /// };
+    /// await store.SetBulkAsync(items);
+    /// var allItems = await store.GetAllItemsAsync();
+    /// foreach (var (key, value) in allItems)
+    /// {
+    ///     Console.WriteLine($"Key: {key}, Value: {value}");
+    /// }
+    /// </code>
+    /// </example>
+    public Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
+    {
+        Guard.AgainstEmptyOrNullEnumerable(() => items);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        foreach (var item in items)
+        {
+            Guard.AgainstNullOrDefault(() => item.Key);
+            Guard.AgainstNullOrDefault(() => item.Value);
+            _store[item.Key] = item.Value;
+        }
+        return Task.CompletedTask;
     }
 }

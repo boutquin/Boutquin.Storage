@@ -15,5 +15,51 @@
 //
 namespace Boutquin.Storage.Domain.Attributes;
 
+using System;
+
+/// <summary>
+/// Specifies that a class or struct is serializable within the storage engine.
+/// This attribute is used to mark classes or structs that will be serialized 
+/// and deserialized when stored and retrieved from the storage engine.
+/// </summary>
+/// <remarks>
+/// The SerializableAttribute should be applied to classes or structs that need 
+/// to be persisted in a storage medium. It ensures that the marked types can 
+/// be serialized and deserialized appropriately by the storage engine.
+/// </remarks>
+/// <example>
+/// The following example shows how to use the SerializableAttribute:
+/// <code>
+/// using Boutquin.Storage.Domain.Attributes;
+///
+/// namespace Boutquin.Storage.Samples
+/// {
+///     /// &lt;summary&gt;
+///     /// A record struct that represents an attraction with a name.
+///     /// &lt;/summary&gt;
+///     [Serializable]
+///     public partial record struct Attraction(string Name);
+///
+///     /// &lt;summary&gt;
+///     /// A record struct that represents a city with a name and a collection of attractions.
+///     /// &lt;/summary&gt;
+///     [Serializable]
+///     public partial record struct City(string Name, IEnumerable&lt;Attraction&gt; Attractions);
+/// }
+/// </code>
+/// </example>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
-public sealed class SerializableAttribute : Attribute { }
+public sealed class SerializableAttribute : Attribute
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SerializableAttribute"/> class.
+    /// </summary>
+    /// <remarks>
+    /// This constructor initializes the attribute and sets it to the target class or struct.
+    /// </remarks>
+    public SerializableAttribute()
+    {
+        // Implementation logic can be added here, if needed.
+        // For example, you can enforce additional constraints or logging.
+    }
+}

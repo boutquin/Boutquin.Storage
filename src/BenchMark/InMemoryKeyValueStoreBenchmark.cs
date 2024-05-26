@@ -18,7 +18,7 @@ namespace Boutquin.Storage.BenchMark;
 /// <summary>
 /// Benchmark class for testing the InMemoryKeyValueStore implementation.
 /// </summary>
-public class InMemoryKeyValueStoreBenchmark : KeyValueStoreBenchmark<int, string>
+public class InMemoryKeyValueStoreBenchmark : KeyValueStoreBenchmark<SerializableWrapper<int>, SerializableWrapper<string>>
 {
     /// <summary>
     /// Initializes a new instance of the InMemoryKeyValueStoreBenchmark class.
@@ -26,6 +26,6 @@ public class InMemoryKeyValueStoreBenchmark : KeyValueStoreBenchmark<int, string
     /// </summary>
     public InMemoryKeyValueStoreBenchmark()
     {
-        SetStore(new InMemoryKeyValueStore<int, string>());
+        SetStore(new InMemoryKeyValueStore<SerializableWrapper<int>, SerializableWrapper<string>>());
     }
 }

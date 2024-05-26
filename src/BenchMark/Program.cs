@@ -32,17 +32,20 @@ public class Program
         // List of benchmark types
         var benchmarks = new List<Type>
         {
-            typeof(InMemoryKeyValueStoreBenchmark)
+            typeof(InMemoryKeyValueStoreBenchmark),
+            typeof(AppendOnlyFileStorageEngineBenchmark),
+            typeof(AppendOnlyFileStorageEngineWithIndexBenchmark)
             // Add other benchmark types here
         };
+
+        // Custom logger for tracking progress
+        var customLogger = new CustomLogger(benchmarks.Count);
 
         // Run benchmarks for each type
         foreach (var benchmark in benchmarks)
         {
-            Console.WriteLine($"Benchmarking {benchmark.Name}...");
-
             // Run the benchmark and capture the summary
-            var summary = BenchmarkRunner.Run(benchmark, CreateCustomConfig());
+            var summary = BenchmarkRunner.Run(benchmark, CreateCustomConfig(customLogger));
             if (summary != null)
             {
                 if (!results.ContainsKey(benchmark.Name))
@@ -51,8 +54,6 @@ public class Program
                 }
                 results[benchmark.Name].Add(summary);
             }
-
-            Console.WriteLine();
         }
 
         // Display the results
@@ -62,17 +63,22 @@ public class Program
     /// <summary>
     /// Creates a custom BenchmarkDotNet configuration.
     /// </summary>
+    /// <param name="logger">The custom logger to use for progress tracking.</param>
     /// <returns>A configured IConfig instance.</returns>
-    private static IConfig CreateCustomConfig()
+    private static IConfig CreateCustomConfig(ILogger logger)
     {
+        // Get the solution directory
+        var solutionDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
+        var artifactsPath = Path.Combine(solutionDirectory, "BenchmarkDotNet.Artifacts");
+
         return ManualConfig.Create(DefaultConfig.Instance)
             .WithOptions(ConfigOptions.DisableOptimizationsValidator)
-            .AddLogger(ConsoleLogger.Default)
+            .AddLogger(logger)
             .AddColumnProvider(DefaultColumnProviders.Instance)
             .AddExporter(MarkdownExporter.Default)
             .AddJob(Job.Default.WithRuntime(CoreRuntime.Core80))
             .WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest))
-            .WithArtifactsPath("./BenchmarkDotNet.Artifacts/");
+            .WithArtifactsPath(artifactsPath);
     }
 
     /// <summary>

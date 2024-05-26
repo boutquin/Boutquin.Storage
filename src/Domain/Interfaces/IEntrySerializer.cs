@@ -24,9 +24,32 @@ public interface IEntrySerializer<TKey, TValue>
     where TKey : IComparable<TKey>
     where TValue : ISerializable<TValue>
 {
-    Task WriteEntryAsync(Stream stream, TKey key, TValue value);
+    /// <summary>
+    /// Asynchronously writes a key-value entry to the specified stream.
+    /// </summary>
+    /// <param name="stream">The stream to write to.</param>
+    /// <param name="key">The key to write.</param>
+    /// <param name="value">The value to write.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous write operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the stream, key, or value is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if the key or value is the default value.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    Task WriteEntryAsync(Stream stream, TKey key, TValue value, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Reads a key-value entry from the specified stream.
+    /// </summary>
+    /// <param name="stream">The stream to read from.</param>
+    /// <returns>A tuple containing the key and value, or null if no more entries can be read.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
     (TKey Key, TValue Value)? ReadEntry(Stream stream);
 
+    /// <summary>
+    /// Determines whether the specified stream can be read.
+    /// </summary>
+    /// <param name="stream">The stream to check.</param>
+    /// <returns>True if the stream can be read; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the stream is null.</exception>
     bool CanRead(Stream stream);
 }

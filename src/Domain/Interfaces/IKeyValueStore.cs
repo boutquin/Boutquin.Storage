@@ -41,6 +41,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <see cref="TryGetValueAsync"/>: Attempts to retrieve the value associated with a specified key.</para>
 /// <para>- <see cref="ContainsKeyAsync"/>: Checks whether the store contains the specified key.</para>
 /// <para>- <see cref="RemoveAsync"/>: Removes the value associated with the specified key.</para>
+/// <para>- <see cref="ClearAsync"/>: Removes all key-value pairs from the store.</para>
 /// </remarks>
 public interface IKeyValueStore<in TKey, TValue> where TKey : IComparable<TKey>
 {
@@ -51,45 +52,60 @@ public interface IKeyValueStore<in TKey, TValue> where TKey : IComparable<TKey>
     /// </summary>
     /// <param name="key">The key to set or update.</param>
     /// <param name="value">The value to associate with the key.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the key or value is null.</exception>
-    Task SetAsync(TKey key, TValue value);
+    /// <exception cref="ArgumentException">Thrown if the key or value is the default value.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Attempts to retrieve the value associated with the specified key.
     /// </summary>
     /// <param name="key">The key whose value to retrieve.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
     /// A task that represents the asynchronous operation. 
     /// The task result contains a tuple with the value associated with the key 
     /// and a boolean indicating whether the key was found.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown if the key is null.</exception>
-    Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key);
+    /// <exception cref="ArgumentException">Thrown if the key is the default value.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Checks whether the store contains the specified key.
     /// </summary>
     /// <param name="key">The key to check for existence.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>
     /// A task that represents the asynchronous operation. 
     /// The task result contains a boolean indicating whether the key exists in the store.
     /// </returns>
     /// <exception cref="ArgumentNullException">Thrown if the key is null.</exception>
-    Task<bool> ContainsKeyAsync(TKey key);
+    /// <exception cref="ArgumentException">Thrown if the key is the default value.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    Task<bool> ContainsKeyAsync(TKey key, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Removes the value associated with the specified key.
     /// If the key does not exist, the operation is a no-op.
     /// </summary>
     /// <param name="key">The key to remove.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown if the key is null.</exception>
-    Task RemoveAsync(TKey key);
+    /// <exception cref="ArgumentException">Thrown if the key is the default value.</exception>
+    /// <exception cref="NotSupportedException">Thrown if the remove operation is not supported in the storage engine.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    Task RemoveAsync(TKey key, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Removes all key-value pairs from the store.
     /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task representing the asynchronous clear operation.</returns>
-    Task Clear();
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    Task ClearAsync(CancellationToken cancellationToken = default);
 }

@@ -21,11 +21,11 @@ public static class Program
     {
         var index = new InMemoryFileIndex<Key>();
         var store = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
-        "database",
-        index,
-        new BinaryEntrySerializer<Key, City>());
+        "AppendOnlyFileStorageEngineWithIndex.db",
+        new BinaryEntrySerializer<Key, City>(),
+        index);
 
-        await store.Clear();
+        await store.ClearAsync();
 
         // db_set 123456 '{"name":"London","attractions":["Big Ben","London Eye"]}'
         await store.SetAsync(new Key(123456), new City("London",

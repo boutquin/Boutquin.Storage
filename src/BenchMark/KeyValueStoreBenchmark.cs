@@ -44,9 +44,12 @@ public class KeyValueStoreBenchmark<TKey, TValue> where TKey : IComparable<TKey>
         // Initialize keys and values
         for (int i = 0; i < ItemCount; i++)
         {
-            _keys.Add((TKey)(object)i);
-            _values.Add((TValue)(object)$"Value {i}");
+            _keys.Add((TKey)(object)new SerializableWrapper<int>(i)); // Use implicit conversion
+            _values.Add((TValue)(object)new SerializableWrapper<string>($"Value {i}")); // Use implicit conversion
         }
+
+        // Clear the store
+        _store.ClearAsync();
 
         // Populate the store with the initial data
         for (int i = 0; i < ItemCount; i++)
@@ -108,7 +111,7 @@ public class KeyValueStoreBenchmark<TKey, TValue> where TKey : IComparable<TKey>
     {
         for (int i = ItemCount; i < ItemCount * 2; i++)
         {
-            await _store.ContainsKeyAsync((TKey)(object)i);
+            await _store.ContainsKeyAsync((TKey)(object)new SerializableWrapper<int>(i)); // Use implicit conversion
         }
     }
 }

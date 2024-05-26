@@ -27,40 +27,76 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
 {
     private readonly IFileStorageIndex<TKey> _index;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AppendOnlyFileStorageEngineWithIndex{TKey, TValue}"/> class.
+    /// </summary>
+    /// <param name="databaseFilePath">The path to the database file.</param>
+    /// <param name="entrySerializer">The serializer to use for serializing and deserializing entries.</param>
+    /// <param name="index">The index to use for storing offsets of entries.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="databaseFilePath"/>, <paramref name="entrySerializer"/>, or <paramref name="index"/> is null.</exception>
     public AppendOnlyFileStorageEngineWithIndex(
         string databaseFilePath,
-        IFileStorageIndex<TKey> index,
-        IEntrySerializer<TKey, TValue> entrySerializer)
+        IEntrySerializer<TKey, TValue> entrySerializer,
+        IFileStorageIndex<TKey> index)
         : base(databaseFilePath, entrySerializer)
     {
         _index = index ?? throw new ArgumentNullException(nameof(index));
     }
 
-    public override async Task SetAsync(TKey key, TValue value)
-    {
-        using (var stream = new FileStream(DatabaseFilePath, FileMode.Append, FileAccess.Write, FileShare.None))
-        {
-            var offset = (int)stream.Position;
-            await WriteEntryAsync(stream, key, value);
-            await _index.SetAsync(key, new FileLocation(offset, (int)stream.Length - offset));
-        }
-    }
-
-    public override async Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key)
+    /// <summary>
+    /// Sets or updates the value for the specified key.
+    /// If the key already exists in the store, the value is updated.
+    /// If the key does not exist, a new key-value pair is added.
+    /// </summary>
+    /// <param name="key">The key to set or update.</param>
+    /// <param name="value">The value to associate with the key.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if the key or value is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if the key or value is the default value.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    public override async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => key);
+        Guard.AgainstNullOrDefault(() => value);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        var (fileLocation, found) = await _index.TryGetValueAsync(key);
+        await using var stream = new FileStream(DatabaseFilePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        var offset = (int)stream.Position;
+        await WriteEntryAsync(stream, key, value, cancellationToken);
+        var length = (int)stream.Length;
+        await _index.SetAsync(key, new FileLocation(offset, length - offset), cancellationToken);
+    }
+
+    /// <summary>
+    /// Attempts to retrieve the value associated with the specified key.
+    /// </summary>
+    /// <param name="key">The key whose value to retrieve.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. 
+    /// The task result contains a tuple with the value associated with the key 
+    /// and a boolean indicating whether the key was found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">Thrown if the key is null.</exception>
+    /// <exception cref="ArgumentException">Thrown if the key is the default value.</exception>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    public override async Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
+    {
+        Guard.AgainstNullOrDefault(() => key);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var (fileLocation, found) = await _index.TryGetValueAsync(key, cancellationToken);
         if (!found)
         {
             return (default, false);
         }
 
         var buffer = new byte[fileLocation.Count];
-        using (var stream = new FileStream(DatabaseFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        await using (var stream = new FileStream(DatabaseFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
             stream.Seek(fileLocation.Offset, SeekOrigin.Begin);
-            await stream.ReadAsync(buffer, 0, buffer.Length);
+            await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
         }
 
         using (var stream = new MemoryStream(buffer))
@@ -75,9 +111,15 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         return (default, false);
     }
 
-    public override async Task Clear()
+    /// <summary>
+    /// Removes all key-value pairs from the store and clears the index.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous clear operation.</returns>
+    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    public override async Task ClearAsync(CancellationToken cancellationToken = default)
     {
-        await base.Clear();
-        await _index.Clear();
+        await base.ClearAsync(cancellationToken);
+        await _index.ClearAsync(cancellationToken);
     }
 }

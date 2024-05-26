@@ -18,37 +18,77 @@ namespace Boutquin.Storage.Infrastructure;
 /// <summary>
 /// Provides a binary implementation of the <see cref="IEntrySerializer{TKey, TValue}"/> interface.
 /// </summary>
+/// <typeparam name="TKey">The type of the key.</typeparam>
+/// <typeparam name="TValue">The type of the value.</typeparam>
 public class BinaryEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue>
     where TKey : IComparable<TKey>, ISerializable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
-    public async Task WriteEntryAsync(Stream stream, TKey key, TValue value)
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var serializer = new BinaryEntrySerializer&lt;MyKey, MyValue&gt;();
+    /// using var stream = new MemoryStream();
+    /// var key = new MyKey { Id = 1 };
+    /// var value = new MyValue { Name = "value1" };
+    /// await serializer.WriteEntryAsync(stream, key, value);
+    /// </code>
+    /// </example>
+    public async Task WriteEntryAsync(Stream stream, TKey key, TValue value, CancellationToken cancellationToken = default)
     {
-        using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
-        {
-            key.Serialize(writer);
-            value.Serialize(writer);
-            writer.Flush();
-        }
+        Guard.AgainstNullOrDefault(() => stream);
+        Guard.AgainstNullOrDefault(() => key);
+        Guard.AgainstNullOrDefault(() => value);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        key.Serialize(writer);
+        value.Serialize(writer);
+        writer.Flush();
     }
 
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var serializer = new BinaryEntrySerializer&lt;MyKey, MyValue&gt;();
+    /// using var stream = new MemoryStream();
+    /// // Assuming the stream has data
+    /// var entry = serializer.ReadEntry(stream);
+    /// if (entry.HasValue)
+    /// {
+    ///     var (key, value) = entry.Value;
+    ///     Console.WriteLine($"Key: {key}, Value: {value}");
+    /// }
+    /// </code>
+    /// </example>
     public (TKey Key, TValue Value)? ReadEntry(Stream stream)
     {
-        using (var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true))
-        {
-            if (!CanRead(stream))
-            {
-                return null;
-            }
+        Guard.AgainstNullOrDefault(() => stream);
 
-            var key = TKey.Deserialize(reader);
-            var value = TValue.Deserialize(reader);
-            return (key, value);
+        using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
+        if (!CanRead(stream))
+        {
+            return null;
         }
+
+        var key = TKey.Deserialize(reader);
+        var value = TValue.Deserialize(reader);
+        return (key, value);
     }
 
+    /// <inheritdoc/>
+    /// <example>
+    /// <code>
+    /// var serializer = new BinaryEntrySerializer&lt;MyKey, MyValue&gt;();
+    /// using var stream = new MemoryStream();
+    /// bool canRead = serializer.CanRead(stream);
+    /// Console.WriteLine($"Can read: {canRead}");
+    /// </code>
+    /// </example>
     public bool CanRead(Stream stream)
     {
+        Guard.AgainstNullOrDefault(() => stream);
+
         return stream.Position < stream.Length;
     }
 }

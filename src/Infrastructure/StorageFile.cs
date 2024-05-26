@@ -132,32 +132,30 @@ public sealed class StorageFile : IStorageFile
         Guard.AgainstNegative(() => offset); // Throws ArgumentOutOfRangeException
         Guard.AgainstNegative(() => count); // Throws ArgumentOutOfRangeException
 
-        using (var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read))
+        using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
+        if (offset >= stream.Length)
         {
-            if (offset >= stream.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
-            }
-
-            stream.Seek(offset, SeekOrigin.Begin);
-
-            var buffer = new byte[count];
-            var bytesRead = 0;
-            while (bytesRead < count)
-            {
-                var read = stream.Read(buffer, bytesRead, count - bytesRead);
-                if (read == 0) break; // End of file reached
-                bytesRead += read;
-            }
-
-            // If fewer bytes were read than requested, resize the buffer.
-            if (bytesRead < count)
-            {
-                Array.Resize(ref buffer, bytesRead);
-            }
-
-            return buffer;
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
         }
+
+        stream.Seek(offset, SeekOrigin.Begin);
+
+        var buffer = new byte[count];
+        var bytesRead = 0;
+        while (bytesRead < count)
+        {
+            var read = stream.Read(buffer, bytesRead, count - bytesRead);
+            if (read == 0) break; // End of file reached
+            bytesRead += read;
+        }
+
+        // If fewer bytes were read than requested, resize the buffer.
+        if (bytesRead < count)
+        {
+            Array.Resize(ref buffer, bytesRead);
+        }
+
+        return buffer;
     }
 
     /// <summary>
@@ -178,33 +176,31 @@ public sealed class StorageFile : IStorageFile
         Guard.AgainstNegative(() => offset); // Throws ArgumentOutOfRangeException
         Guard.AgainstNegative(() => count); // Throws ArgumentOutOfRangeException
 
-        await using (var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true))
+        await using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+        if (offset >= stream.Length)
         {
-            if (offset >= stream.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
-            }
-
-            stream.Seek(offset, SeekOrigin.Begin);
-
-            var buffer = new byte[count];
-            var bytesRead = 0;
-            while (bytesRead < count)
-            {
-                var read = await stream.ReadAsync(buffer.AsMemory(bytesRead, count - bytesRead), cancellationToken)
-                    .ConfigureAwait(false);
-                if (read == 0) break; // End of file reached
-                bytesRead += read;
-            }
-
-            // If fewer bytes were read than requested, resize the buffer.
-            if (bytesRead < count)
-            {
-                Array.Resize(ref buffer, bytesRead);
-            }
-
-            return buffer;
+            throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
         }
+
+        stream.Seek(offset, SeekOrigin.Begin);
+
+        var buffer = new byte[count];
+        var bytesRead = 0;
+        while (bytesRead < count)
+        {
+            var read = await stream.ReadAsync(buffer.AsMemory(bytesRead, count - bytesRead), cancellationToken)
+                .ConfigureAwait(false);
+            if (read == 0) break; // End of file reached
+            bytesRead += read;
+        }
+
+        // If fewer bytes were read than requested, resize the buffer.
+        if (bytesRead < count)
+        {
+            Array.Resize(ref buffer, bytesRead);
+        }
+
+        return buffer;
     }
 
     /// <inheritdoc />
@@ -326,10 +322,8 @@ public sealed class StorageFile : IStorageFile
     /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
     public void AppendAllBytes(byte[] content)
     {
-        using (var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None))
-        {
-            stream.Write(content, 0, content.Length);
-        }
+        using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        stream.Write(content, 0, content.Length);
     }
 
     /// <inheritdoc />
@@ -345,10 +339,8 @@ public sealed class StorageFile : IStorageFile
         // Check for cancellation before starting the I/O operation
         cancellationToken.ThrowIfCancellationRequested();
 
-        await using (var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None))
-        {
-            await stream.WriteAsync(content, 0, content.Length, cancellationToken);
-        }
+        await using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        await stream.WriteAsync(content, 0, content.Length, cancellationToken);
     }
 
     /// <inheritdoc />
