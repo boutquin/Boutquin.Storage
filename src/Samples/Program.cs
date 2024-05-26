@@ -78,5 +78,29 @@ public static class Program
         // 123456, {"name":"London","attractions":["Big Ben","London Eye"]}
         // 42, {"name":"San Francisco","attractions":["Golden Gate Bridge"]}
         // 42, {"name":"San Francisco","attractions":["Exploratorium"]}
+
+        await store.CompactAsync();
+        // cat database
+        Console.WriteLine("cat database --after compaction");
+        var compacted = await store.GetAllItemsAsync();
+        foreach (var item in compacted)
+        {
+            Console.WriteLine($"{item.Key.Value}, {JsonSerializer.Serialize(item.Value)}");
+        }
+        Console.WriteLine();
+        // Output:
+        // 123456, {"name":"London","attractions":["Big Ben","London Eye"]}
+        // 42, {"name":"San Francisco","attractions":["Exploratorium"]}
+
+        // db_get 42
+        Console.WriteLine("db_get 42 --after compaction");
+        value = await store.TryGetValueAsync(new Key(42));
+        if (value.Found)
+        {
+            Console.WriteLine(JsonSerializer.Serialize(value.Value));
+            // Output: {"name":"San Francisco","attractions":["Exploratorium"]}
+        }
+        Console.WriteLine();
+
     }
 }

@@ -23,7 +23,7 @@
 /// <para>- <see cref="GetAllItemsAsync(CancellationToken)"/>: Retrieves all key-value pairs from the store.</para>
 /// <para>- <see cref="SetBulkAsync(IEnumerable{KeyValuePair{TKey, TValue}}, CancellationToken)"/>: Sets or updates values for multiple keys.</para>
 /// </remarks>
-public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : IBulkStorageEngine<TKey, TValue>
+public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : ICompactableStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
@@ -102,7 +102,7 @@ public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : IBulkStora
     }
 
     /// <inheritdoc/>
-    public async Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
+    public virtual async Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => items);
 
@@ -152,5 +152,18 @@ public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : IBulkStora
         {
             File.Delete(DatabaseFilePath);
         }
+    }
+
+    /// <inheritdoc/>
+    public virtual async Task CompactAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var items = await GetAllItemsAsync(cancellationToken);
+        var latestItems = items.GroupBy(x => x.Key).Select(g => g.Last()).ToList();
+
+        await ClearAsync(cancellationToken); // Clear the existing data
+
+        await SetBulkAsync(latestItems.Select(x => new KeyValuePair<TKey, TValue>(x.Key, x.Value)), cancellationToken);
     }
 }

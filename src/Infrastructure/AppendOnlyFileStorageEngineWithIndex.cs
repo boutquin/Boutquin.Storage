@@ -43,18 +43,7 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         _index = index ?? throw new ArgumentNullException(nameof(index));
     }
 
-    /// <summary>
-    /// Sets or updates the value for the specified key.
-    /// If the key already exists in the store, the value is updated.
-    /// If the key does not exist, a new key-value pair is added.
-    /// </summary>
-    /// <param name="key">The key to set or update.</param>
-    /// <param name="value">The value to associate with the key.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if the key or value is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if the key or value is the default value.</exception>
-    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    /// <inheritdoc/>
     public override async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => key);
@@ -68,19 +57,7 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         await _index.SetAsync(key, new FileLocation(offset, length - offset), cancellationToken);
     }
 
-    /// <summary>
-    /// Attempts to retrieve the value associated with the specified key.
-    /// </summary>
-    /// <param name="key">The key whose value to retrieve.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>
-    /// A task that represents the asynchronous operation. 
-    /// The task result contains a tuple with the value associated with the key 
-    /// and a boolean indicating whether the key was found.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">Thrown if the key is null.</exception>
-    /// <exception cref="ArgumentException">Thrown if the key is the default value.</exception>
-    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    /// <inheritdoc/>
     public override async Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => key);
@@ -111,15 +88,46 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         return (default, false);
     }
 
-    /// <summary>
-    /// Removes all key-value pairs from the store and clears the index.
-    /// </summary>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>A task representing the asynchronous clear operation.</returns>
-    /// <exception cref="OperationCanceledException">Thrown if the operation is canceled.</exception>
+    /// <inheritdoc/>
     public override async Task ClearAsync(CancellationToken cancellationToken = default)
     {
         await base.ClearAsync(cancellationToken);
         await _index.ClearAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public override async Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
+    {
+        Guard.AgainstEmptyOrNullEnumerable(() => items);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        await using var stream = new FileStream(DatabaseFilePath, FileMode.Append, FileAccess.Write, FileShare.None);
+
+        foreach (var item in items)
+        {
+            Guard.AgainstNullOrDefault(() => item.Key);
+            Guard.AgainstNullOrDefault(() => item.Value);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var offset = (int)stream.Position;
+            await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
+            var length = (int)stream.Length;
+            await _index.SetAsync(item.Key, new FileLocation(offset, length - offset), cancellationToken);
+        }
+    }
+
+    /// <inheritdoc/>
+    public override async Task CompactAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var items = await GetAllItemsAsync(cancellationToken);
+        var latestItems = items.GroupBy(x => x.Key).Select(g => g.Last()).ToList();
+
+        await ClearAsync(cancellationToken); // Clear the existing data
+
+        await SetBulkAsync(latestItems.Select(x => new KeyValuePair<TKey, TValue>(x.Key, x.Value)), cancellationToken);
+
+        // Rebuild the index after compaction is not needed because SetBulkAsync updates the index
     }
 }
