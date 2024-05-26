@@ -23,7 +23,7 @@
 /// <para>- <see cref="GetAllItemsAsync(CancellationToken)"/>: Retrieves all key-value pairs from the store.</para>
 /// <para>- <see cref="SetBulkAsync(IEnumerable{KeyValuePair{TKey, TValue}}, CancellationToken)"/>: Sets or updates values for multiple keys.</para>
 /// </remarks>
-public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : IBulkKeyValueStore<TKey, TValue>
+public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : IBulkStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {

@@ -20,9 +20,9 @@ namespace Boutquin.Storage.BenchMark;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the key-value store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the key-value store.</typeparam>
-public class KeyValueStoreBenchmark<TKey, TValue> where TKey : IComparable<TKey>
+public class StorageEngineBenchmark<TKey, TValue> where TKey : IComparable<TKey>
 {
-    private IBulkKeyValueStore<TKey, TValue> _store;
+    private IStorageEngine<TKey, TValue> _store;
     private List<TKey> _keys;
     private List<TValue> _values;
 
@@ -62,7 +62,7 @@ public class KeyValueStoreBenchmark<TKey, TValue> where TKey : IComparable<TKey>
     /// Sets the key-value store to be benchmarked.
     /// </summary>
     /// <param name="store">The key-value store instance.</param>
-    public void SetStore(IBulkKeyValueStore<TKey, TValue> store)
+    public void SetStore(IStorageEngine<TKey, TValue> store)
     {
         _store = store;
     }

@@ -16,11 +16,11 @@
 namespace Boutquin.Storage.Infrastructure;
 
 /// <summary>
-/// In-memory implementation of the <see cref="IBulkKeyValueStore{TKey, TValue}"/> interface using a <see cref="SortedDictionary{TKey, TValue}"/>.
+/// In-memory implementation of the <see cref="IBulkStorageEngine{TKey, TValue}"/> interface using a <see cref="SortedDictionary{TKey, TValue}"/>.
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the key-value store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the key-value store.</typeparam>
-public class InMemoryKeyValueStore<TKey, TValue> : IBulkKeyValueStore<TKey, TValue> where TKey : IComparable<TKey>
+public class InMemoryKeyValueStore<TKey, TValue> : IBulkStorageEngine<TKey, TValue> where TKey : IComparable<TKey>
 {
     // SortedDictionary to store key-value pairs in sorted order by key.
     private readonly SortedDictionary<TKey, TValue> _store = new();

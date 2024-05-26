@@ -18,7 +18,7 @@ namespace Boutquin.Storage.BenchMark;
 /// <summary>
 /// Benchmark class for testing the AppendOnlyFileStorageEngineWithIndex implementation.
 /// </summary>
-public class AppendOnlyFileStorageEngineWithIndexBenchmark : KeyValueStoreBenchmark<SerializableWrapper<int>, SerializableWrapper<string>>
+public class AppendOnlyFileStorageEngineWithIndexBenchmark : StorageEngineBenchmark<SerializableWrapper<int>, SerializableWrapper<string>>
 {
     /// <summary>
     /// Initializes a new instance of the AppendOnlyFileStorageEngineWithIndexBenchmark class.
