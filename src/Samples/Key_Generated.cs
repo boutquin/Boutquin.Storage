@@ -20,22 +20,34 @@
 //
 namespace Boutquin.Storage.Samples;
 
-using System.IO;
-
-using Boutquin.Storage.Domain.Helpers;
-
 public partial record struct Key : ISerializable<Key>, IComparable<Key>
 {
-    public void Serialize(BinaryWriter writer)
+    /// <summary>
+    /// Serializes the key object to a stream.
+    /// </summary>
+    /// <param name="stream">The stream to serialize to.</param>
+    public void Serialize(Stream stream)
     {
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
         writer.Write(Value);
     }
 
-    public static Key Deserialize(BinaryReader reader)
+    /// <summary>
+    /// Deserializes the key object from a stream.
+    /// </summary>
+    /// <param name="stream">The stream to deserialize from.</param>
+    /// <returns>The deserialized key object.</returns>
+    public static Key Deserialize(Stream stream)
     {
+        using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true);
         return new Key(reader.ReadInt64());
     }
 
+    /// <summary>
+    /// Compares the current object with another object of the same type.
+    /// </summary>
+    /// <param name="other">An object to compare with this object.</param>
+    /// <returns>A value that indicates the relative order of the objects being compared.</returns>
     public int CompareTo(Key other)
     {
         return ComparisonHelper.GenerateCompareTo(this.Value, other.Value);

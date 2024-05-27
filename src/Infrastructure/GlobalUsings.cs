@@ -20,5 +20,6 @@ global using System.Text;
 
 global using Boutquin.Domain.Helpers;
 global using Boutquin.Storage.Domain.Enums;
+global using Boutquin.Storage.Domain.Exceptions;
 global using Boutquin.Storage.Domain.Interfaces;
 global using Boutquin.Storage.Domain.ValueObjects;

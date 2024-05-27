@@ -15,9 +15,6 @@
 //
 namespace Boutquin.Storage.Domain.Helpers;
 
-using System;
-using System.IO;
-
 /// <summary>
 /// Generic wrapper class for serializing and deserializing built-in types.
 /// </summary>
@@ -44,11 +41,12 @@ public class SerializableWrapper<T> : ISerializable<SerializableWrapper<T>>, ICo
     }
 
     /// <summary>
-    /// Serializes the wrapped value to a binary writer.
+    /// Serializes the wrapped value to a stream.
     /// </summary>
-    /// <param name="writer">The binary writer to serialize to.</param>
-    public void Serialize(BinaryWriter writer)
+    /// <param name="stream">The stream to serialize to.</param>
+    public void Serialize(Stream stream)
     {
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         if (Value is int intValue)
         {
             writer.Write(intValue);
@@ -88,12 +86,13 @@ public class SerializableWrapper<T> : ISerializable<SerializableWrapper<T>>, ICo
     }
 
     /// <summary>
-    /// Deserializes the wrapped value from a binary reader.
+    /// Deserializes the wrapped value from a stream.
     /// </summary>
-    /// <param name="reader">The binary reader to deserialize from.</param>
+    /// <param name="stream">The stream to deserialize from.</param>
     /// <returns>The deserialized SerializableWrapper object.</returns>
-    public static SerializableWrapper<T> Deserialize(BinaryReader reader)
+    public static SerializableWrapper<T> Deserialize(Stream stream)
     {
+        using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
         object value;
 
         if (typeof(T) == typeof(int))

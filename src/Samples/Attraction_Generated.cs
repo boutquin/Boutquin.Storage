@@ -20,17 +20,27 @@
 //
 namespace Boutquin.Storage.Samples;
 
-using System.IO;
-
 public partial record struct Attraction : ISerializable<Attraction>
 {
-    public void Serialize(BinaryWriter writer)
+    /// <summary>
+    /// Serializes the attraction object to a stream.
+    /// </summary>
+    /// <param name="stream">The stream to serialize to.</param>
+    public void Serialize(Stream stream)
     {
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
         writer.Write(Name);
     }
 
-    public static Attraction Deserialize(BinaryReader reader)
+    /// <summary>
+    /// Deserializes the attraction object from a stream.
+    /// </summary>
+    /// <param name="stream">The stream to deserialize from.</param>
+    /// <returns>The deserialized attraction object.</returns>
+    public static Attraction Deserialize(Stream stream)
     {
-        return new Attraction(reader.ReadString());
+        using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true);
+        var name = reader.ReadString();
+        return new Attraction(name);
     }
 }

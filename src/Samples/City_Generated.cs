@@ -24,24 +24,35 @@ using System.IO;
 
 public partial record struct City : ISerializable<City>
 {
-    public void Serialize(BinaryWriter writer)
+    /// <summary>
+    /// Serializes the city object to a stream.
+    /// </summary>
+    /// <param name="stream">The stream to serialize to.</param>
+    public void Serialize(Stream stream)
     {
+        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
         writer.Write(Name);
         writer.Write(Attractions.Count());
         foreach (var attraction in Attractions)
         {
-            attraction.Serialize(writer);
+            attraction.Serialize(writer.BaseStream);
         }
     }
 
-    public static City Deserialize(BinaryReader reader)
+    /// <summary>
+    /// Deserializes the city object from a stream.
+    /// </summary>
+    /// <param name="stream">The stream to deserialize from.</param>
+    /// <returns>The deserialized city object.</returns>
+    public static City Deserialize(Stream stream)
     {
+        using var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true);
         var name = reader.ReadString();
         var attractionCount = reader.ReadInt32();
         var attractions = new List<Attraction>();
         for (int i = 0; i < attractionCount; i++)
         {
-            attractions.Add(Attraction.Deserialize(reader));
+            attractions.Add(Attraction.Deserialize(reader.BaseStream));
         }
 
         return new City(name, attractions);

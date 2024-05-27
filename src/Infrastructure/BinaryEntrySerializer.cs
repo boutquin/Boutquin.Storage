@@ -25,15 +25,6 @@ public class BinaryEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue
     where TValue : ISerializable<TValue>, new()
 {
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var serializer = new BinaryEntrySerializer&lt;MyKey, MyValue&gt;();
-    /// using var stream = new MemoryStream();
-    /// var key = new MyKey { Id = 1 };
-    /// var value = new MyValue { Name = "value1" };
-    /// await serializer.WriteEntryAsync(stream, key, value);
-    /// </code>
-    /// </example>
     public async Task WriteEntryAsync(Stream stream, TKey key, TValue value, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => stream);
@@ -42,25 +33,12 @@ public class BinaryEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue
         cancellationToken.ThrowIfCancellationRequested();
 
         await using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        key.Serialize(writer);
-        value.Serialize(writer);
+        key.Serialize(writer.BaseStream);
+        value.Serialize(writer.BaseStream);
         writer.Flush();
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var serializer = new BinaryEntrySerializer&lt;MyKey, MyValue&gt;();
-    /// using var stream = new MemoryStream();
-    /// // Assuming the stream has data
-    /// var entry = serializer.ReadEntry(stream);
-    /// if (entry.HasValue)
-    /// {
-    ///     var (key, value) = entry.Value;
-    ///     Console.WriteLine($"Key: {key}, Value: {value}");
-    /// }
-    /// </code>
-    /// </example>
     public (TKey Key, TValue Value)? ReadEntry(Stream stream)
     {
         Guard.AgainstNullOrDefault(() => stream);
@@ -71,20 +49,12 @@ public class BinaryEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue
             return null;
         }
 
-        var key = TKey.Deserialize(reader);
-        var value = TValue.Deserialize(reader);
+        var key = TKey.Deserialize(reader.BaseStream);
+        var value = TValue.Deserialize(reader.BaseStream);
         return (key, value);
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var serializer = new BinaryEntrySerializer&lt;MyKey, MyValue&gt;();
-    /// using var stream = new MemoryStream();
-    /// bool canRead = serializer.CanRead(stream);
-    /// Console.WriteLine($"Can read: {canRead}");
-    /// </code>
-    /// </example>
     public bool CanRead(Stream stream)
     {
         Guard.AgainstNullOrDefault(() => stream);

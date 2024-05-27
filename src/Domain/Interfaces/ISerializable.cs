@@ -15,20 +15,22 @@
 //
 namespace Boutquin.Storage.Domain.Interfaces;
 
+using System.IO;
+
 /// <summary>
 /// Defines an interface for serializing and deserializing objects.
 /// </summary>
 public interface ISerializable<out T>
 {
     /// <summary>
-    /// Serializes the object to a binary writer.
+    /// Serializes the object to a stream.
     /// </summary>
-    /// <param name="writer">The binary writer to serialize to.</param>
-    void Serialize(BinaryWriter writer);
+    /// <param name="stream">The stream to serialize to.</param>
+    void Serialize(Stream stream);
 
     /// <summary>
-    /// Deserializes the object from a binary reader.
+    /// Deserializes the object from a stream.
     /// </summary>
-    /// <param name="reader">The binary reader to deserialize from.</param>
-    static abstract T Deserialize(BinaryReader reader);
+    /// <param name="stream">The stream to deserialize from.</param>
+    static abstract T Deserialize(Stream stream);
 }
