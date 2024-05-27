@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Infrastructure;
+namespace Boutquin.Storage.Infrastructure.KeyValueStore;
 
 /// <summary>
 /// In-memory implementation of the <see cref="IBulkStorageEngine{TKey, TValue}"/> interface using a <see cref="SortedDictionary{TKey, TValue}"/>.

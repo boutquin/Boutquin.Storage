@@ -1,4 +1,4 @@
-﻿namespace Boutquin.Storage.Infrastructure;
+﻿namespace Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 
 /// <summary>
 /// Provides a base class for append-only file-based storage engines with asynchronous operations.

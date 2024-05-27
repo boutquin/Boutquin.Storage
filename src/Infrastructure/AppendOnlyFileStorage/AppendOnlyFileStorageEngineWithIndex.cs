@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Infrastructure;
+namespace Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 
 /// <summary>
 /// Provides an append-only file-based storage engine with asynchronous operations,

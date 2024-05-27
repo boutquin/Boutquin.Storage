@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Infrastructure;
+namespace Boutquin.Storage.Infrastructure.Indexing;
 
 /// <summary>
 /// Provides an in-memory implementation of the <see cref="IStorageIndex{TKey, TValue}"/> interface

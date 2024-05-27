@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Infrastructure;
+namespace Boutquin.Storage.Infrastructure.DataStructures;
 
 /// <summary>
 /// Implementation of a standard Bloom filter.
@@ -44,7 +44,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// is not present in an SSTable, it reduces the number of disk reads, significantly improving read performance. However, the filter must be carefully 
 /// tuned to balance false positive rates and memory usage.</para>
 /// </remarks>
-public sealed class StandardBloomFilter<TKey> : IBloomFilter<TKey> 
+public sealed class StandardBloomFilter<TKey> : IBloomFilter<TKey>
 {
     private readonly BitArray _bitArray;
     private readonly int _numHashFunctions;
@@ -130,7 +130,7 @@ public sealed class StandardBloomFilter<TKey> : IBloomFilter<TKey>
     private int GetPositionFromHash(byte[] hashBytes, int index)
     {
         // Compute the starting index in the hash bytes array.
-        var startIndex = (index * 4) % (hashBytes.Length - 4);
+        var startIndex = index * 4 % (hashBytes.Length - 4);
 
         // Convert 4 bytes from the hash to an integer.
         var hash = BitConverter.ToInt32(hashBytes, startIndex);

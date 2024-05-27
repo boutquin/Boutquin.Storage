@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Infrastructure;
+namespace Boutquin.Storage.Infrastructure.Indexing;
 
 /// <summary>
 /// Provides an in-memory implementation of the <see cref="IFileStorageIndex{TKey}"/> interface
@@ -22,7 +22,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// <typeparam name="TKey">The type of the keys in the index.</typeparam>
 /// <remarks>
 /// <para>This class provides an in-memory storage index for managing file locations efficiently.
-/// It uses a <see cref="System.Collections.Generic.SortedDictionary{TKey, TValue}"/> to maintain the key-value pairs,
+/// It uses a <see cref="SortedDictionary{TKey, TValue}"/> to maintain the key-value pairs,
 /// where the value is a <see cref="FileLocation"/> representing the offset and length of an entry in a file.
 /// The sorted dictionary ensures that keys are maintained in a sorted order, providing O(log n) time complexity for insertion,
 /// deletion, and lookup operations.</para>
@@ -62,5 +62,5 @@ namespace Boutquin.Storage.Infrastructure;
 /// append-only file storage engines. The use of a sorted dictionary provides efficient and scalable performance
 /// for managing a large number of keys and their associated file locations.</para>
 /// </remarks>
-public class InMemoryFileIndex<TKey> : 
+public class InMemoryFileIndex<TKey> :
     InMemoryStorageIndex<TKey, FileLocation>, IFileStorageIndex<TKey> where TKey : IComparable<TKey>;

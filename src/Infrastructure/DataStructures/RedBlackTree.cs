@@ -13,7 +13,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Infrastructure;
+namespace Boutquin.Storage.Infrastructure.DataStructures;
 
 /// <summary>
 /// Implementation of a red-black tree data structure.
@@ -25,7 +25,7 @@ namespace Boutquin.Storage.Infrastructure;
 /// insertion, deletion, and lookup operations. It achieves balance by enforcing properties on the nodes, such as node color (red or black) 
 /// and constraints on the relationships between parent and child nodes.</para>
 /// </remarks>
-public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey, TValue> 
+public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey, TValue>
     where TKey : IComparable<TKey>
 {
     // Enumeration for node colors used in the red-black tree
