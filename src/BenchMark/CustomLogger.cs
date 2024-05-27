@@ -15,10 +15,6 @@
 //
 namespace Boutquin.Storage.BenchMark;
 
-using BenchmarkDotNet.Loggers;
-
-using System;
-
 /// <summary>
 /// Custom logger for tracking and displaying the progress of benchmark runs with color support.
 /// </summary>
@@ -26,6 +22,7 @@ public class CustomLogger : ILogger
 {
     private int _totalBenchmarks;
     private int _currentBenchmark;
+    private bool _hasWrittenHeader;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CustomLogger"/> class.
@@ -35,6 +32,7 @@ public class CustomLogger : ILogger
     {
         _totalBenchmarks = totalBenchmarks;
         _currentBenchmark = 0;
+        _hasWrittenHeader = false;
     }
 
     /// <summary>
@@ -55,13 +53,12 @@ public class CustomLogger : ILogger
     public void Write(LogKind logKind, string text)
     {
         SetConsoleColor(logKind);
-        // Check if the log kind is a header to update the current benchmark count
-        if (logKind == LogKind.Header)
+        if (logKind == LogKind.Header && !_hasWrittenHeader)
         {
             _currentBenchmark++;
             Console.WriteLine($"Running benchmark {_currentBenchmark} of {_totalBenchmarks}...");
+            _hasWrittenHeader = true;
         }
-        // Write the text to the console
         Console.Write(text);
         ResetConsoleColor();
     }
@@ -82,13 +79,12 @@ public class CustomLogger : ILogger
     public void WriteLine(LogKind logKind, string text)
     {
         SetConsoleColor(logKind);
-        // Check if the log kind is a header to update the current benchmark count
-        if (logKind == LogKind.Header)
+        if (logKind == LogKind.Header && !_hasWrittenHeader)
         {
             _currentBenchmark++;
             Console.WriteLine($"Running benchmark {_currentBenchmark} of {_totalBenchmarks}...");
+            _hasWrittenHeader = true;
         }
-        // Write the text followed by a new line to the console
         Console.WriteLine(text);
         ResetConsoleColor();
     }
@@ -145,5 +141,13 @@ public class CustomLogger : ILogger
     private void ResetConsoleColor()
     {
         Console.ResetColor();
+    }
+
+    /// <summary>
+    /// Resets the header written flag, called before each benchmark run.
+    /// </summary>
+    public void ResetHeader()
+    {
+        _hasWrittenHeader = false;
     }
 }

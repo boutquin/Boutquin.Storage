@@ -24,6 +24,7 @@ global using BenchmarkDotNet.Loggers;
 global using BenchmarkDotNet.Order;
 global using BenchmarkDotNet.Reports;
 global using BenchmarkDotNet.Running;
+global using BenchmarkDotNet.Validators;
 
 global using Boutquin.Storage.Domain.Helpers;
 global using Boutquin.Storage.Domain.Interfaces;

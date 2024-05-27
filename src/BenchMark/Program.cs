@@ -26,9 +26,6 @@ public class Program
     /// <param name="args">Command-line arguments.</param>
     public static void Main(string[] args)
     {
-        // Dictionary to store benchmark results
-        var results = new Dictionary<string, List<Summary>>();
-
         // List of benchmark types
         var benchmarks = new List<Type>
         {
@@ -38,12 +35,26 @@ public class Program
             // Add other benchmark types here
         };
 
+        // Create a temporary config to discover the benchmarks
+        var discoveryConfig = ManualConfig.CreateEmpty()
+            .AddLogger(ConsoleLogger.Default)
+            .AddValidator(ExecutionValidator.FailOnError)
+            .AddExporter(MarkdownExporter.Default)
+            .AddJob(Job.Dry); // Use a dry job to discover benchmarks without running them
+
+        // Discover all benchmarks
+        int totalBenchmarkCases = benchmarks.Sum(benchmark => BenchmarkConverter.TypeToBenchmarks(benchmark, discoveryConfig).BenchmarksCases.Length);
+
         // Custom logger for tracking progress
-        var customLogger = new CustomLogger(benchmarks.Count);
+        var customLogger = new CustomLogger(totalBenchmarkCases);
+
+        // Dictionary to store benchmark results
+        var results = new Dictionary<string, List<Summary>>();
 
         // Run benchmarks for each type
         foreach (var benchmark in benchmarks)
         {
+            customLogger.ResetHeader(); // Reset the header before each benchmark run
             // Run the benchmark and capture the summary
             var summary = BenchmarkRunner.Run(benchmark, CreateCustomConfig(customLogger));
             if (summary != null)
@@ -71,12 +82,16 @@ public class Program
         var solutionDirectory = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName;
         var artifactsPath = Path.Combine(solutionDirectory, "BenchmarkDotNet.Artifacts");
 
-        return ManualConfig.Create(DefaultConfig.Instance)
+        return ManualConfig.CreateEmpty()
             .WithOptions(ConfigOptions.DisableOptimizationsValidator)
-            .AddLogger(logger)
+            .AddLogger(logger) // Use only the custom logger
             .AddColumnProvider(DefaultColumnProviders.Instance)
             .AddExporter(MarkdownExporter.Default)
-            .AddJob(Job.Default.WithRuntime(CoreRuntime.Core80))
+            .AddJob(Job.Default
+                .WithIterationCount(5) // Reduce the number of iterations
+                .WithInvocationCount(16) // Set InvocationCount to 16, a multiple of UnrollFactor
+                .WithWarmupCount(1) // Reduce the number of warm-up iterations
+                .WithRuntime(CoreRuntime.Core80))
             .WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest))
             .WithArtifactsPath(artifactsPath);
     }
