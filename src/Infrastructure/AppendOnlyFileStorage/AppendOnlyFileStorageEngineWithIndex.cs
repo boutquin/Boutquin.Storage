@@ -21,7 +21,8 @@ namespace Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
-public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFileStorageEngineBase<TKey, TValue>
+public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> :
+    AppendOnlyFileStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
@@ -30,15 +31,15 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
     /// <summary>
     /// Initializes a new instance of the <see cref="AppendOnlyFileStorageEngineWithIndex{TKey, TValue}"/> class.
     /// </summary>
-    /// <param name="databaseFilePath">The path to the database file.</param>
+    /// <param name="storageFile">The storage file to use for storing data.</param>
     /// <param name="entrySerializer">The serializer to use for serializing and deserializing entries.</param>
     /// <param name="index">The index to use for storing offsets of entries.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="databaseFilePath"/>, <paramref name="entrySerializer"/>, or <paramref name="index"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="storageFile"/>, <paramref name="entrySerializer"/>, or <paramref name="index"/> is null.</exception>
     public AppendOnlyFileStorageEngineWithIndex(
-        string databaseFilePath,
+        IStorageFile storageFile,
         IEntrySerializer<TKey, TValue> entrySerializer,
         IFileStorageIndex<TKey> index)
-        : base(databaseFilePath, entrySerializer)
+        : base(storageFile, entrySerializer)
     {
         _index = index ?? throw new ArgumentNullException(nameof(index));
     }
@@ -50,11 +51,13 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         Guard.AgainstNullOrDefault(() => value);
         cancellationToken.ThrowIfCancellationRequested();
 
-        await using var stream = new FileStream(DatabaseFilePath, FileMode.Append, FileAccess.Write, FileShare.None);
-        var offset = (int)stream.Position;
-        await WriteEntryAsync(stream, key, value, cancellationToken);
-        var length = (int)stream.Length;
-        await _index.SetAsync(key, new FileLocation(offset, length - offset), cancellationToken);
+        using (var stream = StorageFile.Open(FileMode.Append))
+        {
+            var offset = (int)stream.Position;
+            await WriteEntryAsync(stream, key, value, cancellationToken);
+            var length = (int)stream.Length;
+            await _index.SetAsync(key, new FileLocation(offset, length - offset), cancellationToken);
+        }
     }
 
     /// <inheritdoc/>
@@ -70,7 +73,7 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         }
 
         var buffer = new byte[fileLocation.Count];
-        await using (var stream = new FileStream(DatabaseFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+        using (var stream = StorageFile.Open(FileMode.Open))
         {
             stream.Seek(fileLocation.Offset, SeekOrigin.Begin);
             await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
@@ -101,18 +104,19 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         Guard.AgainstEmptyOrNullEnumerable(() => items);
         cancellationToken.ThrowIfCancellationRequested();
 
-        await using var stream = new FileStream(DatabaseFilePath, FileMode.Append, FileAccess.Write, FileShare.None);
-
-        foreach (var item in items)
+        using (var stream = StorageFile.Open(FileMode.Append))
         {
-            Guard.AgainstNullOrDefault(() => item.Key);
-            Guard.AgainstNullOrDefault(() => item.Value);
-            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var item in items)
+            {
+                Guard.AgainstNullOrDefault(() => item.Key);
+                Guard.AgainstNullOrDefault(() => item.Value);
+                cancellationToken.ThrowIfCancellationRequested();
 
-            var offset = (int)stream.Position;
-            await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
-            var length = (int)stream.Length;
-            await _index.SetAsync(item.Key, new FileLocation(offset, length - offset), cancellationToken);
+                var offset = (int)stream.Position;
+                await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
+                var length = (int)stream.Length;
+                await _index.SetAsync(item.Key, new FileLocation(offset, length - offset), cancellationToken);
+            }
         }
     }
 
@@ -127,7 +131,5 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> : AppendOnlyFile
         await ClearAsync(cancellationToken); // Clear the existing data
 
         await SetBulkAsync(latestItems.Select(x => new KeyValuePair<TKey, TValue>(x.Key, x.Value)), cancellationToken);
-
-        // Rebuild the index after compaction is not needed because SetBulkAsync updates the index
     }
 }

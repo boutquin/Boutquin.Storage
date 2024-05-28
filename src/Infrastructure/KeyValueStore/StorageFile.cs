@@ -21,37 +21,42 @@ namespace Boutquin.Storage.Infrastructure.KeyValueStore;
 public sealed class StorageFile : IStorageFile
 {
     private readonly string _filePath;
+    private FileStream? _fileStream;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StorageFile"/> class.
     /// </summary>
     /// <param name="filePath">The file path.</param>
-    /// <exception cref="ArgumentException">Thrown when the <paramref name="filePath"/> is null, empty, or whitespace.</exception>
     public StorageFile(string filePath)
     {
-        // Validate the file path to ensure it is not null, empty, or whitespace.
-        Guard.AgainstNullOrWhiteSpace(() => filePath); // Throws ArgumentException
-
+        Guard.AgainstNullOrWhiteSpace(() => filePath); // Validate the file path to ensure it is not null, empty, or whitespace.
         _filePath = filePath;
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="existenceHandling"/> is not a defined enum value.</exception>
-    /// <exception cref="IOException">Thrown when the file exists and <paramref name="existenceHandling"/> is <see cref="FileExistenceHandling.ThrowIfExists"/>.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// storageFile.Create(FileExistenceHandling.Overwrite);
+    /// </code>
+    /// </example>
     public void Create(FileExistenceHandling existenceHandling)
     {
-        // Validate the existence handling to ensure it is a defined enum value.
-        Guard.AgainstUndefinedEnumValue(() => existenceHandling); // Throws ArgumentOutOfRangeException
+        Guard.AgainstUndefinedEnumValue(() => existenceHandling); // Validate the existence handling to ensure it is a defined enum value.
 
         switch (existenceHandling)
         {
             case FileExistenceHandling.Overwrite:
-                File.Create(_filePath).Dispose();
+                _fileStream?.Dispose();
+                _fileStream = new FileStream(_filePath, FileMode.Create, FileAccess.Write);
+                _fileStream.Dispose();
                 break;
             case FileExistenceHandling.DoNothingIfExists:
                 if (!File.Exists(_filePath))
                 {
-                    File.Create(_filePath).Dispose();
+                    _fileStream?.Dispose();
+                    _fileStream = new FileStream(_filePath, FileMode.CreateNew, FileAccess.Write);
+                    _fileStream.Dispose();
                 }
                 break;
             case FileExistenceHandling.ThrowIfExists:
@@ -59,34 +64,68 @@ public sealed class StorageFile : IStorageFile
                 {
                     throw new IOException($"File '{_filePath}' already exists.");
                 }
-                File.Create(_filePath).Dispose();
+                _fileStream?.Dispose();
+                _fileStream = new FileStream(_filePath, FileMode.CreateNew, FileAccess.Write);
+                _fileStream.Dispose();
                 break;
-            default:
-                // Guard.AgainstUndefinedEnumValue should prevent this from happening.
-                throw new ArgumentOutOfRangeException(nameof(existenceHandling), $"Undefined enum value: {existenceHandling}");
         }
     }
 
     /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// bool exists = storageFile.Exists();
+    /// Console.WriteLine($"File exists: {exists}");
+    /// </code>
+    /// </example>
     public bool Exists()
     {
         return File.Exists(_filePath);
     }
 
     /// <inheritdoc />
-    /// <exception cref="UnauthorizedAccessException">Thrown when the path is read-only or the caller does not have required permission.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
-    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
-    public Stream Open()
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// using var stream = storageFile.Open(FileMode.OpenOrCreate);
+    /// // Perform read/write operations with the stream
+    /// </code>
+    /// </example>
+    public Stream Open(FileMode mode)
     {
-        return new FileStream(_filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+        _fileStream?.Dispose();
+        _fileStream = new FileStream(_filePath, mode, mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite);
+        return _fileStream;
     }
 
     /// <inheritdoc />
-    public void Delete()
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// storageFile.Close();
+    /// </code>
+    /// </example>
+    public void Close()
     {
+        _fileStream?.Dispose();
+        _fileStream = null;
+    }
+
+    /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// storageFile.Delete(FileDeletionHandling.DeleteIfExists);
+    /// </code>
+    /// </example>
+    public void Delete(FileDeletionHandling deletionHandling)
+    {
+        if (!File.Exists(_filePath) && deletionHandling == FileDeletionHandling.ThrowIfNotExists)
+        {
+            throw new FileNotFoundException($"File '{_filePath}' does not exist.");
+        }
+
         if (File.Exists(_filePath))
         {
             File.Delete(_filePath);
@@ -94,43 +133,47 @@ public sealed class StorageFile : IStorageFile
     }
 
     /// <inheritdoc />
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    public long GetFileSize()
-    {
-        return new FileInfo(_filePath).Length;
-    }
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// long fileSize = storageFile.Length;
+    /// Console.WriteLine($"File size: {fileSize} bytes");
+    /// </code>
+    /// </example>
+    public long Length => new FileInfo(_filePath).Length;
 
     /// <inheritdoc />
-    public string GetFileName()
-    {
-        return Path.GetFileName(_filePath);
-    }
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// string fileName = storageFile.FileName;
+    /// Console.WriteLine($"File name: {fileName}");
+    /// </code>
+    /// </example>
+    public string FileName => Path.GetFileName(_filePath);
 
     /// <inheritdoc />
-    public string GetFileLocation()
-    {
-        return _filePath;
-    }
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// string fileLocation = storageFile.FileLocation;
+    /// Console.WriteLine($"File location: {fileLocation}");
+    /// </code>
+    /// </example>
+    public string FileLocation => _filePath;
 
-    /// <summary>
-    /// Reads a specified number of bytes from the file starting at a specified offset.
-    /// </summary>
-    /// <param name="offset">The offset at which to begin reading.</param>
-    /// <param name="count">The number of bytes to read.</param>
-    /// <returns>A byte array containing the data read from the file.</returns>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> was not found.</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset"/> or <paramref name="count"/> is less than zero.</exception>
+    /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// byte[] data = storageFile.ReadBytes(0, 100);
+    /// Console.WriteLine($"Read {data.Length} bytes from file.");
+    /// </code>
+    /// </example>
     public byte[] ReadBytes(int offset, int count)
     {
-        Guard.AgainstNegative(() => offset); // Throws ArgumentOutOfRangeException
-        Guard.AgainstNegative(() => count); // Throws ArgumentOutOfRangeException
+        Guard.AgainstNegative(() => offset); // Validate offset.
+        Guard.AgainstNegative(() => count); // Validate count.
 
         using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
         if (offset >= stream.Length)
@@ -141,15 +184,7 @@ public sealed class StorageFile : IStorageFile
         stream.Seek(offset, SeekOrigin.Begin);
 
         var buffer = new byte[count];
-        var bytesRead = 0;
-        while (bytesRead < count)
-        {
-            var read = stream.Read(buffer, bytesRead, count - bytesRead);
-            if (read == 0) break; // End of file reached
-            bytesRead += read;
-        }
-
-        // If fewer bytes were read than requested, resize the buffer.
+        var bytesRead = stream.Read(buffer, 0, count);
         if (bytesRead < count)
         {
             Array.Resize(ref buffer, bytesRead);
@@ -158,23 +193,18 @@ public sealed class StorageFile : IStorageFile
         return buffer;
     }
 
-    /// <summary>
-    /// Asynchronously reads a specified number of bytes from the file starting at a specified offset.
-    /// </summary>
-    /// <param name="offset">The offset at which to begin reading.</param>
-    /// <param name="count">The number of bytes to read.</param>
-    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
-    /// <returns>A task that represents the asynchronous read operation. The value of the TResult parameter contains a byte array with the data read from the file.</returns>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> was not found.</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="offset"/> or <paramref name="count"/> is less than zero.</exception>
+    /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// byte[] data = await storageFile.ReadBytesAsync(0, 100);
+    /// Console.WriteLine($"Read {data.Length} bytes from file.");
+    /// </code>
+    /// </example>
     public async Task<byte[]> ReadBytesAsync(int offset, int count, CancellationToken cancellationToken = default)
     {
-        Guard.AgainstNegative(() => offset); // Throws ArgumentOutOfRangeException
-        Guard.AgainstNegative(() => count); // Throws ArgumentOutOfRangeException
+        Guard.AgainstNegative(() => offset); // Validate offset.
+        Guard.AgainstNegative(() => count); // Validate count.
 
         await using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
         if (offset >= stream.Length)
@@ -185,16 +215,7 @@ public sealed class StorageFile : IStorageFile
         stream.Seek(offset, SeekOrigin.Begin);
 
         var buffer = new byte[count];
-        var bytesRead = 0;
-        while (bytesRead < count)
-        {
-            var read = await stream.ReadAsync(buffer.AsMemory(bytesRead, count - bytesRead), cancellationToken)
-                .ConfigureAwait(false);
-            if (read == 0) break; // End of file reached
-            bytesRead += read;
-        }
-
-        // If fewer bytes were read than requested, resize the buffer.
+        var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, count), cancellationToken);
         if (bytesRead < count)
         {
             Array.Resize(ref buffer, bytesRead);
@@ -204,122 +225,116 @@ public sealed class StorageFile : IStorageFile
     }
 
     /// <inheritdoc />
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// byte[] data = storageFile.ReadAllBytes();
+    /// Console.WriteLine($"Read {data.Length} bytes from file.");
+    /// </code>
+    /// </example>
     public byte[] ReadAllBytes()
     {
         return File.ReadAllBytes(_filePath);
     }
 
     /// <inheritdoc />
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// byte[] data = await storageFile.ReadAllBytesAsync();
+    /// Console.WriteLine($"Read {data.Length} bytes from file.");
+    /// </code>
+    /// </example>
     public async Task<byte[]> ReadAllBytesAsync(CancellationToken cancellationToken = default)
     {
-        // Check for cancellation before starting the I/O operation
         cancellationToken.ThrowIfCancellationRequested();
-
         return await File.ReadAllBytesAsync(_filePath, cancellationToken);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="encoding"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// string content = storageFile.ReadAllText(Encoding.UTF8);
+    /// Console.WriteLine($"File content: {content}");
+    /// </code>
+    /// </example>
     public string ReadAllText(Encoding encoding)
     {
         return File.ReadAllText(_filePath, encoding);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="encoding"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="FileNotFoundException">Thrown when the file specified in <see cref="_filePath"/> member variable was not found.</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="ArgumentException">Thrown when the path is a zero-length string, contains only white space, or contains invalid characters.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// string content = await storageFile.ReadAllTextAsync(Encoding.UTF8);
+    /// Console.WriteLine($"File content: {content}");
+    /// </code>
+    /// </example>
     public async Task<string> ReadAllTextAsync(Encoding encoding, CancellationToken cancellationToken = default)
     {
-        // Check for cancellation before starting the I/O operation
         cancellationToken.ThrowIfCancellationRequested();
-
         return await File.ReadAllTextAsync(_filePath, encoding, cancellationToken);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// storageFile.WriteAllBytes(new byte[] { 0x01, 0x02, 0x03 });
+    /// </code>
+    /// </example>
     public void WriteAllBytes(byte[] content)
     {
         File.WriteAllBytes(_filePath, content);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// await storageFile.WriteAllBytesAsync(new byte[] { 0x01, 0x02, 0x03 });
+    /// </code>
+    /// </example>
     public async Task WriteAllBytesAsync(byte[] content, CancellationToken cancellationToken = default)
     {
-        // Check for cancellation before starting the I/O operation
         cancellationToken.ThrowIfCancellationRequested();
-
         await File.WriteAllBytesAsync(_filePath, content, cancellationToken);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// storageFile.WriteAllText("Hello, world!", Encoding.UTF8);
+    /// </code>
+    /// </example>
     public void WriteAllText(string content, Encoding encoding)
     {
         File.WriteAllText(_filePath, content, encoding);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// await storageFile.WriteAllTextAsync("Hello, world!", Encoding.UTF8);
+    /// </code>
+    /// </example>
     public async Task WriteAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default)
     {
-        // Check for cancellation before starting the I/O operation
         cancellationToken.ThrowIfCancellationRequested();
-
         await File.WriteAllTextAsync(_filePath, content, encoding, cancellationToken);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// storageFile.AppendAllBytes(new byte[] { 0x04, 0x05 });
+    /// </code>
+    /// </example>
     public void AppendAllBytes(byte[] content)
     {
         using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
@@ -327,47 +342,47 @@ public sealed class StorageFile : IStorageFile
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// await storageFile.AppendAllBytesAsync(new byte[] { 0x04, 0x05 });
+    /// </code>
+    /// </example>
     public async Task AppendAllBytesAsync(byte[] content, CancellationToken cancellationToken = default)
     {
-        // Check for cancellation before starting the I/O operation
         cancellationToken.ThrowIfCancellationRequested();
-
         await using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
-        await stream.WriteAsync(content, 0, content.Length, cancellationToken);
+        await stream.WriteAsync(content.AsMemory(0, content.Length), cancellationToken);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// storageFile.AppendAllText("Hello, again!", Encoding.UTF8);
+    /// </code>
+    /// </example>
     public void AppendAllText(string content, Encoding encoding)
     {
         File.AppendAllText(_filePath, content, encoding);
     }
 
     /// <inheritdoc />
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="content"/> or <paramref name="encoding"/> is null.</exception>
-    /// <exception cref="IOException">Thrown when an I/O error occurs.</exception>
-    /// <exception cref="UnauthorizedAccessException">Thrown when the caller does not have the required permission.</exception>
-    /// <exception cref="PathTooLongException">Thrown when the specified path, file name, or both exceed the system-defined maximum length.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the specified path is invalid (e.g., it is on an unmapped drive).</exception>
-    /// <exception cref="NotSupportedException">Thrown when the path format is not supported.</exception>
-    /// <exception cref="OperationCanceledException">Thrown when the operation is canceled.</exception>
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile("example.txt");
+    /// await storageFile.AppendAllTextAsync("Hello, again!", Encoding.UTF8);
+    /// </code>
+    /// </example>
     public async Task AppendAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default)
     {
-        // Check for cancellation before starting the I/O operation
         cancellationToken.ThrowIfCancellationRequested();
-
         await File.AppendAllTextAsync(_filePath, content, encoding, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _fileStream?.Dispose();
     }
 }

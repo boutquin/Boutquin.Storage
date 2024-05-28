@@ -13,6 +13,9 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
+using Boutquin.Storage.Infrastructure.KeyValueStore;
+
 namespace Boutquin.Storage.Samples;
 
 public static class Program
@@ -21,7 +24,7 @@ public static class Program
     {
         var index = new InMemoryFileIndex<Key>();
         var store = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
-        "AppendOnlyFileStorageEngineWithIndex.db",
+        new StorageFile("AppendOnlyFileStorageEngineWithIndex.db"),
         new BinaryEntrySerializer<Key, City>(),
         index);
 

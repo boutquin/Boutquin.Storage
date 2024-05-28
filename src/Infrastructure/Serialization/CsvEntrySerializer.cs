@@ -34,7 +34,7 @@ public class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue>
 
         try
         {
-            using var writer = new StreamWriter(stream, Encoding.UTF8, 1024, leaveOpen: true);
+            await using var writer = new StreamWriter(stream, Encoding.UTF8, 1024, leaveOpen: true);
             var keyString = SerializeToCsvFormat(key);
             var valueString = SerializeToCsvFormat(value);
             var csvLine = $"{keyString},{valueString}";
