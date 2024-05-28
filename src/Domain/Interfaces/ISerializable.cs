@@ -15,8 +15,6 @@
 //
 namespace Boutquin.Storage.Domain.Interfaces;
 
-using System.IO;
-
 /// <summary>
 /// Defines an interface for serializing and deserializing objects.
 /// </summary>

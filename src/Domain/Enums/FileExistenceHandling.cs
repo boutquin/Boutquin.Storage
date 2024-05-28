@@ -34,6 +34,4 @@ public enum FileExistenceHandling
     /// Throw an exception if the file already exists.
     /// </summary>
     ThrowIfExists
-
-
 }

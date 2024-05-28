@@ -15,8 +15,6 @@
 //
 namespace Boutquin.Storage.Domain.Attributes;
 
-using System;
-
 /// <summary>
 /// Specifies that a class or struct is serializable within the storage engine.
 /// This attribute is used to mark classes or structs that will be serialized 

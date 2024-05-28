@@ -15,10 +15,6 @@
 //
 namespace Boutquin.Storage.Domain.Interfaces;
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 /// <summary>
 /// Provides an interface for a storage engine that supports data compaction with asynchronous operations.
 /// This interface extends the functionality of storage engines by including a method for compacting data,

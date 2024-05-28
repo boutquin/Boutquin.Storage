@@ -23,4 +23,5 @@ global using Boutquin.Storage.Domain.Interfaces;
 global using Boutquin.Storage.Domain.ValueObjects;
 
 global using System;
+global using System.Collections.Generic;
 global using System.IO;
