@@ -16,3 +16,4 @@ obj/
 /src/Generator
 /tests/Boutquin.Storage.SourceGenerator.Tests
 /tests/SourceGenerator/Boutquin.Storage.SourceGenerator.Tests.csproj
+/src/BenchMark/BenchmarkDotNet.Artifacts
