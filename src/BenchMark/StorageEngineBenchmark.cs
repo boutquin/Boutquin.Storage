@@ -29,7 +29,7 @@ public class StorageEngineBenchmark<TKey, TValue> where TKey : IComparable<TKey>
     /// <summary>
     /// Number of items to be used in the benchmark.
     /// </summary>
-    [Params(10, 100, 1000)]
+    [Params(5, 50, 500)]
     public int ItemCount;
 
     /// <summary>

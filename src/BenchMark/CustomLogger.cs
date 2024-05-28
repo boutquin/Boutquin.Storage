@@ -20,9 +20,11 @@ namespace Boutquin.Storage.BenchMark;
 /// </summary>
 public class CustomLogger : ILogger
 {
-    private int _totalBenchmarks;
+    private readonly int _totalBenchmarks;
     private int _currentBenchmark;
     private bool _hasWrittenHeader;
+    private readonly DateTime _startTime;
+    private readonly Timer _titleUpdateTimer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CustomLogger"/> class.
@@ -33,6 +35,10 @@ public class CustomLogger : ILogger
         _totalBenchmarks = totalBenchmarks;
         _currentBenchmark = 0;
         _hasWrittenHeader = false;
+        _startTime = DateTime.Now;
+        _titleUpdateTimer = new Timer(1000); // Update the title every second
+        _titleUpdateTimer.Elapsed += UpdateConsoleTitle;
+        _titleUpdateTimer.Start();
     }
 
     /// <summary>
@@ -149,5 +155,25 @@ public class CustomLogger : ILogger
     public void ResetHeader()
     {
         _hasWrittenHeader = false;
+    }
+
+    /// <summary>
+    /// Updates the console title with the current benchmark progress and estimated time remaining.
+    /// </summary>
+    private void UpdateConsoleTitle(object sender, ElapsedEventArgs e)
+    {
+        var elapsed = DateTime.Now - _startTime;
+        var averageTimePerBenchmark = elapsed.TotalSeconds / Math.Max(_currentBenchmark, 1);
+        var remainingTime = TimeSpan.FromSeconds(averageTimePerBenchmark * (_totalBenchmarks - _currentBenchmark));
+
+        Console.Title = $"Running benchmark {_currentBenchmark} of {_totalBenchmarks}... Estimated time remaining: {remainingTime:hh\\:mm\\:ss}";
+    }
+
+    /// <summary>
+    /// Stops the timer for updating the console title.
+    /// </summary>
+    public void StopTitleUpdate()
+    {
+        _titleUpdateTimer.Stop();
     }
 }

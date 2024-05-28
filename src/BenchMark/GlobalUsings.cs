@@ -26,9 +26,9 @@ global using BenchmarkDotNet.Reports;
 global using BenchmarkDotNet.Running;
 global using BenchmarkDotNet.Validators;
 
+global using Boutquin.Storage.BenchMark;
 global using Boutquin.Storage.Domain.Helpers;
 global using Boutquin.Storage.Domain.Interfaces;
-global using Boutquin.Storage.Infrastructure;
 global using Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 global using Boutquin.Storage.Infrastructure.Indexing;
 global using Boutquin.Storage.Infrastructure.KeyValueStore;
@@ -37,4 +37,8 @@ global using Boutquin.Storage.Infrastructure.Serialization;
 global using System;
 global using System.Collections.Generic;
 global using System.IO;
+global using System.Linq;
 global using System.Threading.Tasks;
+global using System.Timers;
+
+global using Timer = System.Timers.Timer;

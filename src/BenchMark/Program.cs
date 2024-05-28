@@ -67,8 +67,11 @@ public class Program
             }
         }
 
+        // Stop title update timer
+        customLogger.StopTitleUpdate();
+
         // Display the results
-        DisplayResults(results);
+        DisplayResults(results, customLogger);
     }
 
     /// <summary>
@@ -100,11 +103,12 @@ public class Program
     /// Displays the benchmark results.
     /// </summary>
     /// <param name="results">The dictionary containing the benchmark results.</param>
-    private static void DisplayResults(Dictionary<string, List<Summary>> results)
+    /// <param name="logger">The custom logger to use for displaying the results.</param>
+    private static void DisplayResults(Dictionary<string, List<Summary>> results, ILogger logger)
     {
         foreach (var implementation in results)
         {
-            Console.WriteLine($"Results for {implementation.Key}:");
+            logger.WriteLine(LogKind.Default, $"Results for {implementation.Key}:");
 
             var groupedReports = implementation.Value
                 .SelectMany(summary => summary.Reports)
@@ -112,19 +116,19 @@ public class Program
 
             foreach (var group in groupedReports)
             {
-                Console.WriteLine($"  {group.Key}:");
+                logger.WriteLine(LogKind.Default, $"  {group.Key}:");
                 foreach (var report in group)
                 {
                     var benchmarkCase = report.BenchmarkCase;
                     var parameters = benchmarkCase.Parameters;
                     var metrics = report.ResultStatistics;
 
-                    Console.WriteLine($"    Parameters: {parameters.DisplayInfo}");
-                    Console.WriteLine($"      Mean: {metrics.Mean} ms");
-                    Console.WriteLine($"      Error: {metrics.StandardError} ms");
-                    Console.WriteLine($"      StdDev: {metrics.StandardDeviation} ms");
+                    logger.WriteLine(LogKind.Default, $"    Parameters: {parameters.DisplayInfo}");
+                    logger.WriteLine(LogKind.Default, $"      Mean: {metrics.Mean} ms");
+                    logger.WriteLine(LogKind.Default, $"      Error: {metrics.StandardError} ms");
+                    logger.WriteLine(LogKind.Default, $"      StdDev: {metrics.StandardDeviation} ms");
                 }
-                Console.WriteLine();
+                logger.WriteLine();
             }
         }
     }
