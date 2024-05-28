@@ -37,7 +37,9 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para><b>Methods:</b></para>
 /// <para>- <see cref="CompactAsync"/>: Compacts the data in the storage engine to optimize space and performance.</para>
 /// </remarks>
-public interface ICompactableStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TValue> where TKey : IComparable<TKey>
+public interface ICompactableStorageEngine<TKey, TValue>
+    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TValue : ISerializable<TValue>, new()
 {
     /// <summary>
     /// Compacts the data in the storage engine to optimize space and performance.

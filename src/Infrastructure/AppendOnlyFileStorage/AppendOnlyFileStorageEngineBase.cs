@@ -40,9 +40,11 @@ namespace Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 /// </remarks>
 ///
 
-public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : ICompactableStorageEngine<TKey, TValue>
-    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
-    where TValue : ISerializable<TValue>, new()
+public abstract class AppendOnlyFileStorageEngineBase<TKey, TValue> : 
+    IBulkStorageEngine<TKey, TValue>, 
+    ICompactableStorageEngine<TKey, TValue>
+        where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+        where TValue : ISerializable<TValue>, new()
 {
     protected readonly string DatabaseFilePath;
     protected readonly IEntrySerializer<TKey, TValue> EntrySerializer;

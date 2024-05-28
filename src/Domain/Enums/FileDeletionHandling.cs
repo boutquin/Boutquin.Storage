@@ -13,25 +13,21 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Domain.Enums;
-
-/// <summary>
-/// Specifies how to handle the existence of a file during creation.
-/// </summary>
-public enum FileExistenceHandling
+namespace Boutquin.Storage.Domain.Enums
 {
     /// <summary>
-    /// Overwrite the existing file.
+    /// Specifies how to handle deletion of a file.
     /// </summary>
-    Overwrite,
+    public enum FileDeletionHandling
+    {
+        /// <summary>
+        /// Delete the file if it exists.
+        /// </summary>
+        DeleteIfExists,
 
-    /// <summary>
-    /// Skip the creation if the file already exists.
-    /// </summary>
-    DoNothingIfExists,
-
-    /// <summary>
-    /// Throw an exception if the file already exists.
-    /// </summary>
-    ThrowIfExists
+        /// <summary>
+        /// Throw an exception if the file does not exist.
+        /// </summary>
+        ThrowIfNotExists
+    }
 }
