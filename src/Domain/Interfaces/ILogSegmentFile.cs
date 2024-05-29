@@ -13,25 +13,24 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Domain.Enums;
+namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Specifies how to handle opening a file.
+/// Interface for a log segment file.
 /// </summary>
-public enum FileOpenHandling
+/// <typeparam name="TKey">The type of the keys in the store.</typeparam>
+/// <typeparam name="TValue">The type of the values in the store.</typeparam>
+public interface ILogSegmentFile<TKey, TValue> : ICompactableBulkStorageEngine<TKey, TValue>
+    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TValue : ISerializable<TValue>, new()
 {
     /// <summary>
-    /// Open the file if it exists.
+    /// Gets the path to the segment file.
     /// </summary>
-    OpenIfExists,
+    string SegmentFilePath { get; }
 
     /// <summary>
-    /// Throw an exception if the file does not exist.
+    /// Gets the size of the segment file.
     /// </summary>
-    ThrowIfNotExists,
-
-    /// <summary>
-    /// Create the file if it does not exist.
-    /// </summary>
-    CreateIfNotExists
+    long SegmentSize { get; }
 }

@@ -13,21 +13,20 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Domain.Enums
+namespace Boutquin.Storage.Domain.Enums;
+
+/// <summary>
+/// Specifies how to handle deletion of a file.
+/// </summary>
+public enum FileDeletionHandling
 {
     /// <summary>
-    /// Specifies how to handle deletion of a file.
+    /// Delete the file if it exists.
     /// </summary>
-    public enum FileDeletionHandling
-    {
-        /// <summary>
-        /// Delete the file if it exists.
-        /// </summary>
-        DeleteIfExists,
+    DeleteIfExists,
 
-        /// <summary>
-        /// Throw an exception if the file does not exist.
-        /// </summary>
-        ThrowIfNotExists
-    }
+    /// <summary>
+    /// Throw an exception if the file does not exist.
+    /// </summary>
+    ThrowIfNotExists
 }

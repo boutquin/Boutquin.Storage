@@ -13,25 +13,11 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Domain.Enums;
+namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Specifies how to handle opening a file.
+/// Combines IBulkStorageEngine and ICompactableStorageEngine interfaces.
 /// </summary>
-public enum FileOpenHandling
-{
-    /// <summary>
-    /// Open the file if it exists.
-    /// </summary>
-    OpenIfExists,
-
-    /// <summary>
-    /// Throw an exception if the file does not exist.
-    /// </summary>
-    ThrowIfNotExists,
-
-    /// <summary>
-    /// Create the file if it does not exist.
-    /// </summary>
-    CreateIfNotExists
-}
+public interface ICompactableBulkStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TValue>, ICompactableStorageEngine<TKey, TValue>
+    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TValue : ISerializable<TValue>, new();
