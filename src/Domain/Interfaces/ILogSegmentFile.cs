@@ -33,4 +33,9 @@ public interface ILogSegmentFile<TKey, TValue> : ICompactableBulkStorageEngine<T
     /// Gets the size of the segment file.
     /// </summary>
     long SegmentSize { get; }
+
+    /// <summary>
+    /// Gets the entry serializer.
+    /// </summary>
+    IEntrySerializer<TKey, TValue> EntrySerializer { get; }
 }

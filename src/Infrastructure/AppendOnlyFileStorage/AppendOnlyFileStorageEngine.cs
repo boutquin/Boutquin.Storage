@@ -26,7 +26,7 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
         where TValue : ISerializable<TValue>, new()
 {
     protected readonly IStorageFile StorageFile;
-    protected readonly IEntrySerializer<TKey, TValue> EntrySerializer;
+    public IEntrySerializer<TKey, TValue> EntrySerializer { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AppendOnlyFileStorageEngine{TKey, TValue}"/> class.

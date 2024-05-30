@@ -47,7 +47,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <see cref="IBulkKeyValueStore{TKey, TValue}.GetAllItemsAsync"/>: Retrieves all key-value pairs from the store.</para>
 /// <para>- <see cref="IBulkKeyValueStore{TKey, TValue}.SetBulkAsync"/>: Sets or updates values for multiple keys.</para>
 /// </remarks>
-public interface IBulkStorageEngine<TKey, TValue> : IStorageEngine<TKey, TValue>, IBulkKeyValueStore<TKey, TValue> where TKey : IComparable<TKey>
-{
-    // Additional methods specific to the bulk storage engine can be added here.
-}
+public interface IBulkStorageEngine<TKey, TValue> : 
+    IStorageEngine<TKey, TValue>, IBulkKeyValueStore<TKey, TValue>
+        where TKey : IComparable<TKey>, ISerializable<TKey>, new()
+        where TValue : ISerializable<TValue>, new();

@@ -20,7 +20,9 @@ namespace Boutquin.Storage.BenchMark;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the key-value store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the key-value store.</typeparam>
-public class StorageEngineBenchmark<TKey, TValue> where TKey : IComparable<TKey>
+public class StorageEngineBenchmark<TKey, TValue>
+    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TValue : ISerializable<TValue>, new()
 {
     private IStorageEngine<TKey, TValue> _store;
     private List<TKey> _keys;

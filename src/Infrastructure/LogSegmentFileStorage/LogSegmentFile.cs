@@ -48,6 +48,7 @@ public class LogSegmentFile<TKey, TValue> : ILogSegmentFile<TKey, TValue>
     public string SegmentFilePath => _segmentFile.FileLocation;
 
     public long SegmentSize => _segmentFile.Length;
+    public IEntrySerializer<TKey, TValue> EntrySerializer => _storageEngine.EntrySerializer;
 
     /// <inheritdoc/>
     public async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)

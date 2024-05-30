@@ -43,7 +43,8 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <see cref="RemoveAsync"/>: Removes the value associated with the specified key.</para>
 /// <para>- <see cref="ClearAsync"/>: Removes all key-value pairs from the store.</para>
 /// </remarks>
-public interface IKeyValueStore<in TKey, TValue> where TKey : IComparable<TKey>
+public interface IKeyValueStore<in TKey, TValue> 
+    where TKey : IComparable<TKey>
 {
     /// <summary>
     /// Sets or updates the value for the specified key.
