@@ -21,4 +21,5 @@ global using Boutquin.Storage.Domain.Interfaces;
 global using Boutquin.Storage.Infrastructure;
 global using Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 global using Boutquin.Storage.Infrastructure.Indexing;
+global using Boutquin.Storage.Infrastructure.KeyValueStore;
 global using Boutquin.Storage.Infrastructure.Serialization;

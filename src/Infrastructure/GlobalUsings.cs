@@ -23,3 +23,4 @@ global using Boutquin.Storage.Domain.Enums;
 global using Boutquin.Storage.Domain.Exceptions;
 global using Boutquin.Storage.Domain.Interfaces;
 global using Boutquin.Storage.Domain.ValueObjects;
+global using Boutquin.Storage.Infrastructure.KeyValueStore;
