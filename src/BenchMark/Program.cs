@@ -26,52 +26,59 @@ public sealed class Program
     /// <param name="args">Command-line arguments.</param>
     public static void Main(string[] args)
     {
-        // List of benchmark types
-        var benchmarks = new List<Type>
+        try
         {
-            typeof(InMemoryKeyValueStoreBenchmark),
-            typeof(AppendOnlyFileStorageEngineBenchmark),
-            typeof(AppendOnlyFileStorageEngineWithIndexBenchmark)
-            // Add other benchmark types here
-        };
-
-        // Create a temporary config to discover the benchmarks
-        var discoveryConfig = ManualConfig.CreateEmpty()
-            .AddLogger(ConsoleLogger.Default)
-            .AddValidator(ExecutionValidator.FailOnError)
-            .AddExporter(MarkdownExporter.Default)
-            .AddJob(Job.Dry); // Use a dry job to discover benchmarks without running them
-
-        // Discover all benchmarks
-        int totalBenchmarkCases = benchmarks.Sum(benchmark => BenchmarkConverter.TypeToBenchmarks(benchmark, discoveryConfig).BenchmarksCases.Length);
-
-        // Custom logger for tracking progress
-        var customLogger = new CustomLogger(totalBenchmarkCases);
-
-        // Dictionary to store benchmark results
-        var results = new Dictionary<string, List<Summary>>();
-
-        // Run benchmarks for each type
-        foreach (var benchmark in benchmarks)
-        {
-            customLogger.ResetHeader(); // Reset the header before each benchmark run
-            // Run the benchmark and capture the summary
-            var summary = BenchmarkRunner.Run(benchmark, CreateCustomConfig(customLogger));
-            if (summary != null)
+            // List of benchmark types
+            var benchmarks = new List<Type>
             {
-                if (!results.ContainsKey(benchmark.Name))
+                typeof(InMemoryKeyValueStoreBenchmark),
+                typeof(AppendOnlyFileStorageEngineBenchmark),
+                typeof(AppendOnlyFileStorageEngineWithIndexBenchmark)
+                // Add other benchmark types here
+            };
+
+            // Create a temporary config to discover the benchmarks
+            var discoveryConfig = ManualConfig.CreateEmpty()
+                .AddLogger(ConsoleLogger.Default)
+                .AddValidator(ExecutionValidator.FailOnError)
+                .AddExporter(MarkdownExporter.Default)
+                .AddJob(Job.Dry); // Use a dry job to discover benchmarks without running them
+
+            // Discover all benchmarks
+            int totalBenchmarkCases = benchmarks.Sum(benchmark => BenchmarkConverter.TypeToBenchmarks(benchmark, discoveryConfig).BenchmarksCases.Length);
+
+            // Custom logger for tracking progress
+            var customLogger = new CustomLogger(totalBenchmarkCases);
+
+            // Dictionary to store benchmark results
+            var results = new Dictionary<string, List<Summary>>();
+
+            // Run benchmarks for each type
+            foreach (var benchmark in benchmarks)
+            {
+                customLogger.ResetHeader(); // Reset the header before each benchmark run
+                // Run the benchmark and capture the summary
+                var summary = BenchmarkRunner.Run(benchmark, CreateCustomConfig(customLogger));
+                if (summary != null)
                 {
-                    results[benchmark.Name] = new List<Summary>();
+                    if (!results.ContainsKey(benchmark.Name))
+                    {
+                        results[benchmark.Name] = new List<Summary>();
+                    }
+                    results[benchmark.Name].Add(summary);
                 }
-                results[benchmark.Name].Add(summary);
             }
+
+            // Stop title update timer
+            customLogger.StopTitleUpdate();
+
+            // Display the results
+            DisplayResults(results, customLogger);
         }
-
-        // Stop title update timer
-        customLogger.StopTitleUpdate();
-
-        // Display the results
-        DisplayResults(results, customLogger);
+        catch (Exception ex)
+        {
+            LogExceptionToFile(ex);
+        }
     }
 
     /// <summary>
@@ -130,6 +137,26 @@ public sealed class Program
                 }
                 logger.WriteLine();
             }
+        }
+    }
+
+    /// <summary>
+    /// Logs the exception details to a file.
+    /// </summary>
+    /// <param name="ex">The exception to log.</param>
+    private static void LogExceptionToFile(Exception ex)
+    {
+        var logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error.log");
+        using (var writer = new StreamWriter(logFilePath, true))
+        {
+            writer.WriteLine($"[{DateTime.Now}] Exception: {ex.Message}");
+            writer.WriteLine(ex.StackTrace);
+            if (ex.InnerException != null)
+            {
+                writer.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                writer.WriteLine(ex.InnerException.StackTrace);
+            }
+            writer.WriteLine();
         }
     }
 }
