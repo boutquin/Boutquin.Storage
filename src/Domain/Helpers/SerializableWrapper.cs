@@ -146,13 +146,46 @@ public class SerializableWrapper<T> : ISerializable<SerializableWrapper<T>>, ICo
     }
 
     /// <summary>
-    /// Implicit conversion from T to SerializableWrapper<T>.
+    /// Determines whether the specified object is equal to the current object.
     /// </summary>
-    /// <param name="value">The value to convert.</param>
-    public static implicit operator SerializableWrapper<T>(T value) => new SerializableWrapper<T>(value);
+    /// <param name="obj">The object to compare with the current object.</param>
+    /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
+    public override bool Equals(object obj)
+    {
+        if (obj is SerializableWrapper<T> other)
+        {
+            return EqualityComparer<T>.Default.Equals(Value, other.Value);
+        }
+
+        return false;
+    }
 
     /// <summary>
-    /// Implicit conversion from SerializableWrapper<T> to T.
+    /// Serves as the default hash function.
+    /// </summary>
+    /// <returns>A hash code for the current object.</returns>
+    public override int GetHashCode()
+    {
+        return EqualityComparer<T>.Default.GetHashCode(Value);
+    }
+
+    /// <summary>
+    /// Returns a string that represents the current object.
+    /// </summary>
+    /// <returns>A string that represents the current object.</returns>
+    public override string ToString()
+    {
+        return Value?.ToString() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Implicit conversion from T to SerializableWrapper&lt;T&gt;.
+    /// </summary>
+    /// <param name="value">The value to convert.</param>
+    public static implicit operator SerializableWrapper<T>(T value) => new(value);
+
+    /// <summary>
+    /// Implicit conversion from SerializableWrapper&lt;T&gt; to T.
     /// </summary>
     /// <param name="wrapper">The wrapper to convert.</param>
     public static implicit operator T(SerializableWrapper<T> wrapper) => wrapper.Value;

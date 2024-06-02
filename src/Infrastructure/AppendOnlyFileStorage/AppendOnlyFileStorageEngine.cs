@@ -52,10 +52,8 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
         Guard.AgainstNullOrDefault(() => value);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using (var stream = StorageFile.Open(FileMode.Append))
-        {
-            await WriteEntryAsync(stream, key, value, cancellationToken);
-        }
+        await using var stream = StorageFile.Open(FileMode.Append);
+        await WriteEntryAsync(stream, key, value, cancellationToken);
     }
 
     /// <summary>
@@ -99,7 +97,7 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
     /// <inheritdoc/>
     public async Task<bool> ContainsKeyAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        var (value, found) = await TryGetValueAsync(key, cancellationToken);
+        var (_, found) = await TryGetValueAsync(key, cancellationToken);
         return found;
     }
 
@@ -115,16 +113,14 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
         Guard.AgainstEmptyOrNullEnumerable(() => items);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using (var stream = StorageFile.Open(FileMode.Append))
+        await using var stream = StorageFile.Open(FileMode.Append);
+        foreach (var item in items)
         {
-            foreach (var item in items)
-            {
-                Guard.AgainstNullOrDefault(() => item.Key);
-                Guard.AgainstNullOrDefault(() => item.Value);
-                cancellationToken.ThrowIfCancellationRequested();
+            Guard.AgainstNullOrDefault(() => item.Key);
+            Guard.AgainstNullOrDefault(() => item.Value);
+            cancellationToken.ThrowIfCancellationRequested();
 
-                await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
-            }
+            await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
         }
     }
 
@@ -135,16 +131,14 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
         cancellationToken.ThrowIfCancellationRequested();
         var fileBytes = await StorageFile.ReadAllBytesAsync(cancellationToken);
 
-        using (var stream = new MemoryStream(fileBytes))
+        using var stream = new MemoryStream(fileBytes);
+        while (EntrySerializer.CanRead(stream))
         {
-            while (EntrySerializer.CanRead(stream))
+            cancellationToken.ThrowIfCancellationRequested();
+            var entry = EntrySerializer.ReadEntry(stream);
+            if (entry.HasValue)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var entry = EntrySerializer.ReadEntry(stream);
-                if (entry.HasValue)
-                {
-                    items.Add(entry.Value);
-                }
+                items.Add(entry.Value);
             }
         }
 
@@ -159,15 +153,24 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
     }
 
     /// <inheritdoc/>
+    /// <inheritdoc/>
+    /// <inheritdoc/>
     public virtual async Task CompactAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         var items = await GetAllItemsAsync(cancellationToken);
-        var latestItems = items.GroupBy(x => x.Key).Select(g => g.Last()).ToList();
+        var latestItems = items
+            .GroupBy(x => x.Key)
+            .Select(g => g.Last())
+            .ToList();
 
-        await ClearAsync(cancellationToken); // Clear the existing data
+        await using var stream = StorageFile.Open(FileMode.Create); // Clears the existing data
+        foreach (var item in latestItems)
+        {
+            await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
+        }
 
-        await SetBulkAsync(latestItems.Select(x => new KeyValuePair<TKey, TValue>(x.Key, x.Value)), cancellationToken);
+        await stream.FlushAsync(cancellationToken); // Ensure the stream is properly flushed
     }
 }

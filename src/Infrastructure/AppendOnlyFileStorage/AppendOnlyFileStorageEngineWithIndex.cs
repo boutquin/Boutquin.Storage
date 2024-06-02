@@ -51,13 +51,11 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> :
         Guard.AgainstNullOrDefault(() => value);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using (var stream = StorageFile.Open(FileMode.Append))
-        {
-            var offset = (int)stream.Position;
-            await WriteEntryAsync(stream, key, value, cancellationToken);
-            var length = (int)stream.Length;
-            await _index.SetAsync(key, new FileLocation(offset, length - offset), cancellationToken);
-        }
+        await using var stream = StorageFile.Open(FileMode.Append);
+        var offset = (int)stream.Position;
+        await WriteEntryAsync(stream, key, value, cancellationToken);
+        var length = (int)stream.Length;
+        await _index.SetAsync(key, new FileLocation(offset, length - offset), cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -73,7 +71,7 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> :
         }
 
         var buffer = new byte[fileLocation.Count];
-        using (var stream = StorageFile.Open(FileMode.Open))
+        await using (var stream = StorageFile.Open(FileMode.Open))
         {
             stream.Seek(fileLocation.Offset, SeekOrigin.Begin);
             await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
@@ -104,19 +102,17 @@ public class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> :
         Guard.AgainstEmptyOrNullEnumerable(() => items);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using (var stream = StorageFile.Open(FileMode.Append))
+        await using var stream = StorageFile.Open(FileMode.Append);
+        foreach (var item in items)
         {
-            foreach (var item in items)
-            {
-                Guard.AgainstNullOrDefault(() => item.Key);
-                Guard.AgainstNullOrDefault(() => item.Value);
-                cancellationToken.ThrowIfCancellationRequested();
+            Guard.AgainstNullOrDefault(() => item.Key);
+            Guard.AgainstNullOrDefault(() => item.Value);
+            cancellationToken.ThrowIfCancellationRequested();
 
-                var offset = (int)stream.Position;
-                await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
-                var length = (int)stream.Length;
-                await _index.SetAsync(item.Key, new FileLocation(offset, length - offset), cancellationToken);
-            }
+            var offset = (int)stream.Position;
+            await WriteEntryAsync(stream, item.Key, item.Value, cancellationToken);
+            var length = (int)stream.Length;
+            await _index.SetAsync(item.Key, new FileLocation(offset, length - offset), cancellationToken);
         }
     }
 

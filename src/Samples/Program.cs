@@ -20,10 +20,13 @@ public static class Program
     public static async Task Main(string[] args)
     {
         var index = new InMemoryFileIndex<Key>();
-        var store = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
-        new StorageFile("AppendOnlyFileStorageEngineWithIndex.db"),
-        new BinaryEntrySerializer<Key, City>(),
-        index);
+        var store = new AppendOnlyFileStorageEngine<Key, City>(
+        new StorageFile("AppendOnlyFileStorageEngine.db"),
+        new BinaryEntrySerializer<Key, City>());
+        var store1 = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
+            new StorageFile("AppendOnlyFileStorageEngineWithIndex.db"),
+            new BinaryEntrySerializer<Key, City>(),
+            index);
 
         await store.ClearAsync();
 
