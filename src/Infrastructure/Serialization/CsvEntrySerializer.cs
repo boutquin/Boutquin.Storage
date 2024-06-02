@@ -20,7 +20,7 @@ namespace Boutquin.Storage.Infrastructure.Serialization;
 /// </summary>
 /// <typeparam name="TKey">The type of the key.</typeparam>
 /// <typeparam name="TValue">The type of the value.</typeparam>
-public class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue>
+public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue>
     where TKey : IComparable<TKey>, ISerializable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {

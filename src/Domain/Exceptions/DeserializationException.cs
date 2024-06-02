@@ -62,7 +62,7 @@ namespace Boutquin.Storage.Domain.Exceptions;
 /// }
 /// </code>
 /// </example>
-public class DeserializationException : Exception
+public sealed class DeserializationException : Exception
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DeserializationException"/> class with a specified error message.

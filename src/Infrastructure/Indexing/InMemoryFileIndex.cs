@@ -62,5 +62,5 @@ namespace Boutquin.Storage.Infrastructure.Indexing;
 /// append-only file storage engines. The use of a sorted dictionary provides efficient and scalable performance
 /// for managing a large number of keys and their associated file locations.</para>
 /// </remarks>
-public class InMemoryFileIndex<TKey> :
+public sealed class InMemoryFileIndex<TKey> :
     InMemoryStorageIndex<TKey, FileLocation>, IFileStorageIndex<TKey> where TKey : IComparable<TKey>;

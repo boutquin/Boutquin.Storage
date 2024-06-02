@@ -19,7 +19,7 @@ namespace Boutquin.Storage.Domain.Helpers;
 /// Generic wrapper class for serializing and deserializing built-in types.
 /// </summary>
 /// <typeparam name="T">The type to be serialized and deserialized.</typeparam>
-public class SerializableWrapper<T> : ISerializable<SerializableWrapper<T>>, IComparable<SerializableWrapper<T>>
+public sealed class SerializableWrapper<T> : ISerializable<SerializableWrapper<T>>, IComparable<SerializableWrapper<T>>
 {
     /// <summary>
     /// Gets or sets the value of the wrapper.

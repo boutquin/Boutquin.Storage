@@ -18,7 +18,7 @@ namespace Boutquin.Storage.BenchMark;
 /// <summary>
 /// Custom logger for tracking and displaying the progress of benchmark runs with color support.
 /// </summary>
-public class CustomLogger : ILogger
+public sealed class CustomLogger : ILogger
 {
     private readonly int _totalBenchmarks;
     private int _currentBenchmark;

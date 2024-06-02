@@ -21,7 +21,7 @@ namespace Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
-public class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileStorageEngine<TKey, TValue>
+public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {

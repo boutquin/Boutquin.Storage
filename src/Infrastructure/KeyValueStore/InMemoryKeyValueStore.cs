@@ -20,7 +20,7 @@ namespace Boutquin.Storage.Infrastructure.KeyValueStore;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the key-value store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the key-value store.</typeparam>
-public class InMemoryKeyValueStore<TKey, TValue> : 
+public sealed class InMemoryKeyValueStore<TKey, TValue> : 
     IBulkStorageEngine<TKey, TValue>
     where TKey : IComparable<TKey>, ISerializable<TKey>, new()
     where TValue : ISerializable<TValue>, new()

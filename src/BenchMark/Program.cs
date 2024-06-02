@@ -18,7 +18,7 @@ namespace Boutquin.Storage.BenchMark;
 /// <summary>
 /// Entry point for the benchmarking program.
 /// </summary>
-public class Program
+public sealed class Program
 {
     /// <summary>
     /// Main method that sets up and runs the benchmarks.
