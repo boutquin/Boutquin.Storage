@@ -18,6 +18,16 @@ namespace Boutquin.Storage.BenchMark;
 /// <summary>
 /// Benchmark class for testing the InMemoryKeyValueStore implementation.
 /// </summary>
+/// <remarks>
+/// This class is not sealed because sealing it causes the benchmark to error out.
+/// BenchmarkDotNet requires the benchmark classes to be inheritable to correctly
+/// execute and gather results. Sealing this class results in runtime errors during 
+/// the benchmarking process as BenchmarkDotNet attempts to create proxy subclasses 
+/// for executing benchmarks. These proxies facilitate various operations such as 
+/// instrumentation, profiling, and more. Hence, to ensure smooth execution of the 
+/// benchmarks and to adhere to the requirements of the BenchmarkDotNet framework, 
+/// this class must remain unsealed. 
+/// </remarks>
 public class InMemoryKeyValueStoreBenchmark : StorageEngineBenchmark<SerializableWrapper<int>, SerializableWrapper<string>>
 {
     /// <summary>

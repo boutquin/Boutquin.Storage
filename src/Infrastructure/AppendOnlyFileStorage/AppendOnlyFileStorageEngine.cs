@@ -20,6 +20,16 @@ namespace Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
+/// <remarks>
+/// This class is not sealed to allow for extensibility and specialization. It serves as a base class 
+/// for other storage engine implementations, such as <see cref="AppendOnlyFileStorageEngineWithIndex{TKey, TValue}"/>, 
+/// which may add additional features or optimizations. For instance, the derived class 
+/// <see cref="AppendOnlyFileStorageEngineWithIndex{TKey, TValue}"/> enhances the base functionality 
+/// by adding indexing capabilities. Sealing this class would prevent such extensions and limit 
+/// the flexibility needed to create specialized storage engines that build upon the core append-only 
+/// functionality. Thus, to enable the creation of more advanced and feature-rich storage engine 
+/// implementations, this class remains unsealed.
+/// </remarks>
 public class AppendOnlyFileStorageEngine<TKey, TValue> :
     ICompactableBulkStorageEngine<TKey, TValue>
         where TKey : ISerializable<TKey>, IComparable<TKey>, new()

@@ -141,7 +141,7 @@ public sealed class StorageFileTests : IDisposable
         _storageFile.WriteAllBytes(new byte[] { 0x01, 0x02, 0x03 });
 
         // Act: Get the file size.
-        var length = _storageFile.Length;
+        var length = _storageFile.FileSize;
 
         // Assert: The file size should match the number of bytes written.
         Assert.Equal(3, length);

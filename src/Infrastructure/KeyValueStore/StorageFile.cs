@@ -140,7 +140,7 @@ public sealed class StorageFile : IStorageFile
     /// Console.WriteLine($"File size: {fileSize} bytes");
     /// </code>
     /// </example>
-    public long Length => new FileInfo(_filePath).Length;
+    public long FileSize => new FileInfo(_filePath).Length;
 
     /// <inheritdoc />
     /// <example>

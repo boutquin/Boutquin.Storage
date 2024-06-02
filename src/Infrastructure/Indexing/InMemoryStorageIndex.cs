@@ -21,6 +21,16 @@ namespace Boutquin.Storage.Infrastructure.Indexing;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the index.</typeparam>
 /// <typeparam name="TValue">The type of the values in the index.</typeparam>
+/// <remarks>
+/// This class is not sealed to allow for extensibility and specialization. It serves as a base class 
+/// for other storage index implementations, such as <see cref="InMemoryFileIndex{TKey}"/>, which may 
+/// add additional features or optimizations. For instance, the derived class 
+/// <see cref="InMemoryFileIndex{TKey}"/> enhances the base functionality by specifically managing 
+/// file locations associated with keys. Sealing this class would prevent such extensions and limit 
+/// the flexibility needed to create specialized storage indexes that build upon the core in-memory 
+/// indexing functionality. Thus, to enable the creation of more advanced and feature-rich storage 
+/// index implementations, this class remains unsealed.
+/// </remarks>
 public class InMemoryStorageIndex<TKey, TValue> : IStorageIndex<TKey, TValue> where TKey : IComparable<TKey>
 {
     private readonly SortedDictionary<TKey, TValue> _index = new();

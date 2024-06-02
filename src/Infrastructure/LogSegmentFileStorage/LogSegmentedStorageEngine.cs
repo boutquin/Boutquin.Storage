@@ -20,16 +20,16 @@ namespace Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
-public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngine<TKey, TValue>
+public sealed class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     private readonly string _folder;
     private readonly string _prefix;
     private readonly long _maxSegmentSize;
-    private ILogSegmentFile<TKey, TValue> _currentSegment;
+    private IFileBasedStorageEngine<TKey, TValue> _currentSegment;
     private readonly IEntrySerializer<TKey, TValue> _entrySerializer;
-    private readonly Stack<ILogSegmentFile<TKey, TValue>> _segments;
+    private readonly Stack<IFileBasedStorageEngine<TKey, TValue>> _segments;
 
     public IEntrySerializer<TKey, TValue> EntrySerializer => _entrySerializer;
 
@@ -50,7 +50,7 @@ public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngin
         _folder = folder ?? throw new ArgumentNullException(nameof(folder));
         _prefix = prefix ?? throw new ArgumentNullException(nameof(prefix));
         _maxSegmentSize = maxSegmentSize > 0 ? maxSegmentSize : throw new ArgumentOutOfRangeException(nameof(maxSegmentSize));
-        _segments = new Stack<ILogSegmentFile<TKey, TValue>>();
+        _segments = new Stack<IFileBasedStorageEngine<TKey, TValue>>();
 
         EnsureDirectoryExists(_folder);
 
@@ -65,7 +65,7 @@ public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngin
         Guard.AgainstNullOrDefault(() => value);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (_currentSegment.SegmentSize >= _maxSegmentSize)
+        if (_currentSegment.FileSize >= _maxSegmentSize)
         {
             _currentSegment = CreateNewSegment();
             _segments.Push(_currentSegment);
@@ -123,7 +123,7 @@ public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngin
         cancellationToken.ThrowIfCancellationRequested();
 
         var itemsList = items.ToList();
-        var currentSegmentSize = _currentSegment.SegmentSize;
+        var currentSegmentSize = _currentSegment.FileSize;
 
         foreach (var item in itemsList)
         {
@@ -195,8 +195,8 @@ public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngin
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     private async Task MergeSmallSegmentsAsync(CancellationToken cancellationToken)
     {
-        var smallSegments = _segments.Where(s => s.SegmentSize < _maxSegmentSize).ToList();
-        var mergedSegments = new Stack<ILogSegmentFile<TKey, TValue>>();
+        var smallSegments = _segments.Where(s => s.FileSize < _maxSegmentSize).ToList();
+        var mergedSegments = new Stack<IFileBasedStorageEngine<TKey, TValue>>();
         var currentMergedSegment = CreateNewSegment();
         mergedSegments.Push(currentMergedSegment);
 
@@ -207,7 +207,7 @@ public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngin
             foreach (var item in segmentItems)
             {
                 var itemSize = CalculateSize(_entrySerializer, item.Key, item.Value);
-                if (currentMergedSegment.SegmentSize + itemSize > _maxSegmentSize)
+                if (currentMergedSegment.FileSize + itemSize > _maxSegmentSize)
                 {
                     currentMergedSegment = CreateNewSegment();
                     mergedSegments.Push(currentMergedSegment);
@@ -251,8 +251,8 @@ public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngin
     /// <summary>
     /// Creates a new segment file for storing key-value pairs.
     /// </summary>
-    /// <returns>A new instance of <see cref="ILogSegmentFile{TKey, TValue}"/>.</returns>
-    private ILogSegmentFile<TKey, TValue> CreateNewSegment()
+    /// <returns>A new instance of <see cref="IFileBasedStorageEngine{TKey,TValue}"/>.</returns>
+    private IFileBasedStorageEngine<TKey, TValue> CreateNewSegment()
     {
         var segmentFilePath = GenerateSegmentFilePath();
         return new LogSegmentFile<TKey, TValue>(

@@ -150,7 +150,7 @@ public sealed class LogSegmentFileTests : IDisposable
     {
         // Arrange: Create a storage file mock that exceeds the segment size.
         var storageFileMock = new Mock<IStorageFile>();
-        storageFileMock.Setup(sf => sf.Length).Returns(2048);
+        storageFileMock.Setup(sf => sf.FileSize).Returns(2048);
 
         var entrySerializer = new Mock<IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>>().Object;
         var storageEngine = new Mock<ICompactableBulkStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>>().Object;

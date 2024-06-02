@@ -23,18 +23,4 @@ namespace Boutquin.Storage.Domain.Interfaces;
 public interface ILogSegmentedStorageEngine<TKey, TValue> : 
     ICompactableBulkStorageEngine<TKey, TValue>
         where TKey : ISerializable<TKey>, IComparable<TKey>, new()
-        where TValue : ISerializable<TValue>, new()
-{
-    /// <summary>
-    /// Sets a key-value pair in the storage engine, creating a new segment if necessary.
-    /// </summary>
-    /// <param name="key">The key to set.</param>
-    /// <param name="value">The value to set.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets the entry serializer used by the storage engine.
-    /// </summary>
-    IEntrySerializer<TKey, TValue> EntrySerializer { get; }
-}
+        where TValue : ISerializable<TValue>, new();

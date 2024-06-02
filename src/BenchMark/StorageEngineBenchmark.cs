@@ -20,6 +20,18 @@ namespace Boutquin.Storage.BenchMark;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the key-value store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the key-value store.</typeparam>
+/// <remarks>
+/// This class is not sealed because sealing it would cause issues with derived benchmark classes.
+/// BenchmarkDotNet, the framework used for benchmarking, needs to create proxy subclasses for 
+/// the proper execution of benchmarks. Sealing this class would prevent the creation of these 
+/// proxies, resulting in runtime errors. Moreover, keeping this class unsealed allows for 
+/// extensibility, enabling specific benchmark implementations to inherit and extend the base 
+/// functionality as needed. For example, a derived class might add setup or teardown logic, 
+/// specific parameters, or additional benchmarking methods tailored to a particular storage 
+/// engine implementation. Thus, this class must remain unsealed to ensure both the correct 
+/// functioning of the BenchmarkDotNet framework and to provide flexibility for extending 
+/// benchmark functionality.
+/// </remarks>
 public class StorageEngineBenchmark<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
@@ -51,7 +63,7 @@ public class StorageEngineBenchmark<TKey, TValue>
         }
 
         // Clear the store
-        _store.ClearAsync();
+        await _store.ClearAsync();
 
         // Populate the store with the initial data
         for (int i = 0; i < ItemCount; i++)

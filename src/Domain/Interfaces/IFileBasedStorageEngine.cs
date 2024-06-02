@@ -16,23 +16,33 @@
 namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Interface for a log segment file.
+/// Interface for a file-based storage engine.
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
-public interface ILogSegmentFile<TKey, TValue> : ICompactableBulkStorageEngine<TKey, TValue>
+public interface IFileBasedStorageEngine<TKey, TValue> : ICompactableBulkStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     /// <summary>
-    /// Gets the path to the segment file.
+    /// Gets the full file name with path.
     /// </summary>
-    string SegmentFilePath { get; }
+    string FilePath => Path.Combine(FileLocation, FileName);
 
     /// <summary>
-    /// Gets the size of the segment file.
+    /// Gets the file size.
     /// </summary>
-    long SegmentSize { get; }
+    long FileSize { get; }
+
+    /// <summary>
+    /// Gets the filename.
+    /// </summary>
+    string FileName { get; }
+
+    /// <summary>
+    /// Gets the location of the storage file.
+    /// </summary>
+    string FileLocation { get; }
 
     /// <summary>
     /// Gets the entry serializer.

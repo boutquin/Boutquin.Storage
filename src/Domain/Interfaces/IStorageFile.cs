@@ -59,7 +59,12 @@ public interface IStorageFile : IDisposable
     /// <summary>
     /// Gets the file size.
     /// </summary>
-    long Length { get; }
+    long FileSize { get; }
+
+    /// <summary>
+    /// Gets the full file name with path.
+    /// </summary>
+    string FilePath => Path.Combine(FileLocation, FileName);
 
     /// <summary>
     /// Gets the filename.
