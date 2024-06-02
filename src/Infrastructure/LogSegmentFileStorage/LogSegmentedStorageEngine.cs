@@ -16,51 +16,49 @@
 namespace Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 
 /// <summary>
-/// Implements a log-segmented file storage engine that supports appending, bulk operations,
-/// and compaction. The log is broken into segments, and each segment is managed separately.
+/// Provides a segmented file-based storage engine with asynchronous operations.
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
-public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileStorageEngine<TKey, TValue>
+public class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
-    private readonly ICompactableBulkStorageEngine<TKey, TValue> _storageEngine;
-    private readonly Stack<ILogSegmentFile<TKey, TValue>> _segments = new();
     private readonly string _folder;
     private readonly string _prefix;
     private readonly long _maxSegmentSize;
     private ILogSegmentFile<TKey, TValue> _currentSegment;
+    private readonly IEntrySerializer<TKey, TValue> _entrySerializer;
+    private readonly Stack<ILogSegmentFile<TKey, TValue>> _segments;
+
+    public IEntrySerializer<TKey, TValue> EntrySerializer => _entrySerializer;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LogSegmentFileStorageEngine{TKey, TValue}"/> class.
+    /// Initializes a new instance of the <see cref="LogSegmentedStorageEngine{TKey,TValue}"/> class.
     /// </summary>
-    /// <param name="storageEngine">The storage engine to use for managing segments.</param>
+    /// <param name="entrySerializer">The serializer to use for serializing and deserializing entries.</param>
     /// <param name="folder">The folder where segment files are stored.</param>
     /// <param name="prefix">The prefix used for segment file names.</param>
     /// <param name="maxSegmentSize">The maximum size of a segment before a new one is created.</param>
-    public LogSegmentFileStorageEngine(
-        ICompactableBulkStorageEngine<TKey, TValue> storageEngine,
+    public LogSegmentedStorageEngine(
+        IEntrySerializer<TKey, TValue> entrySerializer,
         string folder,
         string prefix,
         long maxSegmentSize)
     {
-        _storageEngine = storageEngine ?? throw new ArgumentNullException(nameof(storageEngine));
+        _entrySerializer = entrySerializer ?? throw new ArgumentNullException(nameof(entrySerializer));
         _folder = folder ?? throw new ArgumentNullException(nameof(folder));
         _prefix = prefix ?? throw new ArgumentNullException(nameof(prefix));
         _maxSegmentSize = maxSegmentSize > 0 ? maxSegmentSize : throw new ArgumentOutOfRangeException(nameof(maxSegmentSize));
+        _segments = new Stack<ILogSegmentFile<TKey, TValue>>();
+
+        EnsureDirectoryExists(_folder);
 
         _currentSegment = CreateNewSegment();
         _segments.Push(_currentSegment);
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// await storageEngine.SetAsync(new Key(1), new Value("value1"));
-    /// </code>
-    /// </example>
     public async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => key);
@@ -77,16 +75,6 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// var (value, found) = await storageEngine.TryGetValueAsync(new Key(1));
-    /// if (found)
-    /// {
-    ///     Console.WriteLine($"Value: {value}");
-    /// }
-    /// </code>
-    /// </example>
     public async Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => key);
@@ -105,13 +93,6 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// var containsKey = await storageEngine.ContainsKeyAsync(new Key(1));
-    /// Console.WriteLine($"Contains Key: {containsKey}");
-    /// </code>
-    /// </example>
     public async Task<bool> ContainsKeyAsync(TKey key, CancellationToken cancellationToken = default)
     {
         Guard.AgainstNullOrDefault(() => key);
@@ -130,49 +111,40 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// await storageEngine.RemoveAsync(new Key(1));
-    /// </code>
-    /// </example>
     public Task RemoveAsync(TKey key, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("Remove operation is not supported in an append-only storage engine.");
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// await storageEngine.ClearAsync();
-    /// </code>
-    /// </example>
-    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    public async Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
     {
+        Guard.AgainstEmptyOrNullEnumerable(() => items);
         cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (var segment in _segments)
-        {
-            await segment.ClearAsync(cancellationToken);
-        }
+        var itemsList = items.ToList();
+        var currentSegmentSize = _currentSegment.SegmentSize;
 
-        _segments.Clear();
-        _currentSegment = CreateNewSegment();
-        _segments.Push(_currentSegment);
+        foreach (var item in itemsList)
+        {
+            Guard.AgainstNullOrDefault(() => item.Key);
+            Guard.AgainstNullOrDefault(() => item.Value);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var itemSize = CalculateSize(_entrySerializer, item.Key, item.Value);
+            if (currentSegmentSize + itemSize > _maxSegmentSize)
+            {
+                _currentSegment = CreateNewSegment();
+                _segments.Push(_currentSegment);
+                currentSegmentSize = 0;
+            }
+
+            await _currentSegment.SetAsync(item.Key, item.Value, cancellationToken);
+            currentSegmentSize += itemSize;
+        }
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// var allItems = await storageEngine.GetAllItemsAsync();
-    /// foreach (var item in allItems)
-    /// {
-    ///     Console.WriteLine($"Key: {item.Key}, Value: {item.Value}");
-    /// }
-    /// </code>
-    /// </example>
     public async Task<IEnumerable<(TKey Key, TValue Value)>> GetAllItemsAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -189,51 +161,21 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// var bulkItems = new[]
-    /// {
-    ///     new KeyValuePair&lt;Key, Value&gt;(new Key(1), new Value("value1")),
-    ///     new KeyValuePair&lt;Key, Value&gt;(new Key(2), new Value("value2"))
-    /// };
-    /// await storageEngine.SetBulkAsync(bulkItems);
-    /// </code>
-    /// </example>
-    public async Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
+    public async Task ClearAsync(CancellationToken cancellationToken = default)
     {
-        Guard.AgainstEmptyOrNullEnumerable(() => items);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var itemsList = items.ToList();
-        var currentSegmentSize = _currentSegment.SegmentSize;
-
-        foreach (var item in itemsList)
+        foreach (var segment in _segments)
         {
-            Guard.AgainstNullOrDefault(() => item.Key);
-            Guard.AgainstNullOrDefault(() => item.Value);
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var itemSize = CalculateSize(_currentSegment.EntrySerializer, item.Key, item.Value);
-            if (currentSegmentSize + itemSize > _maxSegmentSize)
-            {
-                _currentSegment = CreateNewSegment();
-                _segments.Push(_currentSegment);
-                currentSegmentSize = 0;
-            }
-
-            await _currentSegment.SetAsync(item.Key, item.Value, cancellationToken);
-            currentSegmentSize += itemSize;
+            await segment.ClearAsync(cancellationToken);
         }
+
+        _segments.Clear();
+        _currentSegment = CreateNewSegment();
+        _segments.Push(_currentSegment);
     }
 
     /// <inheritdoc/>
-    /// <example>
-    /// <code>
-    /// var storageEngine = new LogSegmentFileStorageEngine&lt;Key, Value&gt;(storageEngine, folder, prefix, maxSegmentSize);
-    /// await storageEngine.CompactAsync();
-    /// </code>
-    /// </example>
     public async Task CompactAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -264,7 +206,7 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
 
             foreach (var item in segmentItems)
             {
-                var itemSize = CalculateSize(currentMergedSegment.EntrySerializer, item.Key, item.Value);
+                var itemSize = CalculateSize(_entrySerializer, item.Key, item.Value);
                 if (currentMergedSegment.SegmentSize + itemSize > _maxSegmentSize)
                 {
                     currentMergedSegment = CreateNewSegment();
@@ -277,9 +219,18 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
             await segment.ClearAsync(cancellationToken);
         }
 
-        foreach (var segment in mergedSegments)
+        // Merge small segments into main segments stack
+        var remainingSegments = _segments.Where(s => !smallSegments.Contains(s)).ToList();
+        _segments.Clear();
+
+        foreach (var segment in remainingSegments)
         {
             _segments.Push(segment);
+        }
+
+        foreach (var mergedSegment in mergedSegments)
+        {
+            _segments.Push(mergedSegment);
         }
     }
 
@@ -305,8 +256,8 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
     {
         var segmentFilePath = GenerateSegmentFilePath();
         return new LogSegmentFile<TKey, TValue>(
-            new StorageFile(segmentFilePath), 
-            _storageEngine, 
+            new StorageFile(segmentFilePath),
+            _entrySerializer,
             _maxSegmentSize);
     }
 
@@ -317,8 +268,18 @@ public sealed class LogSegmentFileStorageEngine<TKey, TValue> : ILogSegmentFileS
     private string GenerateSegmentFilePath()
     {
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
-        return System.IO.Path.Combine(_folder, $"{_prefix}_segment_{timestamp}.log");
+        return Path.Combine(_folder, $"{_prefix}_segment_{timestamp}.log");
     }
 
-    public IEntrySerializer<TKey, TValue> EntrySerializer => _storageEngine.EntrySerializer;
+    /// <summary>
+    /// Ensures that the specified directory exists.
+    /// </summary>
+    /// <param name="directoryPath">The path of the directory.</param>
+    private void EnsureDirectoryExists(string directoryPath)
+    {
+        if (!Directory.Exists(directoryPath))
+        {
+            Directory.CreateDirectory(directoryPath);
+        }
+    }
 }

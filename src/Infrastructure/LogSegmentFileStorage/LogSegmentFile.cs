@@ -25,35 +25,40 @@ public sealed class LogSegmentFile<TKey, TValue> : ILogSegmentFile<TKey, TValue>
     where TValue : ISerializable<TValue>, new()
 {
     private readonly IStorageFile _segmentFile;
-    private readonly ICompactableBulkStorageEngine<TKey, TValue> _storageEngine;
+    private readonly IEntrySerializer<TKey, TValue> _entrySerializer;
+    private readonly AppendOnlyFileStorageEngine<TKey, TValue> _storageEngine;
     private readonly long _maxSegmentSize;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LogSegmentFile{TKey, TValue}"/> class.
     /// </summary>
     /// <param name="segmentFile">The storage file representing the segment.</param>
-    /// <param name="storageEngine">The storage engine for handling entries and compaction.</param>
+    /// <param name="entrySerializer">The serializer to use for serializing and deserializing entries.</param>
     /// <param name="maxSegmentSize">The maximum size of the segment file in bytes.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="segmentFile"/> or <paramref name="storageEngine"/> is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="segmentFile"/> or <paramref name="entrySerializer"/> is null.</exception>
     public LogSegmentFile(
         IStorageFile segmentFile,
-        ICompactableBulkStorageEngine<TKey, TValue> storageEngine,
+        IEntrySerializer<TKey, TValue> entrySerializer,
         long maxSegmentSize)
     {
         _segmentFile = segmentFile ?? throw new ArgumentNullException(nameof(segmentFile));
-        _storageEngine = storageEngine ?? throw new ArgumentNullException(nameof(storageEngine));
+        _entrySerializer = entrySerializer ?? throw new ArgumentNullException(nameof(entrySerializer));
         _maxSegmentSize = maxSegmentSize;
+
+        _segmentFile.Create(FileExistenceHandling.DoNothingIfExists);
+        _storageEngine = new AppendOnlyFileStorageEngine<TKey, TValue>(_segmentFile, _entrySerializer);
     }
 
     public string SegmentFilePath => _segmentFile.FileLocation;
 
     public long SegmentSize => _segmentFile.Length;
-    public IEntrySerializer<TKey, TValue> EntrySerializer => _storageEngine.EntrySerializer;
+
+    public IEntrySerializer<TKey, TValue> EntrySerializer => _entrySerializer;
 
     /// <inheritdoc/>
     public async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
-        if (_segmentFile.Length > _maxSegmentSize)
+        if (_segmentFile.Length >= _maxSegmentSize)
         {
             throw new InvalidOperationException("Segment size exceeded.");
         }

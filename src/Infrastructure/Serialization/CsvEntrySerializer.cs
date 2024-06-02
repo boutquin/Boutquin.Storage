@@ -39,7 +39,7 @@ public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TV
             var valueString = SerializeToCsvFormat(value);
             var csvLine = $"{keyString},{valueString}";
             await writer.WriteLineAsync(csvLine).ConfigureAwait(false);
-            await writer.FlushAsync().ConfigureAwait(false);
+            await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

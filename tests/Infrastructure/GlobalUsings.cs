@@ -14,6 +14,7 @@ global using Xunit.Abstractions;
 global using Boutquin.Domain.Helpers;
 
 global using Boutquin.Storage.Domain.Enums;
+global using Boutquin.Storage.Domain.Exceptions;
 global using Boutquin.Storage.Domain.Helpers;
 global using Boutquin.Storage.Domain.Interfaces;
 global using Boutquin.Storage.Domain.ValueObjects;
@@ -21,4 +22,9 @@ global using Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 global using Boutquin.Storage.Infrastructure.DataStructures;
 global using Boutquin.Storage.Infrastructure.Indexing;
 global using Boutquin.Storage.Infrastructure.KeyValueStore;
+global using Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 global using Boutquin.Storage.Infrastructure.Serialization;
+
+global using System.Runtime.Serialization;
+
+global using SerializationException = Boutquin.Storage.Domain.Exceptions.SerializationException;
