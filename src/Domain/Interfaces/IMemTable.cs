@@ -50,32 +50,5 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>The choice of data structure depends on the specific requirements of the application, such as the need for ordered data, the expected write 
 /// throughput, and the complexity of implementation.</para>
 /// </remarks>
-public interface IMemTable<TKey, TValue>
-{
-    /// <summary>
-    /// Adds a key-value pair to the MemTable.
-    /// </summary>
-    /// <param name="key">The key to add.</param>
-    /// <param name="value">The value associated with the key.</param>
-    void Add(TKey key, TValue value);
-
-    /// <summary>
-    /// Attempts to get the value associated with the specified key from the MemTable.
-    /// </summary>
-    /// <param name="key">The key to find.</param>
-    /// <param name="value">When this method returns, contains the value associated with the specified key, if the key is found; 
-    /// otherwise, the default value for the type of the value parameter.</param>
-    /// <returns><c>true</c> if the key was found; otherwise, <c>false</c>.</returns>
-    bool TryGetValue(TKey key, out TValue value);
-
-    /// <summary>
-    /// Clears the MemTable, removing all elements.
-    /// </summary>
-    void Clear();
-
-    /// <summary>
-    /// Gets all the items in the MemTable in sorted order.
-    /// </summary>
-    /// <returns>An enumeration of key-value pairs in the MemTable, sorted by key.</returns>
-    IEnumerable<KeyValuePair<TKey, TValue>> GetAllItems();
-}
+public interface IMemTable<TKey, TValue> : IBulkKeyValueStore<TKey, TValue>
+    where TKey : IComparable<TKey>;

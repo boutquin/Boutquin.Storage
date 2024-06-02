@@ -47,7 +47,9 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// balanced, in-memory structure, it allows for quick write operations and provides an ordered set of data that can be efficiently flushed 
 /// to disk as a sorted SSTable, improving the overall performance of the LSM-tree.</para>
 /// </remarks>
-public interface IRedBlackTree<TKey, TValue> : IMemTable<TKey, TValue>
+public interface IRedBlackTree<TKey, TValue> 
+    : IMemTable<TKey, TValue>
+    where TKey : IComparable<TKey>
 {
     /// <summary>
     /// Gets a value indicating whether the red-black tree (MemTable) is full.
