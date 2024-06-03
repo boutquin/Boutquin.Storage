@@ -16,12 +16,27 @@
 namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Interface for a file-based storage engine.
+/// Provides file information for storage engines.
 /// </summary>
-/// <typeparam name="TKey">The type of the keys in the store.</typeparam>
-/// <typeparam name="TValue">The type of the values in the store.</typeparam>
-public interface IFileBasedStorageEngine<TKey, TValue> :
-    IFileInformation,
-    ICompactableBulkStorageEngine<TKey, TValue>
-    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
-    where TValue : ISerializable<TValue>, new();
+public interface IFileInformation
+{
+    /// <summary>
+    /// Gets the full file path, including the location and file name.
+    /// </summary>
+    string FilePath => Path.Combine(FileLocation, FileName);
+
+    /// <summary>
+    /// Gets the size of the file in bytes.
+    /// </summary>
+    long FileSize { get; }
+
+    /// <summary>
+    /// Gets the name of the file.
+    /// </summary>
+    string FileName { get; }
+
+    /// <summary>
+    /// Gets the location (directory path) of the file.
+    /// </summary>
+    string FileLocation { get; }
+}

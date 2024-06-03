@@ -20,18 +20,17 @@ namespace Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the store.</typeparam>
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
-public sealed class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStorageEngine<TKey, TValue>
-    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
-    where TValue : ISerializable<TValue>, new()
+public sealed class LogSegmentedStorageEngine<TKey, TValue> : 
+    ILogSegmentedStorageEngine<TKey, TValue>
+        where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+        where TValue : ISerializable<TValue>, new()
 {
     private readonly string _folder;
     private readonly string _prefix;
     private readonly long _maxSegmentSize;
+    private readonly Func<string, string, IEntrySerializer<TKey, TValue>, long, IFileBasedStorageEngine<TKey, TValue>> _storageEngineFactory;
     private IFileBasedStorageEngine<TKey, TValue> _currentSegment;
-    private readonly IEntrySerializer<TKey, TValue> _entrySerializer;
     private readonly Stack<IFileBasedStorageEngine<TKey, TValue>> _segments;
-
-    public IEntrySerializer<TKey, TValue> EntrySerializer => _entrySerializer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LogSegmentedStorageEngine{TKey,TValue}"/> class.
@@ -40,16 +39,19 @@ public sealed class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStora
     /// <param name="folder">The folder where segment files are stored.</param>
     /// <param name="prefix">The prefix used for segment file names.</param>
     /// <param name="maxSegmentSize">The maximum size of a segment before a new one is created.</param>
+    /// <param name="storageEngineFactory">The factory method to create instances of <see cref="IFileBasedStorageEngine{TKey,TValue}"/>.</param>
     public LogSegmentedStorageEngine(
         IEntrySerializer<TKey, TValue> entrySerializer,
         string folder,
         string prefix,
-        long maxSegmentSize)
+        long maxSegmentSize,
+        Func<string, string, IEntrySerializer<TKey, TValue>, long, IFileBasedStorageEngine<TKey, TValue>> storageEngineFactory)
     {
-        _entrySerializer = entrySerializer ?? throw new ArgumentNullException(nameof(entrySerializer));
+        EntrySerializer = entrySerializer ?? throw new ArgumentNullException(nameof(entrySerializer));
         _folder = folder ?? throw new ArgumentNullException(nameof(folder));
         _prefix = prefix ?? throw new ArgumentNullException(nameof(prefix));
         _maxSegmentSize = maxSegmentSize > 0 ? maxSegmentSize : throw new ArgumentOutOfRangeException(nameof(maxSegmentSize));
+        _storageEngineFactory = storageEngineFactory ?? throw new ArgumentNullException(nameof(storageEngineFactory));
         _segments = new Stack<IFileBasedStorageEngine<TKey, TValue>>();
 
         EnsureDirectoryExists(_folder);
@@ -57,6 +59,9 @@ public sealed class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStora
         _currentSegment = CreateNewSegment();
         _segments.Push(_currentSegment);
     }
+
+    /// <inheritdoc/>
+    public IEntrySerializer<TKey, TValue> EntrySerializer { get; }
 
     /// <inheritdoc/>
     public async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
@@ -131,7 +136,7 @@ public sealed class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStora
             Guard.AgainstNullOrDefault(() => item.Value);
             cancellationToken.ThrowIfCancellationRequested();
 
-            var itemSize = CalculateSize(_entrySerializer, item.Key, item.Value);
+            var itemSize = CalculateSize(EntrySerializer, item.Key, item.Value);
             if (currentSegmentSize + itemSize > _maxSegmentSize)
             {
                 _currentSegment = CreateNewSegment();
@@ -206,7 +211,7 @@ public sealed class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStora
 
             foreach (var item in segmentItems)
             {
-                var itemSize = CalculateSize(_entrySerializer, item.Key, item.Value);
+                var itemSize = CalculateSize(EntrySerializer, item.Key, item.Value);
                 if (currentMergedSegment.FileSize + itemSize > _maxSegmentSize)
                 {
                     currentMergedSegment = CreateNewSegment();
@@ -254,21 +259,18 @@ public sealed class LogSegmentedStorageEngine<TKey, TValue> : ILogSegmentedStora
     /// <returns>A new instance of <see cref="IFileBasedStorageEngine{TKey,TValue}"/>.</returns>
     private IFileBasedStorageEngine<TKey, TValue> CreateNewSegment()
     {
-        var segmentFilePath = GenerateSegmentFilePath();
-        return new LogSegmentFile<TKey, TValue>(
-            new StorageFile(segmentFilePath),
-            _entrySerializer,
-            _maxSegmentSize);
+        var segmentFileName = GenerateSegmentFileName();
+        return _storageEngineFactory(_folder, segmentFileName, EntrySerializer, _maxSegmentSize);
     }
 
     /// <summary>
     /// Generates a file path for a new segment file.
     /// </summary>
     /// <returns>The generated segment file path.</returns>
-    private string GenerateSegmentFilePath()
+    private string GenerateSegmentFileName()
     {
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
-        return Path.Combine(_folder, $"{_prefix}_segment_{timestamp}.log");
+        return $"{_prefix}_segment_{timestamp}.log";
     }
 
     /// <summary>

@@ -27,11 +27,21 @@ public sealed class LogSegmentedStorageEngineTests : IDisposable
     private readonly IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>> _entrySerializer;
     private readonly LogSegmentedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>> _storageEngine;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LogSegmentedStorageEngineTests"/> class.
+    /// </summary>
     public LogSegmentedStorageEngineTests()
     {
         _entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        _storageEngine = new LogSegmentedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(_entrySerializer, _testFolderPath, _testFilePrefix, _maxSegmentSize);
-        //CleanupTestFiles();
+        Func<string, string, IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>, long, IFileBasedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>> storageEngineFactory =
+            (fileLocation, fileName, serializer, maxSize) => new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(new StorageFile(fileLocation, fileName), serializer);
+
+        _storageEngine = new LogSegmentedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
+            _entrySerializer,
+            _testFolderPath,
+            _testFilePrefix,
+            _maxSegmentSize,
+            storageEngineFactory);
     }
 
     private void CleanupTestFiles()

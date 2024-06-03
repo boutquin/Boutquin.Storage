@@ -60,7 +60,8 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// Implementations can leverage in-memory data structures like <see cref="SortedDictionary{TKey, TValue}"/> for efficient lookups,
 /// insertions, and deletions.</para>
 /// </remarks>
-public interface IFileStorageIndex<in TKey> : IStorageIndex<TKey, FileLocation> where TKey : IComparable<TKey>
+public interface IFileStorageIndex<in TKey> : 
+    IStorageIndex<TKey, FileLocation> where TKey : IComparable<TKey>
 {
     // Additional methods specific to the file storage index can be added here.
 }

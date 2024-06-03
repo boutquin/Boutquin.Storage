@@ -18,7 +18,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <summary>
 /// Interface for basic file operations.
 /// </summary>
-public interface IStorageFile : IDisposable
+public interface IStorageFile : IFileInformation, IDisposable
 {
     /// <summary>
     /// Creates a new file, optionally handling the existence of an existing file.
@@ -55,26 +55,6 @@ public interface IStorageFile : IDisposable
     /// </summary>
     /// <param name="deletionHandling">Specifies how to handle the deletion of the file.</param>
     void Delete(FileDeletionHandling deletionHandling);
-
-    /// <summary>
-    /// Gets the file size.
-    /// </summary>
-    long FileSize { get; }
-
-    /// <summary>
-    /// Gets the full file name with path.
-    /// </summary>
-    string FilePath => Path.Combine(FileLocation, FileName);
-
-    /// <summary>
-    /// Gets the filename.
-    /// </summary>
-    string FileName { get; }
-
-    /// <summary>
-    /// Gets the location of the file.
-    /// </summary>
-    string FileLocation { get; }
 
     /// <summary>
     /// Reads a specified number of bytes from the file at the given offset.

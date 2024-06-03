@@ -21,7 +21,10 @@ namespace Boutquin.Storage.Infrastructure.Tests;
 /// </summary>
 public sealed class AppendOnlyFileStorageEngineTests : IDisposable
 {
-    private readonly string _testFilePath = "AppendOnlyFileStorageEngineTests.dat";
+    private readonly string _testFileLocation = Path.Combine(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineTestFiles");
+    private readonly string _testFileName = "AppendOnlyFileStorageEngineTests.dat";
+   private string TestFilePath => Path.Combine(_testFileLocation, _testFileName);
+
     private readonly ITestOutputHelper _output;
 
     public AppendOnlyFileStorageEngineTests(ITestOutputHelper output)
@@ -32,9 +35,9 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
 
     private void CleanupTestFiles()
     {
-        if (File.Exists(_testFilePath))
+        if (File.Exists(TestFilePath))
         {
-            File.Delete(_testFilePath);
+            File.Delete(TestFilePath);
         }
     }
 
@@ -46,7 +49,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     {
         // Arrange: Create a memory stream to write to and a serializer.
         using var memoryStream = new MemoryStream();
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
 
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
@@ -58,7 +61,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
         await storageEngine.SetAsync(key, value);
 
         // Assert: Verify that the stream contains the expected serialized key-value pair.
-        await using var fileStream = File.OpenRead(_testFilePath);
+        await using var fileStream = File.OpenRead(TestFilePath);
         var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
         Assert.Equal(1, reader.ReadInt32());
         Assert.Equal("value1", reader.ReadString());
@@ -71,7 +74,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task TryGetValueAsync_ShouldRetrieveValueByKey()
     {
         // Arrange: Create a memory stream with a serialized key-value pair.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -95,7 +98,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task ContainsKeyAsync_ShouldReturnTrueIfKeyExists()
     {
         // Arrange: Create a memory stream with a serialized key-value pair.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -118,7 +121,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task GetAllItemsAsync_ShouldRetrieveAllKeyValuePairs()
     {
         // Arrange: Create a memory stream with serialized key-value pairs.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -167,7 +170,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     {
         // Arrange: Create a new storage engine with a null entry serializer.
         IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>> entrySerializer = null;
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
 
         // Act & Assert: Check that an ArgumentNullException is thrown.
         Assert.Throws<ArgumentNullException>(() => new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer));
@@ -198,7 +201,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task TryGetValueAsync_ShouldReturnFalseIfKeyDoesNotExist()
     {
         // Arrange: Create a memory stream with a serialized key-value pair.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -239,7 +242,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task RemoveAsync_ShouldThrowNotSupportedException()
     {
         // Arrange: Create a memory stream with a serialized key-value pair.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -254,7 +257,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task SetBulkAsync_ShouldAppendMultipleKeyValuePairs()
     {
         // Arrange: Create a memory stream with serialized key-value pairs.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -269,7 +272,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
         await storageEngine.SetBulkAsync(items);
 
         // Assert: Verify that the stream contains the expected serialized key-value pairs.
-        await using var fileStream = File.OpenRead(_testFilePath);
+        await using var fileStream = File.OpenRead(TestFilePath);
         var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
         foreach (var item in items)
         {
@@ -310,7 +313,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task ClearAsync_ShouldClearStorageFile()
     {
         // Arrange: Create a memory stream with a serialized key-value pair.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -323,7 +326,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
         await storageEngine.ClearAsync();
 
         // Assert: Check that the storage file was cleared.
-        Assert.False(File.Exists(_testFilePath));
+        Assert.False(File.Exists(TestFilePath));
     }
 
     /// <summary>
@@ -354,7 +357,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     public async Task CompactAsync_ShouldCompactStorageFile()
     {
         // Arrange: Create a memory stream with serialized key-value pairs.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
 
@@ -373,7 +376,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
             _output.WriteLine($"Key: {item.Key}, Value: {item.Value}");
         }
 #endif
-        await using var fileStream = File.OpenRead(_testFilePath);
+        await using var fileStream = File.OpenRead(TestFilePath);
         var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
         Assert.Equal(1, reader.ReadInt32());
         Assert.Equal("value2", reader.ReadString());

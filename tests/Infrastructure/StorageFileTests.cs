@@ -21,13 +21,15 @@ namespace Boutquin.Storage.Infrastructure.Tests;
 /// </summary>
 public sealed class StorageFileTests : IDisposable
 {
-    private readonly string _testFilePath = "testfile.txt";
+    private readonly string _testFileLocation = Path.Combine(Directory.GetCurrentDirectory(), "StorageFileTestFiles");
+    private readonly string _testFileName = "testfile.txt";
     private readonly IStorageFile _storageFile;
+    private string TestFilePath => Path.Combine(_testFileLocation, _testFileName);
 
     public StorageFileTests()
     {
         // Arrange: Initialize the storage file instance for each test.
-        _storageFile = new StorageFile(_testFilePath);
+        _storageFile = new StorageFile(_testFileLocation, _testFileName);
     }
 
     /// <summary>
@@ -79,6 +81,9 @@ public sealed class StorageFileTests : IDisposable
     [Fact]
     public void Exists_ShouldReturnFalseIfFileDoesNotExist()
     {
+        // Arrange: Delete the file.
+        _storageFile.Delete(FileDeletionHandling.DeleteIfExists);
+
         // Act: Check if the file exists.
         var exists = _storageFile.Exists();
 
@@ -126,6 +131,12 @@ public sealed class StorageFileTests : IDisposable
     [Fact]
     public void Delete_ShouldThrowIfFileDoesNotExist()
     {
+        // Arrange: Delete the file first.
+        if (File.Exists(_storageFile.FilePath))
+        {
+            File.Delete(_storageFile.FilePath);
+        }
+
         // Act & Assert: Attempt to delete a non-existing file with ThrowIfNotExists handling and expect a FileNotFoundException.
         Assert.Throws<FileNotFoundException>(() => _storageFile.Delete(FileDeletionHandling.ThrowIfNotExists));
     }

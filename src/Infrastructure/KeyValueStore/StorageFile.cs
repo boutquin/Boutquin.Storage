@@ -20,23 +20,77 @@ namespace Boutquin.Storage.Infrastructure.KeyValueStore;
 /// </summary>
 public sealed class StorageFile : IStorageFile
 {
-    private readonly string _filePath;
     private FileStream? _fileStream;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StorageFile"/> class.
     /// </summary>
-    /// <param name="filePath">The file path.</param>
-    public StorageFile(string filePath)
+    /// <param name="fileLocation">The directory path where the file is located.</param>
+    /// <param name="fileName">The name of the file.</param>
+    public StorageFile(string fileLocation, string fileName)
     {
-        Guard.AgainstNullOrWhiteSpace(() => filePath); // Validate the file path to ensure it is not null, empty, or whitespace.
-        _filePath = filePath;
+        Guard.AgainstNullOrWhiteSpace(() => fileLocation); // Validate the file location to ensure it is not null, empty, or whitespace.
+        Guard.AgainstNullOrWhiteSpace(() => fileName); // Validate the file name to ensure it is not null, empty, or whitespace.
+
+        FileLocation = fileLocation;
+        FileName = fileName;
+        FilePath = Path.Combine(FileLocation, FileName);
+
+        // Ensure the directory exists.
+        EnsureDirectoryExists(fileLocation);
+
+        // Ensure the file exists.
+        Create(FileExistenceHandling.DoNothingIfExists);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
+    /// long fileSize = storageFile.Length;
+    /// Console.WriteLine($"File size: {fileSize} bytes");
+    /// </code>
+    /// </example>
+    public long FileSize => new FileInfo(FilePath).Length;
+
+    /// <inheritdoc />
+    /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
+    /// string fileName = storageFile.FileName;
+    /// Console.WriteLine($"File name: {fileName}");
+    /// </code>
+    /// </example>
+    public string FileName { get; }
+
+    /// <inheritdoc />
+    /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
+    /// string fileLocation = storageFile.FileLocation;
+    /// Console.WriteLine($"File location: {fileLocation}");
+    /// </code>
+    /// </example>
+    public string FileLocation { get; }
+
+    /// <inheritdoc />
+    /// <inheritdoc />
+    /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
+    /// string filePath = storageFile.FilePath;
+    /// Console.WriteLine($"File Path: {filePath}");
+    /// </code>
+    /// </example>
+    public string FilePath { get; }
+
+    /// <inheritdoc />
+    /// <example>
+    /// <code>
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// storageFile.Create(FileExistenceHandling.Overwrite);
     /// </code>
     /// </example>
@@ -48,24 +102,24 @@ public sealed class StorageFile : IStorageFile
         {
             case FileExistenceHandling.Overwrite:
                 _fileStream?.Dispose();
-                _fileStream = new FileStream(_filePath, FileMode.Create, FileAccess.Write);
+                _fileStream = new FileStream(FilePath, FileMode.Create, FileAccess.Write);
                 _fileStream.Dispose();
                 break;
             case FileExistenceHandling.DoNothingIfExists:
-                if (!File.Exists(_filePath))
+                if (!File.Exists(FilePath))
                 {
                     _fileStream?.Dispose();
-                    _fileStream = new FileStream(_filePath, FileMode.CreateNew, FileAccess.Write);
+                    _fileStream = new FileStream(FilePath, FileMode.CreateNew, FileAccess.Write);
                     _fileStream.Dispose();
                 }
                 break;
             case FileExistenceHandling.ThrowIfExists:
-                if (File.Exists(_filePath))
+                if (File.Exists(FilePath))
                 {
-                    throw new IOException($"File '{_filePath}' already exists.");
+                    throw new IOException($"File '{FilePath}' already exists.");
                 }
                 _fileStream?.Dispose();
-                _fileStream = new FileStream(_filePath, FileMode.CreateNew, FileAccess.Write);
+                _fileStream = new FileStream(FilePath, FileMode.CreateNew, FileAccess.Write);
                 _fileStream.Dispose();
                 break;
         }
@@ -74,20 +128,20 @@ public sealed class StorageFile : IStorageFile
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// bool exists = storageFile.Exists();
     /// Console.WriteLine($"File exists: {exists}");
     /// </code>
     /// </example>
     public bool Exists()
     {
-        return File.Exists(_filePath);
+        return File.Exists(FilePath);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// using var stream = storageFile.Open(FileMode.OpenOrCreate);
     /// // Perform read/write operations with the stream
     /// </code>
@@ -95,14 +149,14 @@ public sealed class StorageFile : IStorageFile
     public Stream Open(FileMode mode)
     {
         _fileStream?.Dispose();
-        _fileStream = new FileStream(_filePath, mode, mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite);
+        _fileStream = new FileStream(FilePath, mode, mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite);
         return _fileStream;
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// storageFile.Close();
     /// </code>
     /// </example>
@@ -115,57 +169,27 @@ public sealed class StorageFile : IStorageFile
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// storageFile.Delete(FileDeletionHandling.DeleteIfExists);
     /// </code>
     /// </example>
     public void Delete(FileDeletionHandling deletionHandling)
     {
-        if (!File.Exists(_filePath) && deletionHandling == FileDeletionHandling.ThrowIfNotExists)
+        if (!File.Exists(FilePath) && deletionHandling == FileDeletionHandling.ThrowIfNotExists)
         {
-            throw new FileNotFoundException($"File '{_filePath}' does not exist.");
+            throw new FileNotFoundException($"File '{FilePath}' does not exist.");
         }
 
-        if (File.Exists(_filePath))
+        if (File.Exists(FilePath))
         {
-            File.Delete(_filePath);
+            File.Delete(FilePath);
         }
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
-    /// long fileSize = storageFile.Length;
-    /// Console.WriteLine($"File size: {fileSize} bytes");
-    /// </code>
-    /// </example>
-    public long FileSize => new FileInfo(_filePath).Length;
-
-    /// <inheritdoc />
-    /// <example>
-    /// <code>
-    /// var storageFile = new StorageFile("example.txt");
-    /// string fileName = storageFile.FileName;
-    /// Console.WriteLine($"File name: {fileName}");
-    /// </code>
-    /// </example>
-    public string FileName => Path.GetFileName(_filePath);
-
-    /// <inheritdoc />
-    /// <example>
-    /// <code>
-    /// var storageFile = new StorageFile("example.txt");
-    /// string fileLocation = storageFile.FileLocation;
-    /// Console.WriteLine($"File location: {fileLocation}");
-    /// </code>
-    /// </example>
-    public string FileLocation => _filePath;
-
-    /// <inheritdoc />
-    /// <example>
-    /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// byte[] data = storageFile.ReadBytes(0, 100);
     /// Console.WriteLine($"Read {data.Length} bytes from file.");
     /// </code>
@@ -175,7 +199,7 @@ public sealed class StorageFile : IStorageFile
         Guard.AgainstNegative(() => offset); // Validate offset.
         Guard.AgainstNegative(() => count); // Validate count.
 
-        using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read);
+        using var stream = new FileStream(FilePath, FileMode.Open, FileAccess.Read);
         if (offset >= stream.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
@@ -196,7 +220,7 @@ public sealed class StorageFile : IStorageFile
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// byte[] data = await storageFile.ReadBytesAsync(0, 100);
     /// Console.WriteLine($"Read {data.Length} bytes from file.");
     /// </code>
@@ -206,7 +230,7 @@ public sealed class StorageFile : IStorageFile
         Guard.AgainstNegative(() => offset); // Validate offset.
         Guard.AgainstNegative(() => count); // Validate count.
 
-        await using var stream = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+        await using var stream = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
         if (offset >= stream.Length)
         {
             throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
@@ -227,20 +251,20 @@ public sealed class StorageFile : IStorageFile
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// byte[] data = storageFile.ReadAllBytes();
     /// Console.WriteLine($"Read {data.Length} bytes from file.");
     /// </code>
     /// </example>
     public byte[] ReadAllBytes()
     {
-        return File.ReadAllBytes(_filePath);
+        return File.ReadAllBytes(FilePath);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// byte[] data = await storageFile.ReadAllBytesAsync();
     /// Console.WriteLine($"Read {data.Length} bytes from file.");
     /// </code>
@@ -248,26 +272,26 @@ public sealed class StorageFile : IStorageFile
     public async Task<byte[]> ReadAllBytesAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return await File.ReadAllBytesAsync(_filePath, cancellationToken);
+        return await File.ReadAllBytesAsync(FilePath, cancellationToken);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// string content = storageFile.ReadAllText(Encoding.UTF8);
     /// Console.WriteLine($"File content: {content}");
     /// </code>
     /// </example>
     public string ReadAllText(Encoding encoding)
     {
-        return File.ReadAllText(_filePath, encoding);
+        return File.ReadAllText(FilePath, encoding);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// string content = await storageFile.ReadAllTextAsync(Encoding.UTF8);
     /// Console.WriteLine($"File content: {content}");
     /// </code>
@@ -275,114 +299,126 @@ public sealed class StorageFile : IStorageFile
     public async Task<string> ReadAllTextAsync(Encoding encoding, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return await File.ReadAllTextAsync(_filePath, encoding, cancellationToken);
+        return await File.ReadAllTextAsync(FilePath, encoding, cancellationToken);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// storageFile.WriteAllBytes(new byte[] { 0x01, 0x02, 0x03 });
     /// </code>
     /// </example>
     public void WriteAllBytes(byte[] content)
     {
-        File.WriteAllBytes(_filePath, content);
+        File.WriteAllBytes(FilePath, content);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// await storageFile.WriteAllBytesAsync(new byte[] { 0x01, 0x02, 0x03 });
     /// </code>
     /// </example>
     public async Task WriteAllBytesAsync(byte[] content, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await File.WriteAllBytesAsync(_filePath, content, cancellationToken);
+        await File.WriteAllBytesAsync(FilePath, content, cancellationToken);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// storageFile.WriteAllText("Hello, world!", Encoding.UTF8);
     /// </code>
     /// </example>
     public void WriteAllText(string content, Encoding encoding)
     {
-        File.WriteAllText(_filePath, content, encoding);
+        File.WriteAllText(FilePath, content, encoding);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// await storageFile.WriteAllTextAsync("Hello, world!", Encoding.UTF8);
     /// </code>
     /// </example>
     public async Task WriteAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await File.WriteAllTextAsync(_filePath, content, encoding, cancellationToken);
+        await File.WriteAllTextAsync(FilePath, content, encoding, cancellationToken);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// storageFile.AppendAllBytes(new byte[] { 0x04, 0x05 });
     /// </code>
     /// </example>
     public void AppendAllBytes(byte[] content)
     {
-        using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        using var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.None);
         stream.Write(content, 0, content.Length);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// await storageFile.AppendAllBytesAsync(new byte[] { 0x04, 0x05 });
     /// </code>
     /// </example>
     public async Task AppendAllBytesAsync(byte[] content, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await using var stream = new FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.None);
+        await using var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.None);
         await stream.WriteAsync(content.AsMemory(0, content.Length), cancellationToken);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// storageFile.AppendAllText("Hello, again!", Encoding.UTF8);
     /// </code>
     /// </example>
     public void AppendAllText(string content, Encoding encoding)
     {
-        File.AppendAllText(_filePath, content, encoding);
+        File.AppendAllText(FilePath, content, encoding);
     }
 
     /// <inheritdoc />
     /// <example>
     /// <code>
-    /// var storageFile = new StorageFile("example.txt");
+    /// var storageFile = new StorageFile(@"C:\TEMP", "example.txt");
     /// await storageFile.AppendAllTextAsync("Hello, again!", Encoding.UTF8);
     /// </code>
     /// </example>
     public async Task AppendAllTextAsync(string content, Encoding encoding, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        await File.AppendAllTextAsync(_filePath, content, encoding, cancellationToken);
+        await File.AppendAllTextAsync(FilePath, content, encoding, cancellationToken);
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
         _fileStream?.Dispose();
+    }
+
+    /// <summary>
+    /// Ensures that the specified directory exists.
+    /// </summary>
+    /// <param name="directoryPath">The path of the directory.</param>
+    private void EnsureDirectoryExists(string directoryPath)
+    {
+        if (!Directory.Exists(directoryPath))
+        {
+            Directory.CreateDirectory(directoryPath);
+        }
     }
 }

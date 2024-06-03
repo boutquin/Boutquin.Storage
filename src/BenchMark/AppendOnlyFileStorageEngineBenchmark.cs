@@ -36,8 +36,7 @@ public class AppendOnlyFileStorageEngineBenchmark : StorageEngineBenchmark<Seria
     /// </summary>
     public AppendOnlyFileStorageEngineBenchmark()
     {
-        var databaseFilePath = Path.Combine(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db");
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        SetStore(new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(new StorageFile(databaseFilePath), entrySerializer));
+        SetStore(new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db"), entrySerializer));
     }
 }

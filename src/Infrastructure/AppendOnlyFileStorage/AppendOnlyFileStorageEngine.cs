@@ -31,7 +31,7 @@ namespace Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 /// implementations, this class remains unsealed.
 /// </remarks>
 public class AppendOnlyFileStorageEngine<TKey, TValue> :
-    ICompactableBulkStorageEngine<TKey, TValue>
+    IFileBasedStorageEngine<TKey, TValue>
         where TKey : ISerializable<TKey>, IComparable<TKey>, new()
         where TValue : ISerializable<TValue>, new()
 {
@@ -54,6 +54,15 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
         StorageFile = storageFile;
         EntrySerializer = entrySerializer;
     }
+
+    /// <inheritdoc/>
+    public string FileName => StorageFile.FileName;
+
+    /// <inheritdoc/>
+    public string FileLocation => StorageFile.FileLocation;
+
+    /// <inheritdoc/>
+    public long FileSize => StorageFile.FileSize;
 
     /// <inheritdoc/>
     public virtual async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
@@ -162,8 +171,6 @@ public class AppendOnlyFileStorageEngine<TKey, TValue> :
         StorageFile.Delete(FileDeletionHandling.DeleteIfExists);
     }
 
-    /// <inheritdoc/>
-    /// <inheritdoc/>
     /// <inheritdoc/>
     public virtual async Task CompactAsync(CancellationToken cancellationToken = default)
     {

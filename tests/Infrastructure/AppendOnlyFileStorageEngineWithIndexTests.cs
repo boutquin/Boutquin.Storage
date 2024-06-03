@@ -21,8 +21,10 @@ namespace Boutquin.Storage.Infrastructure.Tests;
 /// </summary>
 public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
 {
-    private readonly string _testFilePath = "AppendOnlyFileStorageEngineWithIndexTests.dat";
+    private readonly string _testFileLocation = Path.Combine(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineWithIndexTestFiles");
+    private readonly string _testFileName = "AppendOnlyFileStorageEngineWithIndexTests.dat";
     private readonly ITestOutputHelper _output;
+    private string TestFilePath => Path.Combine(_testFileLocation, _testFileName);
 
     public AppendOnlyFileStorageEngineWithIndexTests(ITestOutputHelper output)
     {
@@ -32,9 +34,9 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
 
     private void CleanupTestFiles()
     {
-        if (File.Exists(_testFilePath))
+        if (File.Exists(TestFilePath))
         {
-            File.Delete(_testFilePath);
+            File.Delete(TestFilePath);
         }
     }
 
@@ -45,7 +47,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
     public async Task SetAsync_ShouldAppendKeyValuePairAndUpdateIndex()
     {
         // Arrange: Create a storage file, serializer, and index mock.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var indexMock = new Mock<IFileStorageIndex<SerializableWrapper<int>>>();
 
@@ -58,7 +60,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
         await storageEngine.SetAsync(key, value);
 
         // Assert: Verify that the stream contains the expected serialized key-value pair and index is updated.
-        await using var fileStream = File.OpenRead(_testFilePath);
+        await using var fileStream = File.OpenRead(TestFilePath);
         var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
         Assert.Equal(1, reader.ReadInt32());
         Assert.Equal("value1", reader.ReadString());
@@ -73,7 +75,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
     public async Task TryGetValueAsync_ShouldRetrieveValueByKeyUsingIndex()
     {
         // Arrange: Create a storage file, serializer, and index mock with a predefined FileLocation.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var indexMock = new Mock<IFileStorageIndex<SerializableWrapper<int>>>();
 
@@ -86,7 +88,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
         }
 
         indexMock.Setup(i => i.TryGetValueAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((new FileLocation(0, (int)new FileInfo(_testFilePath).Length), true));
+            .ReturnsAsync((new FileLocation(0, (int)new FileInfo(TestFilePath).Length), true));
 
         var storageEngine = new AppendOnlyFileStorageEngineWithIndex<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer, indexMock.Object);
 
@@ -105,7 +107,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
     public async Task ContainsKeyAsync_ShouldReturnTrueIfKeyExistsInIndex()
     {
         // Arrange: Create a storage file, serializer, and index mock with a predefined FileLocation.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var indexMock = new Mock<IFileStorageIndex<SerializableWrapper<int>>>();
 
@@ -118,7 +120,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
         }
 
         indexMock.Setup(i => i.TryGetValueAsync(key, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((new FileLocation(0, (int)new FileInfo(_testFilePath).Length), true));
+            .ReturnsAsync((new FileLocation(0, (int)new FileInfo(TestFilePath).Length), true));
 
         var storageEngine = new AppendOnlyFileStorageEngineWithIndex<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer, indexMock.Object);
 
@@ -136,7 +138,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
     public async Task GetAllItemsAsync_ShouldRetrieveAllKeyValuePairs()
     {
         // Arrange: Create a storage file, serializer, and index mock.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var indexMock = new Mock<IFileStorageIndex<SerializableWrapper<int>>>();
 
@@ -172,7 +174,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
     public async Task ClearAsync_ShouldClearStorageFileAndIndex()
     {
         // Arrange: Create a storage file, serializer, and index mock.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var indexMock = new Mock<IFileStorageIndex<SerializableWrapper<int>>>();
 
@@ -187,7 +189,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
         await storageEngine.ClearAsync();
 
         // Assert: Check that the storage file and the index were cleared.
-        Assert.False(File.Exists(_testFilePath));
+        Assert.False(File.Exists(TestFilePath));
         indexMock.Verify(i => i.ClearAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -217,7 +219,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
     public async Task SetBulkAsync_ShouldAppendMultipleKeyValuePairsAndUpdateIndex()
     {
         // Arrange: Create a storage file, serializer, and index mock.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var indexMock = new Mock<IFileStorageIndex<SerializableWrapper<int>>>();
 
@@ -234,7 +236,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
         await storageEngine.SetBulkAsync(items);
 
         // Assert: Verify that the stream contains the expected serialized key-value pairs and index is updated.
-        await using var fileStream = File.OpenRead(_testFilePath);
+        await using var fileStream = File.OpenRead(TestFilePath);
         var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
         foreach (var item in items)
         {
@@ -277,7 +279,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
     public async Task CompactAsync_ShouldCompactStorageFileAndUpdateIndex()
     {
         // Arrange: Create a storage file, serializer, and index mock.
-        var storageFile = new StorageFile(_testFilePath);
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var indexMock = new Mock<IFileStorageIndex<SerializableWrapper<int>>>();
 
@@ -291,7 +293,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndexTests : IDisposable
 
         // Assert: Verify that the stream contains only the latest key-value pair and index is updated.
         var items = await storageEngine.GetAllItemsAsync();
-        await using var fileStream = File.OpenRead(_testFilePath);
+        await using var fileStream = File.OpenRead(TestFilePath);
         var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
         Assert.Equal(1, reader.ReadInt32());
         Assert.Equal("value2", reader.ReadString());

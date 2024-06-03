@@ -21,10 +21,10 @@ public static class Program
     {
         var index = new InMemoryFileIndex<Key>();
         var store = new AppendOnlyFileStorageEngine<Key, City>(
-        new StorageFile("AppendOnlyFileStorageEngine.db"),
+        new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db"),
         new BinaryEntrySerializer<Key, City>());
         var store1 = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
-            new StorageFile("AppendOnlyFileStorageEngineWithIndex.db"),
+            new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineWithIndex.db"),
             new BinaryEntrySerializer<Key, City>(),
             index);
 
