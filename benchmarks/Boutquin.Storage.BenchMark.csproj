@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
+    <ProjectReference Include="..\src\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
