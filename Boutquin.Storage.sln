@@ -33,6 +33,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Boutquin.Storage.Samples", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Boutquin.Storage.BenchMark", "benchmarks\Boutquin.Storage.BenchMark.csproj", "{3BE6E989-251B-47AE-BD15-1D30BC392FCE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Boutquin.Storage.BenchMark.Hashing", "benchmarks\Hashing\Boutquin.Storage.BenchMark.Hashing.csproj", "{B8EE6205-91F8-4094-AECD-A0BF72D6D7EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{3BE6E989-251B-47AE-BD15-1D30BC392FCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BE6E989-251B-47AE-BD15-1D30BC392FCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3BE6E989-251B-47AE-BD15-1D30BC392FCE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8EE6205-91F8-4094-AECD-A0BF72D6D7EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8EE6205-91F8-4094-AECD-A0BF72D6D7EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8EE6205-91F8-4094-AECD-A0BF72D6D7EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8EE6205-91F8-4094-AECD-A0BF72D6D7EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -69,6 +75,7 @@ Global
 		{389FD512-3FA1-4511-AA77-D7CAEFF05850} = {60562153-9885-4130-923B-D732DDBF3DC5}
 		{6BFB5030-29F0-48A9-9F19-6D1C015F42F2} = {91814512-0BDD-46DB-A4FE-C3D8CF4EB9EE}
 		{3BE6E989-251B-47AE-BD15-1D30BC392FCE} = {3CAB4CED-1004-4B18-8D42-EBF9B4564BAD}
+		{B8EE6205-91F8-4094-AECD-A0BF72D6D7EA} = {3CAB4CED-1004-4B18-8D42-EBF9B4564BAD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AE4E9FE1-0BE3-42EB-85F1-510D9D00E688}

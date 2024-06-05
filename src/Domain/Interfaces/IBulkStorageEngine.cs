@@ -49,5 +49,5 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// </remarks>
 public interface IBulkStorageEngine<TKey, TValue> : 
     IStorageEngine<TKey, TValue>, IBulkKeyValueStore<TKey, TValue>
-        where TKey : IComparable<TKey>, ISerializable<TKey>, new()
-        where TValue : ISerializable<TValue>, new();
+    where TKey : IComparable<TKey>, ISerializable<TKey>, new()
+    where TValue : ISerializable<TValue>, new();

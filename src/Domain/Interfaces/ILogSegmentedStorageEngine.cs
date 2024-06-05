@@ -22,5 +22,5 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
 public interface ILogSegmentedStorageEngine<TKey, TValue> : 
     ICompactableBulkStorageEngine<TKey, TValue>
-        where TKey : ISerializable<TKey>, IComparable<TKey>, new()
-        where TValue : ISerializable<TValue>, new();
+    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TValue : ISerializable<TValue>, new();

@@ -22,8 +22,8 @@ namespace Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 /// <typeparam name="TValue">The type of the values in the store.</typeparam>
 public sealed class LogSegmentFile<TKey, TValue> : 
     IFileBasedStorageEngine<TKey, TValue>
-        where TKey : ISerializable<TKey>, IComparable<TKey>, new()
-        where TValue : ISerializable<TValue>, new()
+    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TValue : ISerializable<TValue>, new()
 {
     private readonly IFileBasedStorageEngine<TKey, TValue> _storageEngine;
     private readonly long _maxSegmentSize;

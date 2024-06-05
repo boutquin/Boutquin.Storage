@@ -26,4 +26,7 @@ global using Boutquin.Storage.Domain.ValueObjects;
 global using Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 global using Boutquin.Storage.Infrastructure.KeyValueStore;
 
+global using System.Runtime.CompilerServices;
+global using System.Runtime.InteropServices;
+
 global using SerializationException = Boutquin.Storage.Domain.Exceptions.SerializationException;

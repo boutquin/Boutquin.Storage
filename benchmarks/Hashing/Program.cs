@@ -13,30 +13,19 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-namespace Boutquin.Storage.Domain.Interfaces;
+namespace Boutquin.Storage.BenchMark.Hashing;
+
+using BenchmarkDotNet.Running;
 
 /// <summary>
-/// Provides file information for storage engines.
+/// Main program class to run the benchmarks.
 /// </summary>
-public interface IFileInformation
+internal class Program
 {
-    /// <summary>
-    /// Gets the full file path, including the location and file name.
-    /// </summary>
-    string FilePath => Path.Combine(FileLocation, FileName);
-
-    /// <summary>
-    /// Gets the size of the file in bytes.
-    /// </summary>
-    long FileSize { get; }
-
-    /// <summary>
-    /// Gets the name of the file.
-    /// </summary>
-    string FileName { get; }
-
-    /// <summary>
-    /// Gets the location (directory path) of the file.
-    /// </summary>
-    string FileLocation { get; }
+    private static void Main(string[] args)
+    {
+        // Run the benchmarks and output the summary
+        var summary = BenchmarkRunner.Run<HashAlgorithmBenchmark>();
+        Console.WriteLine(summary);
+    }
 }

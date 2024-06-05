@@ -21,8 +21,8 @@ public static class Program
     {
         var index = new InMemoryFileIndex<Key>();
         var store = new AppendOnlyFileStorageEngine<Key, City>(
-        new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db"),
-        new BinaryEntrySerializer<Key, City>());
+            new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db"),
+            new BinaryEntrySerializer<Key, City>());
         var store1 = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
             new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineWithIndex.db"),
             new BinaryEntrySerializer<Key, City>(),

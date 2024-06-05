@@ -23,7 +23,7 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
 {
     private readonly string _testFileLocation = Path.Combine(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineTestFiles");
     private readonly string _testFileName = "AppendOnlyFileStorageEngineTests.dat";
-   private string TestFilePath => Path.Combine(_testFileLocation, _testFileName);
+    private string TestFilePath => Path.Combine(_testFileLocation, _testFileName);
 
     private readonly ITestOutputHelper _output;
 
