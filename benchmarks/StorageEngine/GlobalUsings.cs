@@ -29,10 +29,12 @@ global using BenchmarkDotNet.Validators;
 global using Boutquin.Storage.BenchMark;
 global using Boutquin.Storage.Domain.Helpers;
 global using Boutquin.Storage.Domain.Interfaces;
+global using Boutquin.Storage.Infrastructure.Algorithms;
 global using Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 global using Boutquin.Storage.Infrastructure.Indexing;
 global using Boutquin.Storage.Infrastructure.KeyValueStore;
 global using Boutquin.Storage.Infrastructure.Serialization;
+global using Boutquin.Storage.Infrastructure.StorageWithBloomFilter;
 
 global using System;
 global using System.Collections.Generic;

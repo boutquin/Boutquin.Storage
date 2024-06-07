@@ -16,49 +16,57 @@
 namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Interface for a Bloom filter, a probabilistic data structure for set membership testing.
+/// Represents a Bloom filter, a probabilistic data structure used to test whether an element is a member of a set.
+/// 
+/// <para>A Bloom filter is highly space-efficient and allows for fast insertions and membership checks.
+/// It can report false positives (i.e., it may indicate that an element is in the set when it is not),
+/// but it will never report false negatives (i.e., it will never indicate that an element is not in the set when it is).</para>
+/// 
+/// <para>Typical Uses:</para>
+/// <para>In the context of a storage engine, a Bloom filter is often used to reduce the number of disk lookups.
+/// Before performing a disk read operation to fetch a value, the Bloom filter can be checked to see if the key likely exists in the dataset.
+/// If the Bloom filter indicates that the key does not exist, the costly disk read can be skipped, thereby improving performance.</para>
+/// 
+/// <para>Implementation Choices:</para>
+/// <para>The Bloom filter implementation typically involves the following parameters:
+/// <list type="bullet">
+/// <item>
+/// <description><b>Bit Array Size (m):</b> The number of bits in the Bloom filter. A larger bit array size reduces the probability of false positives but requires more memory.</description>
+/// </item>
+/// <item>
+/// <description><b>Number of Hash Functions (k):</b> The number of different hash functions used. More hash functions reduce the probability of false positives but increase the computational cost of insertions and lookups.</description>
+/// </item>
+/// </list>
+/// </para>
+/// 
+/// <para>Example:</para>
+/// <code>
+/// var expectedElements = 1000;
+/// var falsePositiveProbability = 0.01; // 1% false positive rate
+/// var bloomFilter = new BloomFilter&lt;string&gt;(expectedElements, falsePositiveProbability);
+/// 
+/// bloomFilter.Add("exampleKey");
+/// bool exists = bloomFilter.Contains("exampleKey"); // True
+/// </code>
 /// </summary>
-/// <typeparam name="TKey">The type of the keys in the Bloom filter.</typeparam>
-/// <remarks>
-/// <para><b>Theory:</b></para>
-/// <para>Bloom filters are probabilistic data structures designed to efficiently test whether an element is part of a set. They are highly memory-efficient and 
-/// can quickly determine if an element is definitely not in the set or might be in the set, with some false positives but no false negatives. This makes 
-/// Bloom filters particularly useful for scenarios where false negatives are unacceptable but false positives are tolerable.</para>
-/// 
-/// <para>In the context of an LSM-tree (Log-Structured Merge-Tree) algorithm, Bloom filters play a critical role in optimizing read performance by reducing 
-/// unnecessary disk I/O operations. As data is written to an LSM-tree, it is first stored in an in-memory structure called a MemTable. When the MemTable 
-/// is full, it is flushed to disk as an immutable SSTable (Sorted String Table). Over time, multiple SSTables accumulate, making read operations potentially 
-/// slow as a query might need to scan through many SSTables to find or confirm the absence of a key.</para>
-/// 
-/// <para><b>Workings in the Context of an LSM-tree:</b></para>
-/// <para>By integrating Bloom filters with each SSTable, the LSM-tree algorithm can quickly determine if a key does not exist in an SSTable, thereby avoiding the 
-/// need to scan the SSTable for non-existent keys. This is achieved by creating a Bloom filter for each SSTable during the flush process from the MemTable 
-/// to disk. The Bloom filter stores the keys present in the SSTable using multiple hash functions to set bits in a bit array.</para>
-/// 
-/// <para>During a read operation, the Bloom filter is consulted first. If the Bloom filter indicates that a key is definitely not present (any of the bits are not set), 
-/// the SSTable scan is skipped. If the Bloom filter indicates that the key might be present (all bits are set), the SSTable is then scanned to confirm the key's 
-/// presence. This significantly reduces the number of SSTable scans required for non-existent keys, optimizing read performance.</para>
-/// 
-/// <para>The efficiency of a Bloom filter is determined by its parameters: the size of the bit array and the number of hash functions. These parameters are chosen 
-/// based on the expected number of elements and the acceptable false positive rate, balancing memory usage and accuracy.</para>
-/// </remarks>
-public interface IBloomFilter<TKey>
+/// <typeparam name="T">The type of elements to be stored in the Bloom filter.</typeparam>
+public interface IBloomFilter<T>
 {
     /// <summary>
-    /// Adds a key to the Bloom filter.
+    /// Adds an element to the Bloom filter.
     /// </summary>
-    /// <param name="key">The key to add to the filter.</param>
-    void Add(TKey key);
+    /// <param name="item">The item to add.</param>
+    void Add(T item);
 
     /// <summary>
-    /// Checks if the Bloom filter possibly contains the specified key.
+    /// Checks if an element is possibly in the Bloom filter.
     /// </summary>
-    /// <param name="key">The key to check for in the filter.</param>
-    /// <returns>True if the key is possibly in the set, false if the key is definitely not in the set.</returns>
-    bool MightContain(TKey key);
+    /// <param name="item">The item to check.</param>
+    /// <returns>True if the item is possibly in the filter; false if the item is definitely not in the filter.</returns>
+    bool Contains(T item);
 
     /// <summary>
-    /// Clears the Bloom filter, removing all elements.
+    /// Clears all elements from the Bloom filter.
     /// </summary>
     void Clear();
 }

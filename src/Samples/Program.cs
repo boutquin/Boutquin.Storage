@@ -13,6 +13,9 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
+using Boutquin.Storage.Infrastructure.StorageWithBloomFilter;
+
 namespace Boutquin.Storage.Samples;
 
 public static class Program
@@ -20,13 +23,21 @@ public static class Program
     public static async Task Main(string[] args)
     {
         var index = new InMemoryFileIndex<Key>();
-        var store = new AppendOnlyFileStorageEngine<Key, City>(
+        var expectedElements = 1000;
+        var falsePositiveProbability = 0.01; // 1% false positive rate
+
+        var bloomFilter = new BloomFilter<Key>(expectedElements, falsePositiveProbability);
+
+        var store0 = new AppendOnlyFileStorageEngine<Key, City>(
             new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db"),
             new BinaryEntrySerializer<Key, City>());
         var store1 = new AppendOnlyFileStorageEngineWithIndex<Key, City>(
             new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineWithIndex.db"),
             new BinaryEntrySerializer<Key, City>(),
             index);
+        var store = new BulkKeyValueStoreWithBloomFilter<Key, City>(
+            store1, 
+            bloomFilter);
 
         await store.ClearAsync();
 

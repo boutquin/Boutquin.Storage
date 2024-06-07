@@ -24,6 +24,9 @@ global using Boutquin.Storage.Infrastructure.Indexing;
 global using Boutquin.Storage.Infrastructure.KeyValueStore;
 global using Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 global using Boutquin.Storage.Infrastructure.Serialization;
+global using Boutquin.Storage.Infrastructure.StorageWithBloomFilter;
+
+global using FluentAssertions;
 
 global using System.Runtime.Serialization;
 

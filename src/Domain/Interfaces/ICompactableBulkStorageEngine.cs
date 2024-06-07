@@ -18,7 +18,9 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <summary>
 /// Combines IBulkStorageEngine and ICompactableStorageEngine interfaces.
 /// </summary>
-public interface ICompactableBulkStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TValue>, ICompactableStorageEngine<TKey, TValue>
+public interface ICompactableBulkStorageEngine<TKey, TValue> : 
+    IBulkStorageEngine<TKey, TValue>, 
+    ICompactableStorageEngine<TKey, TValue>
     where TKey : ISerializable<TKey>, IComparable<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {

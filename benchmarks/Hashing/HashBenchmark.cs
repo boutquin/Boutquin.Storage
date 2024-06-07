@@ -15,11 +15,6 @@
 //
 namespace Boutquin.Storage.BenchMark.Hashing;
 
-using BenchmarkDotNet.Attributes;
-
-using Infrastructure.Algorithms;
-using Domain.Interfaces;
-
 /// <summary>
 /// Benchmark class for comparing hash algorithms.
 /// </summary>

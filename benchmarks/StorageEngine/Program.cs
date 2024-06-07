@@ -32,8 +32,10 @@ public sealed class Program
             var benchmarks = new List<Type>
             {
                 typeof(InMemoryKeyValueStoreBenchmark),
-                typeof(AppendOnlyFileStorageEngineBenchmark),
-                typeof(AppendOnlyFileStorageEngineWithIndexBenchmark)
+                //typeof(AppendOnlyFileStorageEngineBenchmark),
+                typeof(AppendOnlyFileStorageEngineWithIndexBenchmark),
+                typeof(BulkKeyValueStoreWithBloomFilterBenchmark)
+
                 // Add other benchmark types here
             };
 

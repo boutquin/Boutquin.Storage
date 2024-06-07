@@ -15,8 +15,6 @@
 //
 namespace Boutquin.Storage.BenchMark.Hashing;
 
-using BenchmarkDotNet.Running;
-
 /// <summary>
 /// Main program class to run the benchmarks.
 /// </summary>

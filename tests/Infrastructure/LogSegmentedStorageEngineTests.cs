@@ -117,9 +117,9 @@ public sealed class LogSegmentedStorageEngineTests : IDisposable
         // Arrange: Create multiple key-value pairs to add.
         var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
         {
-            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1")),
-            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(new SerializableWrapper<int>(2), new SerializableWrapper<string>("value2")),
-            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(new SerializableWrapper<int>(3), new SerializableWrapper<string>("value3"))
+            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1")),
+            new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("value2")),
+            new(new SerializableWrapper<int>(3), new SerializableWrapper<string>("value3"))
         };
 
         // Act: Add multiple key-value pairs to the storage engine.
@@ -143,9 +143,9 @@ public sealed class LogSegmentedStorageEngineTests : IDisposable
         // Arrange: Create and add multiple key-value pairs to the storage engine.
         var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
         {
-            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1")),
-            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(new SerializableWrapper<int>(2), new SerializableWrapper<string>("value2")),
-            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(new SerializableWrapper<int>(3), new SerializableWrapper<string>("value3"))
+            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1")),
+            new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("value2")),
+            new(new SerializableWrapper<int>(3), new SerializableWrapper<string>("value3"))
         };
 
         await _storageEngine.SetBulkAsync(items);
@@ -240,7 +240,7 @@ public sealed class LogSegmentedStorageEngineTests : IDisposable
         // Arrange: Create a list with a null key-value pair.
         var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
         {
-            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(null, new SerializableWrapper<string>("value"))
+            new(null, new SerializableWrapper<string>("value"))
         };
 
         // Act & Assert: Check that an ArgumentNullException is thrown.
