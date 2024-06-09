@@ -37,14 +37,16 @@ public class BulkKeyValueStoreWithBloomFilterBenchmark : StorageEngineBenchmark<
     public BulkKeyValueStoreWithBloomFilterBenchmark()
     {
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var index = new InMemoryFileIndex<SerializableWrapper<int>>();
-        var innerStore = new AppendOnlyFileStorageEngineWithIndex<SerializableWrapper<int>, SerializableWrapper<string>>(
-            new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineWithIndex.db"), entrySerializer, index);
+        var innerStore = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
+            new StorageFile(Directory.GetCurrentDirectory(), "BulkKeyValueStoreWithBloomFilter.db"), 
+            entrySerializer);
 
         var expectedElements = 1000;
         var falsePositiveProbability = 0.01;
         var bloomFilter = new BloomFilter<SerializableWrapper<int>>(expectedElements, falsePositiveProbability);
 
-        SetStore(new BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>(innerStore, bloomFilter));
+        SetStore(new BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>(
+            innerStore, 
+            bloomFilter));
     }
 }

@@ -26,6 +26,7 @@ global using Boutquin.Storage.Domain.ValueObjects;
 global using Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 global using Boutquin.Storage.Infrastructure.KeyValueStore;
 
+global using System.Collections.Concurrent;
 global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;
 

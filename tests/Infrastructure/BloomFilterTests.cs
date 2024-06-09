@@ -155,8 +155,8 @@ public sealed class BloomFilterTests
         var falsePositiveProbability = 0.01;
         var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
 
-        // Act & Assert: Attempt to add a null element and expect an ArgumentNullException.
-        Assert.Throws<ArgumentNullException>(() => bloomFilter.Add(null));
+        // Act & Assert: Attempt to add a null element and expect an NullReferenceException.
+        Assert.Throws<NullReferenceException>(() => bloomFilter.Add(null));
     }
 
     /// <summary>

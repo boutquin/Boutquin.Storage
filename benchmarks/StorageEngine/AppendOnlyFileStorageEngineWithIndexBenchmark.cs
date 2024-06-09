@@ -38,6 +38,8 @@ public class AppendOnlyFileStorageEngineWithIndexBenchmark : StorageEngineBenchm
     {
         var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         var index = new InMemoryFileIndex<SerializableWrapper<int>>();
-        SetStore(new AppendOnlyFileStorageEngineWithIndex<SerializableWrapper<int>, SerializableWrapper<string>>(new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineWithIndex.db"), entrySerializer, index));
+        SetStore(new AppendOnlyFileStorageEngineWithIndex<SerializableWrapper<int>, SerializableWrapper<string>>(
+            new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngineWithIndex.db"), 
+            entrySerializer, index));
     }
 }

@@ -70,12 +70,7 @@ public sealed class AppendOnlyFileStorageEngineWithIndex<TKey, TValue> :
             return (default, false);
         }
 
-        var buffer = new byte[fileLocation.Count];
-        await using (var stream = StorageFile.Open(FileMode.Open))
-        {
-            stream.Seek(fileLocation.Offset, SeekOrigin.Begin);
-            await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-        }
+        var buffer = StorageFile.ReadBytes(fileLocation.Offset, fileLocation.Count);
 
         using (var stream = new MemoryStream(buffer))
         {
