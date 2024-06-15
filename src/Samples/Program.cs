@@ -14,6 +14,7 @@
 //  limitations under the License.
 //
 
+using Boutquin.Storage.Infrastructure.DataStructures;
 using Boutquin.Storage.Infrastructure.StorageWithBloomFilter;
 
 namespace Boutquin.Storage.Samples;

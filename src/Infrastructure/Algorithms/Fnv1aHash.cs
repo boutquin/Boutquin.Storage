@@ -31,12 +31,12 @@ public class Fnv1aHash : IHashAlgorithm
     /// <returns>The computed 32-bit hash value.</returns>
     public uint ComputeHash(ReadOnlySpan<byte> data)
     {
-        uint hash = OffsetBasis; // Initialize hash with the offset basis
+        var hash = OffsetBasis; // Initialize hash with the offset basis
 
         // Process each byte in the input data
-        for (int i = 0; i < data.Length; i++)
+        foreach (var b in data)
         {
-            hash ^= data[i]; // XOR hash with the current byte
+            hash ^= b; // XOR hash with the current byte
             hash *= FnvPrime; // Multiply hash by the FNV prime
         }
 

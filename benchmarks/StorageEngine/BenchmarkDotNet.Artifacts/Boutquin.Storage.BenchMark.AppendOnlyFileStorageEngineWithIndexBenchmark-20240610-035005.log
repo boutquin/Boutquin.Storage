@@ -1,0 +1,1057 @@
+// Validating benchmarks:
+// ***** BenchmarkRunner: Start   *****
+// ***** Found 12 benchmark(s) in total *****
+// ***** Building 1 exe(s) in Parallel: Start   *****
+// start dotnet  restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350
+// command took 1.43 sec and exited with 0
+// start dotnet  build -c Release --no-restore /p:UseSharedCompilation=false /p:BuildInParallel=false /m:1 /p:Deterministic=true /p:Optimize=true in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350
+// command took 2.87 sec and exited with 0
+// ***** Done, took 00:00:04 (4.35 sec)   *****
+// Found 12 benchmarks:
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+//   AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 3040 2904 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.Read(ItemCount: 10)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 0 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-XCPPXJ(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 221000.00 ns, 13.8125 us/op
+WorkloadJitting  1: 16 op, 138293700.00 ns, 8.6434 ms/op
+
+OverheadWarmup   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   2: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 300.00 ns, 18.7500 ns/op
+
+OverheadActual   1: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   5: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  12: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 132819300.00 ns, 8.3012 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 132107500.00 ns, 8.2567 ms/op
+WorkloadActual   2: 16 op, 130226100.00 ns, 8.1391 ms/op
+WorkloadActual   3: 16 op, 128113600.00 ns, 8.0071 ms/op
+WorkloadActual   4: 16 op, 126529800.00 ns, 7.9081 ms/op
+WorkloadActual   5: 16 op, 125611900.00 ns, 7.8507 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 132107200.00 ns, 8.2567 ms/op
+WorkloadResult   2: 16 op, 130225800.00 ns, 8.1391 ms/op
+WorkloadResult   3: 16 op, 128113300.00 ns, 8.0071 ms/op
+WorkloadResult   4: 16 op, 126529500.00 ns, 7.9081 ms/op
+WorkloadResult   5: 16 op, 125611600.00 ns, 7.8507 ms/op
+
+// AfterAll
+// Benchmark Process 4496 has exited with code 0.
+
+Mean = 8.032 ms, StdErr = 0.074 ms (0.93%), N = 5, StdDev = 0.166 ms
+Min = 7.851 ms, Q1 = 7.908 ms, Median = 8.007 ms, Q3 = 8.139 ms, Max = 8.257 ms
+IQR = 0.231 ms, LowerFence = 7.562 ms, UpperFence = 8.486 ms
+ConfidenceInterval = [7.391 ms; 8.673 ms] (CI 99.9%), Margin = 0.641 ms (7.98% of Mean)
+Skewness = 0.2, Kurtosis = 1.04, MValue = 2
+
+// ** Remained 11 (91.7%) benchmark(s) to run. Estimated finish 2024-06-10 3:50 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 1300 2876 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.Read(ItemCount: 100)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 1 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-TBOKNW(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 221200.00 ns, 13.8250 us/op
+WorkloadJitting  1: 16 op, 1266252100.00 ns, 79.1408 ms/op
+
+OverheadWarmup   1: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadWarmup   2: 16 op, 1400.00 ns, 87.5000 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 400.00 ns, 25.0000 ns/op
+
+OverheadActual   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   6: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  12: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 1185161100.00 ns, 74.0726 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 1094881400.00 ns, 68.4301 ms/op
+WorkloadActual   2: 16 op, 1081130000.00 ns, 67.5706 ms/op
+WorkloadActual   3: 16 op, 1077546000.00 ns, 67.3466 ms/op
+WorkloadActual   4: 16 op, 1077558500.00 ns, 67.3474 ms/op
+WorkloadActual   5: 16 op, 1082259400.00 ns, 67.6412 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 1081129700.00 ns, 67.5706 ms/op
+WorkloadResult   2: 16 op, 1077545700.00 ns, 67.3466 ms/op
+WorkloadResult   3: 16 op, 1077558200.00 ns, 67.3474 ms/op
+WorkloadResult   4: 16 op, 1082259100.00 ns, 67.6412 ms/op
+
+// AfterAll
+// Benchmark Process 27380 has exited with code 0.
+
+Mean = 67.476 ms, StdErr = 0.076 ms (0.11%), N = 4, StdDev = 0.152 ms
+Min = 67.347 ms, Q1 = 67.347 ms, Median = 67.459 ms, Q3 = 67.588 ms, Max = 67.641 ms
+IQR = 0.241 ms, LowerFence = 66.986 ms, UpperFence = 67.950 ms
+ConfidenceInterval = [66.493 ms; 68.460 ms] (CI 99.9%), Margin = 0.984 ms (1.46% of Mean)
+Skewness = 0.07, Kurtosis = 0.64, MValue = 2
+
+// ** Remained 10 (83.3%) benchmark(s) to run. Estimated finish 2024-06-10 3:51 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 1316 1292 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.Read(ItemCount: 1000)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 2 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-JOPBBP(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 267500.00 ns, 16.7188 us/op
+WorkloadJitting  1: 16 op, 11077202000.00 ns, 692.3251 ms/op
+
+OverheadWarmup   1: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadWarmup   2: 16 op, 1000.00 ns, 62.5000 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   5: 16 op, 400.00 ns, 25.0000 ns/op
+
+OverheadActual   1: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   6: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   7: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   8: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   9: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  16: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  17: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  18: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  19: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 10782018500.00 ns, 673.8762 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 10686957000.00 ns, 667.9348 ms/op
+WorkloadActual   2: 16 op, 10637345000.00 ns, 664.8341 ms/op
+WorkloadActual   3: 16 op, 10644424800.00 ns, 665.2766 ms/op
+WorkloadActual   4: 16 op, 10620653000.00 ns, 663.7908 ms/op
+WorkloadActual   5: 16 op, 10640947200.00 ns, 665.0592 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 10637344600.00 ns, 664.8340 ms/op
+WorkloadResult   2: 16 op, 10644424400.00 ns, 665.2765 ms/op
+WorkloadResult   3: 16 op, 10620652600.00 ns, 663.7908 ms/op
+WorkloadResult   4: 16 op, 10640946800.00 ns, 665.0592 ms/op
+
+// AfterAll
+// Benchmark Process 9244 has exited with code 0.
+
+Mean = 664.740 ms, StdErr = 0.329 ms (0.05%), N = 4, StdDev = 0.658 ms
+Min = 663.791 ms, Q1 = 664.573 ms, Median = 664.947 ms, Q3 = 665.114 ms, Max = 665.277 ms
+IQR = 0.540 ms, LowerFence = 663.763 ms, UpperFence = 665.924 ms
+ConfidenceInterval = [660.487 ms; 668.993 ms] (CI 99.9%), Margin = 4.253 ms (0.64% of Mean)
+Skewness = -0.59, Kurtosis = 1.21, MValue = 2
+
+// ** Remained 9 (75.0%) benchmark(s) to run. Estimated finish 2024-06-10 3:55 (0h 4m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 3020 2648 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting(ItemCount: 10)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 3 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-VCQRTE(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 209600.00 ns, 13.1000 us/op
+WorkloadJitting  1: 16 op, 133933600.00 ns, 8.3709 ms/op
+
+OverheadWarmup   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 300.00 ns, 18.7500 ns/op
+
+OverheadActual   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   2: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 200.00 ns, 12.5000 ns/op
+
+WorkloadWarmup   1: 16 op, 127686800.00 ns, 7.9804 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 127070700.00 ns, 7.9419 ms/op
+WorkloadActual   2: 16 op, 125788200.00 ns, 7.8618 ms/op
+WorkloadActual   3: 16 op, 123714700.00 ns, 7.7322 ms/op
+WorkloadActual   4: 16 op, 123705500.00 ns, 7.7316 ms/op
+WorkloadActual   5: 16 op, 122332500.00 ns, 7.6458 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 127070400.00 ns, 7.9419 ms/op
+WorkloadResult   2: 16 op, 125787900.00 ns, 7.8617 ms/op
+WorkloadResult   3: 16 op, 123714400.00 ns, 7.7321 ms/op
+WorkloadResult   4: 16 op, 123705200.00 ns, 7.7316 ms/op
+WorkloadResult   5: 16 op, 122332200.00 ns, 7.6458 ms/op
+
+// AfterAll
+// Benchmark Process 13844 has exited with code 0.
+
+Mean = 7.783 ms, StdErr = 0.053 ms (0.68%), N = 5, StdDev = 0.118 ms
+Min = 7.646 ms, Q1 = 7.732 ms, Median = 7.732 ms, Q3 = 7.862 ms, Max = 7.942 ms
+IQR = 0.130 ms, LowerFence = 7.536 ms, UpperFence = 8.057 ms
+ConfidenceInterval = [7.329 ms; 8.236 ms] (CI 99.9%), Margin = 0.454 ms (5.83% of Mean)
+Skewness = 0.21, Kurtosis = 1.09, MValue = 2
+
+// ** Remained 8 (66.7%) benchmark(s) to run. Estimated finish 2024-06-10 3:54 (0h 2m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 2976 1364 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting(ItemCount: 100)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 4 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-WHEDBM(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 211900.00 ns, 13.2438 us/op
+WorkloadJitting  1: 16 op, 1232168100.00 ns, 77.0105 ms/op
+
+OverheadWarmup   1: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadWarmup   2: 16 op, 1100.00 ns, 68.7500 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 300.00 ns, 18.7500 ns/op
+
+OverheadActual   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   5: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   6: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  10: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  11: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 1151714000.00 ns, 71.9821 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 1078678000.00 ns, 67.4174 ms/op
+WorkloadActual   2: 16 op, 1054704200.00 ns, 65.9190 ms/op
+WorkloadActual   3: 16 op, 1057480800.00 ns, 66.0926 ms/op
+WorkloadActual   4: 16 op, 1057873400.00 ns, 66.1171 ms/op
+WorkloadActual   5: 16 op, 1065872400.00 ns, 66.6170 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 1054703900.00 ns, 65.9190 ms/op
+WorkloadResult   2: 16 op, 1057480500.00 ns, 66.0925 ms/op
+WorkloadResult   3: 16 op, 1057873100.00 ns, 66.1171 ms/op
+WorkloadResult   4: 16 op, 1065872100.00 ns, 66.6170 ms/op
+
+// AfterAll
+// Benchmark Process 21340 has exited with code 0.
+
+Mean = 66.186 ms, StdErr = 0.150 ms (0.23%), N = 4, StdDev = 0.300 ms
+Min = 65.919 ms, Q1 = 66.049 ms, Median = 66.105 ms, Q3 = 66.242 ms, Max = 66.617 ms
+IQR = 0.193 ms, LowerFence = 65.760 ms, UpperFence = 66.531 ms
+ConfidenceInterval = [64.246 ms; 68.127 ms] (CI 99.9%), Margin = 1.941 ms (2.93% of Mean)
+Skewness = 0.55, Kurtosis = 1.22, MValue = 2
+
+// ** Remained 7 (58.3%) benchmark(s) to run. Estimated finish 2024-06-10 3:53 (0h 2m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 2984 2948 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting(ItemCount: 1000)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 5 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-CHKMES(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 212000.00 ns, 13.2500 us/op
+WorkloadJitting  1: 16 op, 10819490000.00 ns, 676.2181 ms/op
+
+OverheadWarmup   1: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadWarmup   2: 16 op, 900.00 ns, 56.2500 ns/op
+OverheadWarmup   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   6: 16 op, 300.00 ns, 18.7500 ns/op
+
+OverheadActual   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadActual   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   5: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  10: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadActual  11: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 10620719900.00 ns, 663.7950 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 10621726800.00 ns, 663.8579 ms/op
+WorkloadActual   2: 16 op, 10634578700.00 ns, 664.6612 ms/op
+WorkloadActual   3: 16 op, 10613773200.00 ns, 663.3608 ms/op
+WorkloadActual   4: 16 op, 10624034600.00 ns, 664.0022 ms/op
+WorkloadActual   5: 16 op, 10646792500.00 ns, 665.4245 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 10621726500.00 ns, 663.8579 ms/op
+WorkloadResult   2: 16 op, 10634578400.00 ns, 664.6612 ms/op
+WorkloadResult   3: 16 op, 10613772900.00 ns, 663.3608 ms/op
+WorkloadResult   4: 16 op, 10624034300.00 ns, 664.0021 ms/op
+WorkloadResult   5: 16 op, 10646792200.00 ns, 665.4245 ms/op
+
+// AfterAll
+// Benchmark Process 19704 has exited with code 0.
+
+Mean = 664.261 ms, StdErr = 0.357 ms (0.05%), N = 5, StdDev = 0.799 ms
+Min = 663.361 ms, Q1 = 663.858 ms, Median = 664.002 ms, Q3 = 664.661 ms, Max = 665.425 ms
+IQR = 0.803 ms, LowerFence = 662.653 ms, UpperFence = 665.866 ms
+ConfidenceInterval = [661.185 ms; 667.338 ms] (CI 99.9%), Margin = 3.077 ms (0.46% of Mean)
+Skewness = 0.32, Kurtosis = 1.25, MValue = 2
+
+// ** Remained 6 (50.0%) benchmark(s) to run. Estimated finish 2024-06-10 3:55 (0h 2m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 1300 3036 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting(ItemCount: 10)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 6 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-VCHXDI(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 212600.00 ns, 13.2875 us/op
+WorkloadJitting  1: 16 op, 35627300.00 ns, 2.2267 ms/op
+
+OverheadWarmup   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   2: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadWarmup   5: 16 op, 400.00 ns, 25.0000 ns/op
+
+OverheadActual   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   2: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   5: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual   9: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 200.00 ns, 12.5000 ns/op
+
+WorkloadWarmup   1: 16 op, 31869700.00 ns, 1.9919 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 31762200.00 ns, 1.9851 ms/op
+WorkloadActual   2: 16 op, 31054800.00 ns, 1.9409 ms/op
+WorkloadActual   3: 16 op, 31079400.00 ns, 1.9425 ms/op
+WorkloadActual   4: 16 op, 32703600.00 ns, 2.0440 ms/op
+WorkloadActual   5: 16 op, 31613200.00 ns, 1.9758 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 31761900.00 ns, 1.9851 ms/op
+WorkloadResult   2: 16 op, 31054500.00 ns, 1.9409 ms/op
+WorkloadResult   3: 16 op, 31079100.00 ns, 1.9424 ms/op
+WorkloadResult   4: 16 op, 32703300.00 ns, 2.0440 ms/op
+WorkloadResult   5: 16 op, 31612900.00 ns, 1.9758 ms/op
+
+// AfterAll
+// Benchmark Process 24824 has exited with code 0.
+
+Mean = 1.978 ms, StdErr = 0.019 ms (0.95%), N = 5, StdDev = 0.042 ms
+Min = 1.941 ms, Q1 = 1.942 ms, Median = 1.976 ms, Q3 = 1.985 ms, Max = 2.044 ms
+IQR = 0.043 ms, LowerFence = 1.878 ms, UpperFence = 2.049 ms
+ConfidenceInterval = [1.816 ms; 2.139 ms] (CI 99.9%), Margin = 0.162 ms (8.17% of Mean)
+Skewness = 0.54, Kurtosis = 1.46, MValue = 2
+
+// ** Remained 5 (41.7%) benchmark(s) to run. Estimated finish 2024-06-10 3:55 (0h 2m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 2040 1364 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting(ItemCount: 100)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 7 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-SPVSVC(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 207200.00 ns, 12.9500 us/op
+WorkloadJitting  1: 16 op, 326357600.00 ns, 20.3973 ms/op
+
+OverheadWarmup   1: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadWarmup   2: 16 op, 1200.00 ns, 75.0000 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 400.00 ns, 25.0000 ns/op
+
+OverheadActual   1: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   6: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 320419000.00 ns, 20.0262 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 315177400.00 ns, 19.6986 ms/op
+WorkloadActual   2: 16 op, 295011500.00 ns, 18.4382 ms/op
+WorkloadActual   3: 16 op, 278271300.00 ns, 17.3920 ms/op
+WorkloadActual   4: 16 op, 268067500.00 ns, 16.7542 ms/op
+WorkloadActual   5: 16 op, 258140400.00 ns, 16.1338 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 315177100.00 ns, 19.6986 ms/op
+WorkloadResult   2: 16 op, 295011200.00 ns, 18.4382 ms/op
+WorkloadResult   3: 16 op, 278271000.00 ns, 17.3919 ms/op
+WorkloadResult   4: 16 op, 268067200.00 ns, 16.7542 ms/op
+WorkloadResult   5: 16 op, 258140100.00 ns, 16.1338 ms/op
+
+// AfterAll
+// Benchmark Process 1176 has exited with code 0.
+
+Mean = 17.683 ms, StdErr = 0.632 ms (3.57%), N = 5, StdDev = 1.412 ms
+Min = 16.134 ms, Q1 = 16.754 ms, Median = 17.392 ms, Q3 = 18.438 ms, Max = 19.699 ms
+IQR = 1.684 ms, LowerFence = 14.228 ms, UpperFence = 20.964 ms
+ConfidenceInterval = [12.244 ms; 23.122 ms] (CI 99.9%), Margin = 5.439 ms (30.76% of Mean)
+Skewness = 0.29, Kurtosis = 1.17, MValue = 2
+
+// ** Remained 4 (33.3%) benchmark(s) to run. Estimated finish 2024-06-10 3:54 (0h 1m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 1324 2892 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting(ItemCount: 1000)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 8 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-XMKDIT(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 215300.00 ns, 13.4563 us/op
+WorkloadJitting  1: 16 op, 2555236800.00 ns, 159.7023 ms/op
+
+OverheadWarmup   1: 16 op, 600.00 ns, 37.5000 ns/op
+OverheadWarmup   2: 16 op, 900.00 ns, 56.2500 ns/op
+OverheadWarmup   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   5: 16 op, 400.00 ns, 25.0000 ns/op
+
+OverheadActual   1: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  19: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 2451070200.00 ns, 153.1919 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 2449392600.00 ns, 153.0870 ms/op
+WorkloadActual   2: 16 op, 2438626800.00 ns, 152.4142 ms/op
+WorkloadActual   3: 16 op, 2433802400.00 ns, 152.1127 ms/op
+WorkloadActual   4: 16 op, 2432621100.00 ns, 152.0388 ms/op
+WorkloadActual   5: 16 op, 2429667300.00 ns, 151.8542 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 2438626500.00 ns, 152.4142 ms/op
+WorkloadResult   2: 16 op, 2433802100.00 ns, 152.1126 ms/op
+WorkloadResult   3: 16 op, 2432620800.00 ns, 152.0388 ms/op
+WorkloadResult   4: 16 op, 2429667000.00 ns, 151.8542 ms/op
+
+// AfterAll
+// Benchmark Process 396 has exited with code 0.
+
+Mean = 152.105 ms, StdErr = 0.117 ms (0.08%), N = 4, StdDev = 0.233 ms
+Min = 151.854 ms, Q1 = 151.993 ms, Median = 152.076 ms, Q3 = 152.188 ms, Max = 152.414 ms
+IQR = 0.195 ms, LowerFence = 151.700 ms, UpperFence = 152.481 ms
+ConfidenceInterval = [150.599 ms; 153.611 ms] (CI 99.9%), Margin = 1.506 ms (0.99% of Mean)
+Skewness = 0.27, Kurtosis = 1.11, MValue = 2
+
+// ** Remained 3 (25.0%) benchmark(s) to run. Estimated finish 2024-06-10 3:54 (0h 1m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 872 1528 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.Write(ItemCount: 10)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 9 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-COHIYY(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 212500.00 ns, 13.2812 us/op
+WorkloadJitting  1: 16 op, 149497300.00 ns, 9.3436 ms/op
+
+OverheadWarmup   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   2: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 300.00 ns, 18.7500 ns/op
+
+OverheadActual   1: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   2: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   5: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   6: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 200.00 ns, 12.5000 ns/op
+OverheadActual  18: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  19: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 146701000.00 ns, 9.1688 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 146456000.00 ns, 9.1535 ms/op
+WorkloadActual   2: 16 op, 145995100.00 ns, 9.1247 ms/op
+WorkloadActual   3: 16 op, 144673900.00 ns, 9.0421 ms/op
+WorkloadActual   4: 16 op, 144197600.00 ns, 9.0123 ms/op
+WorkloadActual   5: 16 op, 143248000.00 ns, 8.9530 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 146455700.00 ns, 9.1535 ms/op
+WorkloadResult   2: 16 op, 145994800.00 ns, 9.1247 ms/op
+WorkloadResult   3: 16 op, 144673600.00 ns, 9.0421 ms/op
+WorkloadResult   4: 16 op, 144197300.00 ns, 9.0123 ms/op
+WorkloadResult   5: 16 op, 143247700.00 ns, 8.9530 ms/op
+
+// AfterAll
+// Benchmark Process 6504 has exited with code 0.
+
+Mean = 9.057 ms, StdErr = 0.037 ms (0.41%), N = 5, StdDev = 0.082 ms
+Min = 8.953 ms, Q1 = 9.012 ms, Median = 9.042 ms, Q3 = 9.125 ms, Max = 9.153 ms
+IQR = 0.112 ms, LowerFence = 8.844 ms, UpperFence = 9.293 ms
+ConfidenceInterval = [8.741 ms; 9.373 ms] (CI 99.9%), Margin = 0.316 ms (3.49% of Mean)
+Skewness = -0.01, Kurtosis = 1.01, MValue = 2
+
+// ** Remained 2 (16.7%) benchmark(s) to run. Estimated finish 2024-06-10 3:54 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 2036 876 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.Write(ItemCount: 100)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 10 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-PQBYDH(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 207800.00 ns, 12.9875 us/op
+WorkloadJitting  1: 16 op, 1471596400.00 ns, 91.9748 ms/op
+
+OverheadWarmup   1: 16 op, 1600.00 ns, 100.0000 ns/op
+OverheadWarmup   2: 16 op, 900.00 ns, 56.2500 ns/op
+OverheadWarmup   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadWarmup   7: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   8: 16 op, 300.00 ns, 18.7500 ns/op
+
+OverheadActual   1: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   9: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  12: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  15: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  16: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  19: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 1321031000.00 ns, 82.5644 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 1256949700.00 ns, 78.5594 ms/op
+WorkloadActual   2: 16 op, 1263071900.00 ns, 78.9420 ms/op
+WorkloadActual   3: 16 op, 1225807400.00 ns, 76.6130 ms/op
+WorkloadActual   4: 16 op, 1251853800.00 ns, 78.2409 ms/op
+WorkloadActual   5: 16 op, 1253028500.00 ns, 78.3143 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 1256949400.00 ns, 78.5593 ms/op
+WorkloadResult   2: 16 op, 1263071600.00 ns, 78.9420 ms/op
+WorkloadResult   3: 16 op, 1225807100.00 ns, 76.6129 ms/op
+WorkloadResult   4: 16 op, 1251853500.00 ns, 78.2408 ms/op
+WorkloadResult   5: 16 op, 1253028200.00 ns, 78.3143 ms/op
+
+// AfterAll
+// Benchmark Process 18668 has exited with code 0.
+
+Mean = 78.134 ms, StdErr = 0.399 ms (0.51%), N = 5, StdDev = 0.893 ms
+Min = 76.613 ms, Q1 = 78.241 ms, Median = 78.314 ms, Q3 = 78.559 ms, Max = 78.942 ms
+IQR = 0.318 ms, LowerFence = 77.763 ms, UpperFence = 79.037 ms
+ConfidenceInterval = [74.694 ms; 81.573 ms] (CI 99.9%), Margin = 3.439 ms (4.40% of Mean)
+Skewness = -0.82, Kurtosis = 1.83, MValue = 2
+
+// ** Remained 1 (8.3%) benchmark(s) to run. Estimated finish 2024-06-10 3:53 (0h 0m from now) **
+Setup power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// **************************
+// Benchmark: AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+// *** Execute ***
+// Launch: 1 / 1
+// Execute: dotnet 280c4d77-10b7-4a00-9c9e-50b28ff3a350.dll --anonymousPipes 1500 2784 --benchmarkName "Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark.Write(ItemCount: 1000)" --job "Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1" --benchmarkId 11 in C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\bin\Release\net8.0\280c4d77-10b7-4a00-9c9e-50b28ff3a350\bin\Release\net8.0
+// BeforeAnythingElse
+
+// Benchmark Process Environment Information:
+// BenchmarkDotNet v0.13.12
+// Runtime=.NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+// GC=Concurrent Workstation
+// HardwareIntrinsics=AVX2,AES,BMI1,BMI2,FMA,LZCNT,PCLMUL,POPCNT VectorSize=256
+// Job: Job-NUQZKH(InvocationCount=16, IterationCount=5, WarmupCount=1)
+
+OverheadJitting  1: 16 op, 210500.00 ns, 13.1562 us/op
+WorkloadJitting  1: 16 op, 12807615800.00 ns, 800.4760 ms/op
+
+OverheadWarmup   1: 16 op, 500.00 ns, 31.2500 ns/op
+OverheadWarmup   2: 16 op, 800.00 ns, 50.0000 ns/op
+OverheadWarmup   3: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   4: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadWarmup   5: 16 op, 400.00 ns, 25.0000 ns/op
+
+OverheadActual   1: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   2: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   3: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   4: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   5: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   6: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   7: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual   8: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual   9: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  10: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  11: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  12: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  13: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  14: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  15: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  16: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  17: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  18: 16 op, 300.00 ns, 18.7500 ns/op
+OverheadActual  19: 16 op, 400.00 ns, 25.0000 ns/op
+OverheadActual  20: 16 op, 300.00 ns, 18.7500 ns/op
+
+WorkloadWarmup   1: 16 op, 12659728200.00 ns, 791.2330 ms/op
+
+// BeforeActualRun
+WorkloadActual   1: 16 op, 12663993200.00 ns, 791.4996 ms/op
+WorkloadActual   2: 16 op, 12629877300.00 ns, 789.3673 ms/op
+WorkloadActual   3: 16 op, 12622472500.00 ns, 788.9045 ms/op
+WorkloadActual   4: 16 op, 12708823300.00 ns, 794.3015 ms/op
+WorkloadActual   5: 16 op, 12472585200.00 ns, 779.5366 ms/op
+
+// AfterActualRun
+WorkloadResult   1: 16 op, 12663992850.00 ns, 791.4996 ms/op
+WorkloadResult   2: 16 op, 12629876950.00 ns, 789.3673 ms/op
+WorkloadResult   3: 16 op, 12622472150.00 ns, 788.9045 ms/op
+WorkloadResult   4: 16 op, 12708822950.00 ns, 794.3014 ms/op
+WorkloadResult   5: 16 op, 12472584850.00 ns, 779.5366 ms/op
+
+// AfterAll
+// Benchmark Process 19368 has exited with code 0.
+
+Mean = 788.722 ms, StdErr = 2.487 ms (0.32%), N = 5, StdDev = 5.560 ms
+Min = 779.537 ms, Q1 = 788.905 ms, Median = 789.367 ms, Q3 = 791.500 ms, Max = 794.301 ms
+IQR = 2.595 ms, LowerFence = 785.012 ms, UpperFence = 795.392 ms
+ConfidenceInterval = [767.311 ms; 810.133 ms] (CI 99.9%), Margin = 21.411 ms (2.71% of Mean)
+Skewness = -0.67, Kurtosis = 1.7, MValue = 2
+
+// ** Remained 0 (0.0%) benchmark(s) to run. Estimated finish 2024-06-10 3:55 (0h 0m from now) **
+Successfully reverted power plan (GUID: 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c FriendlyName: High performance)
+// ***** BenchmarkRunner: Finish  *****
+
+// * Export *
+  C:\Users\pierr\source\repos\Boutquin.Storage\benchmarks\StorageEngine\BenchmarkDotNet.Artifacts\results\Boutquin.Storage.BenchMark.AppendOnlyFileStorageEngineWithIndexBenchmark-report-default.md
+
+// * Detailed results *
+AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 1.978 ms, StdErr = 0.019 ms (0.95%), N = 5, StdDev = 0.042 ms
+Min = 1.941 ms, Q1 = 1.942 ms, Median = 1.976 ms, Q3 = 1.985 ms, Max = 2.044 ms
+IQR = 0.043 ms, LowerFence = 1.878 ms, UpperFence = 2.049 ms
+ConfidenceInterval = [1.816 ms; 2.139 ms] (CI 99.9%), Margin = 0.162 ms (8.17% of Mean)
+Skewness = 0.54, Kurtosis = 1.46, MValue = 2
+-------------------- Histogram --------------------
+[1.931 ms ; 1.995 ms) | @@@@
+[1.995 ms ; 2.076 ms) | @
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 7.783 ms, StdErr = 0.053 ms (0.68%), N = 5, StdDev = 0.118 ms
+Min = 7.646 ms, Q1 = 7.732 ms, Median = 7.732 ms, Q3 = 7.862 ms, Max = 7.942 ms
+IQR = 0.130 ms, LowerFence = 7.536 ms, UpperFence = 8.057 ms
+ConfidenceInterval = [7.329 ms; 8.236 ms] (CI 99.9%), Margin = 0.454 ms (5.83% of Mean)
+Skewness = 0.21, Kurtosis = 1.09, MValue = 2
+-------------------- Histogram --------------------
+[7.599 ms ; 7.779 ms) | @@@
+[7.779 ms ; 7.992 ms) | @@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 8.032 ms, StdErr = 0.074 ms (0.93%), N = 5, StdDev = 0.166 ms
+Min = 7.851 ms, Q1 = 7.908 ms, Median = 8.007 ms, Q3 = 8.139 ms, Max = 8.257 ms
+IQR = 0.231 ms, LowerFence = 7.562 ms, UpperFence = 8.486 ms
+ConfidenceInterval = [7.391 ms; 8.673 ms] (CI 99.9%), Margin = 0.641 ms (7.98% of Mean)
+Skewness = 0.2, Kurtosis = 1.04, MValue = 2
+-------------------- Histogram --------------------
+[7.801 ms ; 8.057 ms) | @@@
+[8.057 ms ; 8.326 ms) | @@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=10]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 9.057 ms, StdErr = 0.037 ms (0.41%), N = 5, StdDev = 0.082 ms
+Min = 8.953 ms, Q1 = 9.012 ms, Median = 9.042 ms, Q3 = 9.125 ms, Max = 9.153 ms
+IQR = 0.112 ms, LowerFence = 8.844 ms, UpperFence = 9.293 ms
+ConfidenceInterval = [8.741 ms; 9.373 ms] (CI 99.9%), Margin = 0.316 ms (3.49% of Mean)
+Skewness = -0.01, Kurtosis = 1.01, MValue = 2
+-------------------- Histogram --------------------
+[8.908 ms ; 9.216 ms) | @@@@@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 17.683 ms, StdErr = 0.632 ms (3.57%), N = 5, StdDev = 1.412 ms
+Min = 16.134 ms, Q1 = 16.754 ms, Median = 17.392 ms, Q3 = 18.438 ms, Max = 19.699 ms
+IQR = 1.684 ms, LowerFence = 14.228 ms, UpperFence = 20.964 ms
+ConfidenceInterval = [12.244 ms; 23.122 ms] (CI 99.9%), Margin = 5.439 ms (30.76% of Mean)
+Skewness = 0.29, Kurtosis = 1.17, MValue = 2
+-------------------- Histogram --------------------
+[15.679 ms ; 17.847 ms) | @@@
+[17.847 ms ; 20.153 ms) | @@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 66.186 ms, StdErr = 0.150 ms (0.23%), N = 4, StdDev = 0.300 ms
+Min = 65.919 ms, Q1 = 66.049 ms, Median = 66.105 ms, Q3 = 66.242 ms, Max = 66.617 ms
+IQR = 0.193 ms, LowerFence = 65.760 ms, UpperFence = 66.531 ms
+ConfidenceInterval = [64.246 ms; 68.127 ms] (CI 99.9%), Margin = 1.941 ms (2.93% of Mean)
+Skewness = 0.55, Kurtosis = 1.22, MValue = 2
+-------------------- Histogram --------------------
+[65.671 ms ; 66.865 ms) | @@@@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 67.476 ms, StdErr = 0.076 ms (0.11%), N = 4, StdDev = 0.152 ms
+Min = 67.347 ms, Q1 = 67.347 ms, Median = 67.459 ms, Q3 = 67.588 ms, Max = 67.641 ms
+IQR = 0.241 ms, LowerFence = 66.986 ms, UpperFence = 67.950 ms
+ConfidenceInterval = [66.493 ms; 68.460 ms] (CI 99.9%), Margin = 0.984 ms (1.46% of Mean)
+Skewness = 0.07, Kurtosis = 0.64, MValue = 2
+-------------------- Histogram --------------------
+[67.221 ms ; 67.767 ms) | @@@@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=100]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 78.134 ms, StdErr = 0.399 ms (0.51%), N = 5, StdDev = 0.893 ms
+Min = 76.613 ms, Q1 = 78.241 ms, Median = 78.314 ms, Q3 = 78.559 ms, Max = 78.942 ms
+IQR = 0.318 ms, LowerFence = 77.763 ms, UpperFence = 79.037 ms
+ConfidenceInterval = [74.694 ms; 81.573 ms] (CI 99.9%), Margin = 3.439 ms (4.40% of Mean)
+Skewness = -0.82, Kurtosis = 1.83, MValue = 2
+-------------------- Histogram --------------------
+[75.927 ms ; 79.377 ms) | @@@@@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.SearchNonExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 152.105 ms, StdErr = 0.117 ms (0.08%), N = 4, StdDev = 0.233 ms
+Min = 151.854 ms, Q1 = 151.993 ms, Median = 152.076 ms, Q3 = 152.188 ms, Max = 152.414 ms
+IQR = 0.195 ms, LowerFence = 151.700 ms, UpperFence = 152.481 ms
+ConfidenceInterval = [150.599 ms; 153.611 ms] (CI 99.9%), Margin = 1.506 ms (0.99% of Mean)
+Skewness = 0.27, Kurtosis = 1.11, MValue = 2
+-------------------- Histogram --------------------
+[151.662 ms ; 152.607 ms) | @@@@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.SearchExisting: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 664.261 ms, StdErr = 0.357 ms (0.05%), N = 5, StdDev = 0.799 ms
+Min = 663.361 ms, Q1 = 663.858 ms, Median = 664.002 ms, Q3 = 664.661 ms, Max = 665.425 ms
+IQR = 0.803 ms, LowerFence = 662.653 ms, UpperFence = 665.866 ms
+ConfidenceInterval = [661.185 ms; 667.338 ms] (CI 99.9%), Margin = 3.077 ms (0.46% of Mean)
+Skewness = 0.32, Kurtosis = 1.25, MValue = 2
+-------------------- Histogram --------------------
+[662.748 ms ; 666.038 ms) | @@@@@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.Read: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 664.740 ms, StdErr = 0.329 ms (0.05%), N = 4, StdDev = 0.658 ms
+Min = 663.791 ms, Q1 = 664.573 ms, Median = 664.947 ms, Q3 = 665.114 ms, Max = 665.277 ms
+IQR = 0.540 ms, LowerFence = 663.763 ms, UpperFence = 665.924 ms
+ConfidenceInterval = [660.487 ms; 668.993 ms] (CI 99.9%), Margin = 4.253 ms (0.64% of Mean)
+Skewness = -0.59, Kurtosis = 1.21, MValue = 2
+-------------------- Histogram --------------------
+[663.247 ms ; 665.821 ms) | @@@@
+---------------------------------------------------
+
+AppendOnlyFileStorageEngineWithIndexBenchmark.Write: Job-JINISG(Runtime=.NET 8.0, InvocationCount=16, IterationCount=5, WarmupCount=1) [ItemCount=1000]
+Runtime = .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2; GC = Concurrent Workstation
+Mean = 788.722 ms, StdErr = 2.487 ms (0.32%), N = 5, StdDev = 5.560 ms
+Min = 779.537 ms, Q1 = 788.905 ms, Median = 789.367 ms, Q3 = 791.500 ms, Max = 794.301 ms
+IQR = 2.595 ms, LowerFence = 785.012 ms, UpperFence = 795.392 ms
+ConfidenceInterval = [767.311 ms; 810.133 ms] (CI 99.9%), Margin = 21.411 ms (2.71% of Mean)
+Skewness = -0.67, Kurtosis = 1.7, MValue = 2
+-------------------- Histogram --------------------
+[775.269 ms ; 798.569 ms) | @@@@@
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.13.12, Windows 10 (10.0.19045.4412/22H2/2022Update)
+Intel Core i9-10910 CPU 3.60GHz, 1 CPU, 20 logical and 10 physical cores
+.NET SDK 8.0.300
+  [Host]     : .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+  Job-JINISG : .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+
+Runtime=.NET 8.0  InvocationCount=16  IterationCount=5  
+WarmupCount=1  
+
+| Method            | ItemCount | Mean       | Error      | StdDev    |
+|------------------ |---------- |-----------:|-----------:|----------:|
+| SearchNonExisting | 10        |   1.978 ms |  0.1616 ms | 0.0420 ms |
+| SearchExisting    | 10        |   7.783 ms |  0.4536 ms | 0.1178 ms |
+| Read              | 10        |   8.032 ms |  0.6409 ms | 0.1664 ms |
+| Write             | 10        |   9.057 ms |  0.3159 ms | 0.0820 ms |
+| SearchNonExisting | 100       |  17.683 ms |  5.4390 ms | 1.4125 ms |
+| SearchExisting    | 100       |  66.186 ms |  1.9406 ms | 0.3003 ms |
+| Read              | 100       |  67.476 ms |  0.9837 ms | 0.1522 ms |
+| Write             | 100       |  78.134 ms |  3.4394 ms | 0.8932 ms |
+| SearchNonExisting | 1000      | 152.105 ms |  1.5059 ms | 0.2330 ms |
+| SearchExisting    | 1000      | 664.261 ms |  3.0767 ms | 0.7990 ms |
+| Read              | 1000      | 664.740 ms |  4.2531 ms | 0.6582 ms |
+| Write             | 1000      | 788.722 ms | 21.4107 ms | 5.5603 ms |
+
+// * Legends *
+  ItemCount : Value of the 'ItemCount' parameter
+  Mean      : Arithmetic mean of all measurements
+  Error     : Half of 99.9% confidence interval
+  StdDev    : Standard deviation of all measurements
+  1 ms      : 1 Millisecond (0.001 sec)
+
+// ***** BenchmarkRunner: End *****
+Run time: 00:04:52 (292.57 sec), executed benchmarks: 12
+
+Global total time: 00:04:56 (296.99 sec), executed benchmarks: 12
+// * Artifacts cleanup *
+Artifacts cleanup is finished

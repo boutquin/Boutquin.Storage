@@ -16,11 +16,14 @@
 namespace Boutquin.Storage.Infrastructure.Algorithms;
 
 /// <summary>
-/// Implementation of xxHash 32-bit hash algorithm.
+/// Implements the XXHash32 hashing algorithm.
+/// XXHash is a fast, non-cryptographic hash algorithm, working at speeds close to RAM limits.
+/// It is highly efficient for short strings and provides a decent distribution and avalanche effect.
 /// </summary>
 public class XxHash32 : IHashAlgorithm
 {
-    // Constants for the xxHash algorithm
+    // Prime values are constants used in the algorithm to ensure the hash has good dispersion.
+    // These specific values are chosen based on their properties in relation to the algorithm.
     private const uint Prime1 = 2654435761U;
     private const uint Prime2 = 2246822519U;
     private const uint Prime3 = 3266489917U;
@@ -28,71 +31,81 @@ public class XxHash32 : IHashAlgorithm
     private const uint Prime5 = 374761393U;
 
     /// <summary>
-    /// Computes the xxHash for the given input.
+    /// Computes the XXHash32 hash for the given input.
     /// </summary>
     /// <param name="data">The input data as a read-only span of bytes.</param>
     /// <returns>The computed 32-bit hash value.</returns>
     public uint ComputeHash(ReadOnlySpan<byte> data)
     {
-        int length = data.Length; // Get the length of the input data
+        var length = data.Length;
         uint hash;
 
-        // If the input length is 16 bytes or more, process in blocks
+        // If the input is large enough, process it in 16-byte blocks to utilize the algorithm's efficiency.
         if (length >= 16)
         {
-            // Initialize hash values
-            uint v1 = unchecked(Prime1 + Prime2);
-            uint v2 = Prime2;
+            // Initialize variables with prime values. These are part of the algorithm's core calculations.
+            var v1 = unchecked(Prime1 + Prime2);
+            var v2 = Prime2;
             uint v3 = 0;
-            uint v4 = unchecked((uint)-Prime1);
+            var v4 = unchecked((uint)-Prime1);
 
-            // Process each 16-byte block using unsafe code
-            unsafe
+            // Cast the byte data to uint for processing 4 bytes at a time.
+            var blocks = MemoryMarshal.Cast<byte, uint>(data);
+            var blocksCount = length / 16;
+
+            // Process each 16-byte block in 4 uint steps, applying the algorithm's operations.
+            for (var i = 0; i < blocksCount * 4; i += 4)
             {
-                fixed (byte* ptr = data)
-                {
-                    uint* blocksPtr = (uint*)ptr;
-                    int blocks = length / 16; // Calculate the number of 16-byte blocks
-
-                    for (int i = 0; i < blocks; i++)
-                    {
-                        v1 = Round(v1, blocksPtr[i * 4 + 0]);
-                        v2 = Round(v2, blocksPtr[i * 4 + 1]);
-                        v3 = Round(v3, blocksPtr[i * 4 + 2]);
-                        v4 = Round(v4, blocksPtr[i * 4 + 3]);
-                    }
-                }
+                v1 = Round(v1, blocks[i]);
+                v2 = Round(v2, blocks[i + 1]);
+                v3 = Round(v3, blocks[i + 2]);
+                v4 = Round(v4, blocks[i + 3]);
             }
 
-            // Combine hash values
+            // Combine the processed variables to form the basis of the hash.
             hash = unchecked(RotateLeft(v1, 1) + RotateLeft(v2, 7) + RotateLeft(v3, 12) + RotateLeft(v4, 18));
+            // Slice the processed data off, leaving any remaining bytes.
+            data = data.Slice(blocksCount * 16);
         }
         else
         {
-            hash = Prime5; // Use Prime5 if input is less than 16 bytes
+            // For data smaller than 16 bytes, start with a different base hash value.
+            hash = Prime5;
         }
 
-        hash += (uint)length; // Add the length of the input to the hash
+        // Add the length of the data to the hash. This ensures that strings of different lengths
+        // have a different hash even if they are identical for the first few characters.
+        hash += (uint)length;
 
-        // Process the remaining bytes
-        ref byte dataRefByte = ref MemoryMarshal.GetReference(data);
-        int remainder = length % 16;
-        for (int i = length - remainder; i < length; i++)
+        // Process the remaining bytes that are less than 16 bytes in the input.
+        while (data.Length >= 4)
         {
-            hash ^= unchecked((uint)Unsafe.Add(ref dataRefByte, i) * Prime5);
-            hash = unchecked(RotateLeft(hash, 11) * Prime1);
+            // Read 4 bytes at a time, apply the algorithm's operations.
+            hash = unchecked(hash + BinaryPrimitives.ReadUInt32LittleEndian(data) * Prime3);
+            hash = RotateLeft(hash, 17) * Prime4;
+            data = data.Slice(4); // Move to the next 4 bytes.
         }
 
-        hash = FMix(hash); // Final mixing of the hash
+        // Process any bytes that are left after processing 4-byte blocks.
+        foreach (var b in data)
+        {
+            hash ^= b * Prime5;
+            hash = RotateLeft(hash, 11) * Prime1;
+        }
 
-        return hash; // Return the computed hash value
+        // Final mix of the hash to ensure the avalanche effect, making sure that a small change
+        // in input significantly changes the output hash.
+        hash = FMix(hash);
+
+        return hash;
     }
 
     /// <summary>
-    /// Mixes a block into the hash.
+    /// Performs a single round of the XXHash algorithm on the given hash and input.
+    /// This involves a mix of addition, multiplication, and rotation operations.
     /// </summary>
     /// <param name="hash">The current hash value.</param>
-    /// <param name="input">The input block to mix into the hash.</param>
+    /// <param name="input">The input value to be hashed.</param>
     /// <returns>The updated hash value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Round(uint hash, uint input)
@@ -104,10 +117,11 @@ public class XxHash32 : IHashAlgorithm
     }
 
     /// <summary>
-    /// Rotates a 32-bit integer left by the specified number of bits.
+    /// Performs a left rotation on the given value.
+    /// Bitwise rotation ensures that every bit can influence every other bit.
     /// </summary>
     /// <param name="value">The value to rotate.</param>
-    /// <param name="count">The number of bits to rotate left.</param>
+    /// <param name="count">The number of bits to rotate by.</param>
     /// <returns>The rotated value.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint RotateLeft(uint value, int count)
@@ -116,10 +130,12 @@ public class XxHash32 : IHashAlgorithm
     }
 
     /// <summary>
-    /// Final mixing step of the hash.
+    /// Final mix function to ensure the avalanche effect on the hash.
+    /// This step is crucial to ensure that the hash value has a good distribution,
+    /// making it suitable for use in hash tables by minimizing collisions.
     /// </summary>
-    /// <param name="hash">The hash value to mix.</param>
-    /// <returns>The final mixed hash value.</returns>
+    /// <param name="hash">The current hash value.</param>
+    /// <returns>The final hash value with a good distribution.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint FMix(uint hash)
     {

@@ -46,7 +46,7 @@ public class StorageEngineBenchmark<TKey, TValue>
         _values = new List<TValue>(ItemCount); // Initialize the list of values with the specified capacity
 
         // Populate the keys and values lists with test data
-        for (int i = 0; i < ItemCount; i++)
+        for (var i = 0; i < ItemCount; i++)
         {
             _keys.Add((TKey)(object)new SerializableWrapper<int>(i)); // Convert integer to TKey
             _values.Add((TValue)(object)new SerializableWrapper<string>($"Value {i}")); // Convert string to TValue
@@ -56,7 +56,7 @@ public class StorageEngineBenchmark<TKey, TValue>
 
         // Populate the store with the initial data
         var tasks = new List<Task>();
-        for (int i = 0; i < ItemCount; i++)
+        for (var i = 0; i < ItemCount; i++)
         {
             tasks.Add(_store.SetAsync(_keys[i], _values[i])); // Add tasks to set key-value pairs in the store
         }
@@ -81,7 +81,7 @@ public class StorageEngineBenchmark<TKey, TValue>
     public async Task Write()
     {
         var tasks = new List<Task>();
-        for (int i = 0; i < ItemCount; i++)
+        for (var i = 0; i < ItemCount; i++)
         {
             tasks.Add(_store.SetAsync(_keys[i], _values[i])); // Add tasks to set key-value pairs in the store
         }
@@ -97,7 +97,7 @@ public class StorageEngineBenchmark<TKey, TValue>
     public async Task Read()
     {
         var tasks = new List<Task>();
-        for (int i = 0; i < ItemCount; i++)
+        for (var i = 0; i < ItemCount; i++)
         {
             tasks.Add(_store.TryGetValueAsync(_keys[i])); // Add tasks to get values for keys from the store
         }
@@ -113,7 +113,7 @@ public class StorageEngineBenchmark<TKey, TValue>
     public async Task SearchExisting()
     {
         var tasks = new List<Task>();
-        for (int i = 0; i < ItemCount; i++)
+        for (var i = 0; i < ItemCount; i++)
         {
             tasks.Add(_store.ContainsKeyAsync(_keys[i])); // Add tasks to check if keys exist in the store
         }
@@ -129,7 +129,7 @@ public class StorageEngineBenchmark<TKey, TValue>
     public async Task SearchNonExisting()
     {
         var tasks = new List<Task>();
-        for (int i = ItemCount; i < ItemCount * 2; i++)
+        for (var i = ItemCount; i < ItemCount * 2; i++)
         {
             tasks.Add(_store.ContainsKeyAsync((TKey)(object)new SerializableWrapper<int>(i))); // Add tasks to check non-existing keys in the store
         }

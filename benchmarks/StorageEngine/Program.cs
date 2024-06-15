@@ -47,7 +47,7 @@ public sealed class Program
                 .AddJob(Job.Dry); // Use a dry job to discover benchmarks without running them
 
             // Discover all benchmarks
-            int totalBenchmarkCases = benchmarks.Sum(benchmark => BenchmarkConverter.TypeToBenchmarks(benchmark, discoveryConfig).BenchmarksCases.Length);
+            var totalBenchmarkCases = benchmarks.Sum(benchmark => BenchmarkConverter.TypeToBenchmarks(benchmark, discoveryConfig).BenchmarksCases.Length);
 
             // Custom logger for tracking progress
             var customLogger = new CustomLogger(totalBenchmarkCases);

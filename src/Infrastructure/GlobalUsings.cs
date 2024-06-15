@@ -23,9 +23,11 @@ global using Boutquin.Storage.Domain.Enums;
 global using Boutquin.Storage.Domain.Exceptions;
 global using Boutquin.Storage.Domain.Interfaces;
 global using Boutquin.Storage.Domain.ValueObjects;
+global using Boutquin.Storage.Infrastructure.Algorithms;
 global using Boutquin.Storage.Infrastructure.AppendOnlyFileStorage;
 global using Boutquin.Storage.Infrastructure.KeyValueStore;
 
+global using System.Buffers.Binary;
 global using System.Collections.Concurrent;
 global using System.Runtime.CompilerServices;
 global using System.Runtime.InteropServices;

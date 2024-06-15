@@ -243,7 +243,7 @@ public sealed class SerializableWrapperTests
     public void ImplicitConversion_ShouldWorkForIntValues()
     {
         // Arrange: Create an int value.
-        int originalValue = 42;
+        var originalValue = 42;
 
         // Act: Implicitly convert the int value to SerializableWrapper and back to int.
         SerializableWrapper<int> wrapper = originalValue;

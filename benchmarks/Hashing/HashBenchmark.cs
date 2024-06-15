@@ -37,7 +37,7 @@ public class HashAlgorithmBenchmark
     public uint Fnv1aHash()
     {
         uint hash = 0;
-        for (int i = 0; i < 500; i++)
+        for (var i = 0; i < 500; i++)
         {
             hash = fnvHasher.ComputeHash(Data);
         }
@@ -52,7 +52,7 @@ public class HashAlgorithmBenchmark
     public uint XxHash32()
     {
         uint hash = 0;
-        for (int i = 0; i < 500; i++)
+        for (var i = 0; i < 500; i++)
         {
             hash = xxHasher.ComputeHash(Data);
         }
@@ -67,7 +67,7 @@ public class HashAlgorithmBenchmark
     public uint Murmur3Hash()
     {
         uint hash = 0;
-        for (int i = 0; i < 500; i++)
+        for (var i = 0; i < 500; i++)
         {
             hash = murmurHasher.ComputeHash(Data);
         }

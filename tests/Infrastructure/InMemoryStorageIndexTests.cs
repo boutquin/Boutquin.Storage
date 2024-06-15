@@ -243,8 +243,8 @@ public sealed class InMemoryStorageIndexTests
     public void AgainstNullOrDefault_ShouldNotThrowExceptionIfValueIsValid()
     {
         // Arrange: Create an expression with a valid value.
-        int intValue = 42;
-        string stringValue = "valid";
+        var intValue = 42;
+        var stringValue = "valid";
 
         // Act & Assert: Check that no exceptions are thrown.
         Guard.AgainstNullOrDefault(() => intValue);
