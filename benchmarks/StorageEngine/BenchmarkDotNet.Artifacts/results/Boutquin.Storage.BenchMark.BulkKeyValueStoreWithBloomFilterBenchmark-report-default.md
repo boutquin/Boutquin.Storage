@@ -1,24 +1,20 @@
 
-BenchmarkDotNet v0.13.12, Windows 10 (10.0.19045.4412/22H2/2022Update)
+BenchmarkDotNet v0.13.12, Windows 10 (10.0.19045.4529/22H2/2022Update)
 Intel Core i9-10910 CPU 3.60GHz, 1 CPU, 20 logical and 10 physical cores
 .NET SDK 8.0.300
   [Host]     : .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
-  Job-JINISG : .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
+  Job-JLVPNM : .NET 8.0.5 (8.0.524.21615), X64 RyuJIT AVX2
 
-Runtime=.NET 8.0  InvocationCount=16  IterationCount=5  
+Runtime=.NET 8.0  InvocationCount=16  IterationCount=3  
 WarmupCount=1  
 
- Method            | ItemCount | Mean              | Error             | StdDev            |
------------------- |---------- |------------------:|------------------:|------------------:|
- SearchNonExisting | 10        |          3.339 μs |          1.062 μs |         0.1643 μs |
- SearchNonExisting | 100       |         33.940 μs |          9.007 μs |         2.3390 μs |
- Write             | 10        |      7,107.038 μs |        472.123 μs |       122.6088 μs |
- SearchExisting    | 10        |      7,591.380 μs |        222.921 μs |        57.8919 μs |
- Read              | 10        |      7,629.140 μs |        302.622 μs |        78.5901 μs |
- Write             | 100       |     61,261.050 μs |      5,697.209 μs |       881.6494 μs |
- Read              | 100       |    157,203.731 μs |      9,981.153 μs |     1,544.5945 μs |
- SearchExisting    | 100       |    159,193.431 μs |      3,050.399 μs |       792.1788 μs |
- SearchNonExisting | 1000      |    351,691.071 μs |      9,081.569 μs |     2,358.4546 μs |
- Write             | 1000      |    613,605.469 μs |      8,833.342 μs |     2,293.9908 μs |
- Read              | 1000      | 46,460,881.966 μs | 29,030,501.058 μs | 7,539,128.9343 μs |
- SearchExisting    | 1000      | 47,372,510.256 μs |  8,893,294.121 μs | 2,309,560.2414 μs |
+ Method            | ItemCount | Mean           | Error          | StdDev        |
+------------------ |---------- |---------------:|---------------:|--------------:|
+ SearchNonExisting | 10        |       3.638 μs |       7.604 μs |     0.4168 μs |
+ SearchNonExisting | 100       |      31.844 μs |      35.966 μs |     1.9714 μs |
+ SearchExisting    | 10        |   7,787.212 μs |   2,195.947 μs |   120.3672 μs |
+ Read              | 10        |   7,809.710 μs |     204.058 μs |    11.1851 μs |
+ Write             | 10        |   8,090.566 μs |   5,164.911 μs |   283.1062 μs |
+ Write             | 100       |  67,630.160 μs |  24,484.282 μs | 1,342.0661 μs |
+ Read              | 100       | 156,162.542 μs |  25,566.361 μs | 1,401.3785 μs |
+ SearchExisting    | 100       | 177,593.033 μs | 143,849.708 μs | 7,884.8879 μs |

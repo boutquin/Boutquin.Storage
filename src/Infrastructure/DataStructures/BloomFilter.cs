@@ -54,7 +54,7 @@ namespace Boutquin.Storage.Infrastructure.DataStructures;
 /// </code>
 /// </summary>
 /// <typeparam name="T">The type of elements to be stored in the Bloom filter.</typeparam>
-public class BloomFilter<T>
+public class BloomFilter<T> : IBloomFilter<T>
 {
     private readonly BitArray _bitArray;
     private readonly int _hashFunctionCount;

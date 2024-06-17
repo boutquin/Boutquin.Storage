@@ -32,7 +32,7 @@ public class StorageEngineBenchmark<TKey, TValue>
     /// <summary>
     /// Number of items to be used in the benchmark.
     /// </summary>
-    [Params(10, 100, 1000)]
+    [Params(10, 100)] // Reduced from 10, 100, 1000 to 10, 100
     public int ItemCount;
 
     /// <summary>

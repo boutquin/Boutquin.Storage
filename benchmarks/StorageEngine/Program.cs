@@ -34,8 +34,8 @@ public sealed class Program
                 typeof(InMemoryKeyValueStoreBenchmark),
                 typeof(AppendOnlyFileStorageEngineBenchmark),
                 typeof(AppendOnlyFileStorageEngineWithIndexBenchmark),
-                typeof(BulkKeyValueStoreWithBloomFilterBenchmark)
-
+                typeof(BulkKeyValueStoreWithBloomFilterBenchmark),
+                typeof(LogSegmentedStorageEngineBenchmark)
                 // Add other benchmark types here
             };
 
@@ -100,7 +100,7 @@ public sealed class Program
             .AddColumnProvider(DefaultColumnProviders.Instance)
             .AddExporter(MarkdownExporter.Default)
             .AddJob(Job.Default
-                .WithIterationCount(5) // Reduce the number of iterations
+                .WithIterationCount(3) // Reduce the number of iterations
                 .WithInvocationCount(16) // Set InvocationCount to 16, a multiple of UnrollFactor
                 .WithWarmupCount(1) // Reduce the number of warm-up iterations
                 .WithRuntime(CoreRuntime.Core80))
