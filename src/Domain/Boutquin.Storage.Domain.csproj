@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Boutquin.Domain" Version="0.6.0-beta.2" />
+    <PackageReference Include="Boutquin.Domain" Version="0.7.0" />
     <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
   </ItemGroup>
 
