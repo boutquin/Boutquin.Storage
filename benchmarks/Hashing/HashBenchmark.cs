@@ -1,0 +1,79 @@
+// Copyright (c) 2024-2026 Pierre G. Boutquin. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License").
+//  You may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+namespace Boutquin.Storage.BenchMark.Hashing;
+
+/// <summary>
+/// Benchmark class for comparing hash algorithms.
+/// </summary>
+[MemoryDiagnoser]
+public class HashAlgorithmBenchmark
+{
+    // Multiple distinct inputs to measure realistic hash throughput across different data
+    private static readonly byte[][] s_dataSets = Enumerable.Range(0, 500)
+        .Select(i => BitConverter.GetBytes(i).Concat(Guid.NewGuid().ToByteArray()).ToArray())
+        .ToArray();
+
+    // Instances of the hash algorithms to be benchmarked
+    private readonly IHashAlgorithm _fnvHasher = new Fnv1aHash();
+    private readonly IHashAlgorithm _xxHasher = new XxHash32();
+    private readonly IHashAlgorithm _murmurHasher = new Murmur3();
+
+    /// <summary>
+    /// Benchmarks the FNV-1a hash algorithm across 500 distinct inputs.
+    /// </summary>
+    /// <returns>The final computed hash value.</returns>
+    [Benchmark]
+    public uint Fnv1aHash()
+    {
+        uint hash = 0;
+        foreach (var data in s_dataSets)
+        {
+            hash = _fnvHasher.ComputeHash(data);
+        }
+        return hash;
+    }
+
+    /// <summary>
+    /// Benchmarks the xxHash algorithm across 500 distinct inputs.
+    /// </summary>
+    /// <returns>The final computed hash value.</returns>
+    [Benchmark]
+    public uint XxHash32()
+    {
+        uint hash = 0;
+        foreach (var data in s_dataSets)
+        {
+            hash = _xxHasher.ComputeHash(data);
+        }
+        return hash;
+    }
+
+    /// <summary>
+    /// Benchmarks the Murmur3 hash algorithm across 500 distinct inputs.
+    /// </summary>
+    /// <returns>The final computed hash value.</returns>
+    [Benchmark]
+    public uint Murmur3Hash()
+    {
+        uint hash = 0;
+        foreach (var data in s_dataSets)
+        {
+            hash = _murmurHasher.ComputeHash(data);
+        }
+        return hash;
+    }
+
+}

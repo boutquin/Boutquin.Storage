@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- Generator assemblies should not be packed as runtime deps -->
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsPackable>false</IsPackable>
+    <!-- Override Directory.Build.props — generator is not versioned/packaged -->
+    <MinVerSkip>true</MinVerSkip>
+    <!-- Suppress TreatWarningsAsErrors for generator project: netstandard2.0
+         generates some CS1591 (missing XML docs) warnings on Polyfill types that
+         we cannot control. The generator itself is not a public API surface. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Boutquin.Storage.SourceGenerator.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.4.0" PrivateAssets="all" />
+    <PackageReference Include="Polyfill" Version="7.*" PrivateAssets="all" />
+  </ItemGroup>
+  <!-- NO ProjectReference to Domain — the generator discovers attributes by
+       fully-qualified metadata name string via ForAttributeWithMetadataName.
+       The consumer project references Domain (for attributes) and the generator
+       (as an analyzer). This avoids a netstandard2.0 → net10.0 TFM mismatch. -->
+  <!-- AnalyzerReleases tracking (Roslyn convention) -->
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+</Project>

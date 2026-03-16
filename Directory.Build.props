@@ -1,0 +1,37 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <Authors>Pierre G. Boutquin</Authors>
+    <Company>Boutquin Computer Consulting</Company>
+    <PackageProjectUrl>https://github.com/boutquin/Boutquin.Storage</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/boutquin/Boutquin.Storage</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <Copyright>Copyright © 2019-2026, Boutquin Computer Consulting. All rights reserved.</Copyright>
+    <NeutralLanguage>en</NeutralLanguage>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageVersion>$(PackageVersion)$(MinVerBuildMetadata)</PackageVersion>
+    <Version>$(PackageVersion)</Version>
+    <MinVerDefaultPreReleaseIdentifiers>beta</MinVerDefaultPreReleaseIdentifiers>
+
+    <!-- Deterministic builds & SourceLink -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+</Project>

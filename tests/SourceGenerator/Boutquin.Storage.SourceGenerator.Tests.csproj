@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <MinVerSkip>true</MinVerSkip>
+    <!-- NU1701: Microsoft.CodeAnalysis.CSharp.Analyzer.Testing pulls in old indirect
+         dependencies that show net4x-only targeting. These are test-only packages and
+         do not affect runtime behavior. Safe to suppress. -->
+    <NoWarn>$(NoWarn);NU1701;CA2007</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.4.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
+    <PackageReference Include="Verify.SourceGenerators" Version="2.*" />
+    <PackageReference Include="Verify.Xunit" Version="28.*" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageReference Include="FluentAssertions" Version="8.8.0" />
+    <PackageReference Include="coverlet.collector" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <!-- Reference generator as regular ProjectReference (not OutputItemType="Analyzer").
+       This gives test code access to generator internal types for unit testing,
+       but means the generator does NOT run as a source generator in this project.
+       Tests drive the generator explicitly via CSharpGeneratorDriver. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SourceGenerator\Boutquin.Storage.SourceGenerator.csproj" />
+    <ProjectReference Include="..\..\src\Domain\Boutquin.Storage.Domain.csproj" />
+  </ItemGroup>
+</Project>

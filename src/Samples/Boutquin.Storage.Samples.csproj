@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
+    <!-- Source generator: referenced as analyzer so it runs at compile time, not as a runtime dependency -->
+    <ProjectReference Include="..\SourceGenerator\Boutquin.Storage.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

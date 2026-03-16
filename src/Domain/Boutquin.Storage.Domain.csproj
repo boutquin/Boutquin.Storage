@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Title>Boutquin.Storage.Domain</Title>
+    <Description>Domain abstractions for data-intensive storage engines — interfaces for key-value stores, storage indices, Bloom filters, serialization, and LSM-tree components.</Description>
+    <PackageTags>storage;lsm-tree;key-value-store;bloom-filter;sstable;memtable;append-only;dotnet;csharp;clean-architecture</PackageTags>
+    <PackageReleaseNotes>See CHANGELOG.md for release notes.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\Resources\icon.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Boutquin.Domain" Version="0.6.0-beta.2" />
+    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

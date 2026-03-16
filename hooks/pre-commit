@@ -1,0 +1,25 @@
+#!/bin/sh
+# Pre-commit hook for Boutquin.Storage
+# Ensures code formatting and build pass before committing.
+# Install: ./hooks/install.sh
+
+set -e
+
+echo "Running dotnet format --verify-no-changes..."
+dotnet format --verify-no-changes
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "ERROR: dotnet format found formatting issues."
+    echo "Run 'dotnet format' to fix them, then re-stage and commit."
+    exit 1
+fi
+
+echo "Running dotnet build..."
+dotnet build --configuration Release --no-restore -consoleLoggerParameters:NoSummary -v quiet
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "ERROR: Build failed. Fix build errors before committing."
+    exit 1
+fi
+
+echo "Pre-commit checks passed."
