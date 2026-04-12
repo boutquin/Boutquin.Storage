@@ -362,6 +362,9 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# Specs (private dev repo only — excluded from public squash-push)
+specs/
+
 # Claude Code
 sessions/
 CLAUDE.local.md

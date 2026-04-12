@@ -22,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
-    <PackageReference Include="System.IO.Hashing" Version="9.0.5" />
-    <PackageReference Include="TestableIO.System.IO.Abstractions" Version="21.0.2" />
+    <PackageReference Include="MinVer" PrivateAssets="All" />
+    <PackageReference Include="System.IO.Hashing" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>

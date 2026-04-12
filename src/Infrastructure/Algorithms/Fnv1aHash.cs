@@ -38,7 +38,7 @@ namespace Boutquin.Storage.Infrastructure.Algorithms;
 /// that ensures empty inputs don't hash to zero.
 /// </para>
 /// </remarks>
-public class Fnv1aHash : IHashAlgorithm
+public sealed class Fnv1aHash : IHashAlgorithm
 {
     // Why: Official 32-bit FNV parameters from Fowler, Noll, and Vo. The prime was chosen for its
     // dispersion properties with XOR-fold, and the offset basis ensures empty inputs don't hash to zero.

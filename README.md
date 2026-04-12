@@ -12,9 +12,10 @@ A collection of data storage algorithms and engines implemented in C#, inspired 
 |---------|---------------|-------------|
 | **Boutquin.Storage.Domain** | `Boutquin.Storage.Domain` | Interfaces, value objects, exceptions, and abstractions for storage engines |
 | **Boutquin.Storage.Infrastructure** | `Boutquin.Storage.Infrastructure` | Concrete implementations of algorithms, data structures, and storage engines |
-| **Boutquin.Storage.Infrastructure.Tests** | — | 660 unit tests (xUnit, FluentAssertions, Moq) |
+| **Boutquin.Storage.Infrastructure.Tests** | — | 743 unit tests (xUnit, FluentAssertions, Moq) |
 | **Boutquin.Storage.SourceGenerator** | — | Roslyn IIncrementalGenerator for `[Key]` and `[StorageSerializable]` types |
 | **Boutquin.Storage.SourceGenerator.Tests** | — | 42 generator tests (snapshots, diagnostics, integration, caching) |
+| **Boutquin.Storage.ArchitectureTests** | — | 18 architecture tests (naming, design rules, dependency enforcement) |
 | **Boutquin.Storage.Samples** | — | Usage examples and demonstrations |
 | **Boutquin.Storage.BenchMark** | — | Performance benchmarks for storage engines (BenchmarkDotNet) |
 | **Boutquin.Storage.BenchMark.Hashing** | — | Performance benchmarks for hash algorithms |
@@ -283,10 +284,10 @@ To customize generated output at the assembly level:
 │  Serialization: Binary, CSV                                        │
 └────────────────────────────────────────────────────────────────────┘
 ┌────────────────────────────────────────────────────────────────────┐
-│                     Source Generator (Compile-time)                 │
-│  StorageSourceGenerator (IIncrementalGenerator)                     │
-│  Attributes: [Key], [StorageSerializable], [StorageDefaults]        │
-│  Emits: ISerializable<T>, IComparable<T>, IEquatable<T>, operators  │
+│                     Source Generator (Compile-time)                │
+│  StorageSourceGenerator (IIncrementalGenerator)                    │
+│  Attributes: [Key], [StorageSerializable], [StorageDefaults]       │
+│  Emits: ISerializable<T>, IComparable<T>, IEquatable<T>, operator  │
 │  Diagnostics: BSSG001–BSSG006                                      │
 └────────────────────────────────────────────────────────────────────┘
 ```

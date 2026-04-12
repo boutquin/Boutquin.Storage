@@ -63,7 +63,7 @@ namespace Boutquin.Storage.Infrastructure.Algorithms;
 /// on accumulator initialization when there's nothing to accumulate.
 /// </para>
 /// </remarks>
-public class XxHash32 : IHashAlgorithm
+public sealed class XxHash32 : IHashAlgorithm
 {
     // Why: These are Yann Collet's original xxHash constants, each serving a specific role in the
     // algorithm. Prime1+Prime2 drive the main accumulation rounds, Prime3+Prime4 handle remaining

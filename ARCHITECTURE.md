@@ -155,6 +155,11 @@ Constructor
 | Add a source-generated value type | Annotate with `[StorageSerializable]` | `StorageSourceGenerator.cs`, `CodeGenerator.cs` |
 | Customize generated output | `[assembly: StorageDefaults(...)]` | `StorageDefaultsAttribute.cs` |
 | Understand generator diagnostics | `DiagnosticDescriptors.cs` | BSSG001–BSSG006, `StorageDiagnosticSuppressor.cs` |
+| Understand object storage | `IObjectStore` | `FileSystemObjectStore.cs`, `InMemoryObjectStore.cs` |
+| Understand schema evolution | `ISchemaRegistry` | `InMemorySchemaRegistry.cs`, `FieldLevelCompatibilityChecker.cs` |
+| Understand event sourcing | `IEventLog` | `AppendOnlyEventLog.cs`, `InMemoryEventLog.cs` |
+| Understand CDC | `IChangeDataCaptureSource` | `EventLogCdcSource.cs`, `ObjectStoreCdcSource.cs` |
+| Understand checkpointing | `ICheckpointStore` | `FileCheckpointStore.cs`, `InMemoryCheckpointStore.cs` |
 | Run benchmarks | `benchmarks/StorageEngine/Program.cs` | 12 benchmark classes covering all major components |
 
 ## Directory Structure
@@ -162,16 +167,25 @@ Constructor
 ```
 src/
   Domain/
-    Interfaces/          59 interface files
+    Interfaces/          67 interface files
+                         (includes ObjectStore/IObjectStore,
+                          Streaming/ICheckpointStore,
+                          Schemas/ISchema, ISchemaRegistry,
+                            ISchemaCompatibilityChecker, IVersionedSerializer,
+                          Events/IEventLog,
+                          Cdc/IChangeDataCaptureSource)
     Helpers/             SerializableWrapper, Guard
-    ValueObjects/        FileLocation, SsTableMetadata, VersionedValue
+    ValueObjects/        FileLocation, SsTableMetadata, VersionedValue,
+                         SchemaVersion, SchemaField, SchemaEnvelope,
+                         EventEnvelope, ChangeRecord
     Exceptions/          Domain-specific exception types
-    Enums/               NodeColor, RaftState
+    Enums/               NodeColor, RaftState, CompatibilityMode,
+                         SchemaFieldType, ChangeOperation
   Infrastructure/
     LsmTree/             LsmStorageEngine + 3 compaction strategies
     AppendOnlyFileStorage/  AppendOnlyFileStorageEngine (+ WithIndex variant)
     LogSegmentFileStorage/  LogSegmentedStorageEngine
-    KeyValueStore/       InMemoryKeyValueStore, StorageFile
+    KeyValueStore/       InMemoryKeyValueStore, ConcurrentKeyValueStore, StorageFile
     WriteAheadLog/       WriteAheadLog (CRC32, fsync, corruption-tolerant recovery)
     SortedStringTable/   SortedStringTable (atomic writes, sparse index, GZip)
     DataStructures/      BTree, BPlusTree, RedBlackTree, SkipListMemTable,
@@ -185,6 +199,12 @@ src/
     DistributedSystems/  GCounter, PNCounter, GSet, ORSet, VectorClock,
                          LamportTimestamp, GossipProtocol
     Indexing/            SecondaryIndex, InMemoryStorageIndex, InMemoryFileIndex
+    ObjectStore/         FileSystemObjectStore, InMemoryObjectStore
+    Streaming/Checkpointing/  FileCheckpointStore, InMemoryCheckpointStore
+    Schemas/             InMemorySchemaRegistry, FieldLevelCompatibilityChecker,
+                         JsonVersionedSerializer, SimpleSchema
+    Events/              AppendOnlyEventLog, InMemoryEventLog
+    Cdc/                 EventLogCdcSource, ObjectStoreCdcSource
     StorageWithBloomFilter/  BulkKeyValueStoreWithBloomFilter
   SourceGenerator/       Roslyn IIncrementalGenerator (netstandard2.0)
     StorageSourceGenerator.cs   Pipeline: attribute discovery → type extraction → code emission
@@ -194,12 +214,13 @@ src/
     EquatableArray.cs           Value-equal array wrapper for pipeline caching
     TypeToGenerate.cs           Pipeline data model (no Roslyn types)
 tests/
-  Infrastructure/        660 xUnit tests
+  Infrastructure/        743 xUnit tests
   SourceGenerator/       42 generator tests (snapshots, diagnostics, integration, caching)
+  ArchitectureTests/     18 architecture tests (naming, design, dependency enforcement)
 benchmarks/
   StorageEngine/         12 benchmark classes (storage engines, data structures,
                          serializers, SSTable, Bloom filter, WAL, compaction)
   Hashing/               Hash algorithm benchmarks (FNV-1a, Murmur3, xxHash32)
 docs/
-  PITFALLS.md            14 bug categories with fix patterns and test evidence
+  PITFALLS.md            15 bug categories with fix patterns and test evidence
 ```

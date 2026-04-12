@@ -44,7 +44,7 @@ namespace Boutquin.Storage.Infrastructure.Algorithms;
 /// still produce correct hashes.
 /// </para>
 /// </remarks>
-public class Murmur3 : IHashAlgorithm
+public sealed class Murmur3 : IHashAlgorithm
 {
     // Why: The seed is an arbitrary constant chosen for reproducibility. Changing it would produce
     // different hash outputs, breaking any persisted Bloom filter state.

@@ -8,7 +8,7 @@ C# .NET 10 library implementing storage algorithms from Kleppmann's *Designing D
 
 ```bash
 dotnet build                    # Build all projects
-dotnet test                     # Run all 702 tests (660 infrastructure + 42 generator)
+dotnet test                     # Run all 803 tests (743 infrastructure + 42 generator + 18 architecture)
 dotnet test --verbosity normal  # Verbose test output
 dotnet format --verify-no-changes  # Verify code formatting
 ```
@@ -25,6 +25,9 @@ dotnet format --verify-no-changes  # Verify code formatting
 - **Sorted input validation** — SSTable rejects unsorted input with `ArgumentException` (fail-fast, not silent sort)
 - **fsync for durability** — WriteAheadLog uses `Flush(flushToDisk: true)`, not `Flush()`
 - **Explicit endianness** — on-disk formats use `BinaryPrimitives` with little-endian, not `BinaryWriter`
+- **Phase 0 interface families** — `IObjectStore`, `ICheckpointStore`, `ISchemaRegistry`, `IEventLog<TEvent>`, `IChangeDataCaptureSource<TKey,TValue>` (MarketData integration primitives)
+- **Architecture tests** in `tests/ArchitectureTests/` enforce sealed classes, naming conventions, dependency rules, and namespace purity via NetArchTest
+- **Central package management** — Package versions managed centrally via `Directory.Packages.props`
 
 ## Source Generator
 
@@ -55,6 +58,9 @@ Key AI-relevant notes:
 - `Interlocked.Exchange` for thread-safe dispose detection in `WriteAheadLog`
 - `Guard.AgainstNullOrDefault` for null key/value validation at API boundaries
 - `NotSupportedException` for `RemoveAsync` in RedBlackTree (append-only semantics — deletes are tombstones)
+- `ConcurrentKeyValueStore<TKey,TValue>` — thread-safe in-memory KV store for caching via `ConcurrentDictionary`
+- Record structs for Phase 0 value objects (`SchemaVersion`, `SchemaField`)
+- Sealed records for Phase 0 envelopes (`ChangeRecord<TKey,TValue>`, `EventEnvelope<TKey,TValue>`, `SchemaEnvelope<T>`)
 
 ## CI/CD
 

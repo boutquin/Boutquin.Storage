@@ -17,6 +17,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Snapshot testing** — 10 Verify.SourceGenerators snapshot tests covering all code paths (key, serializable, composite, nested, collections, primitives, global namespace, internal accessibility).
 - **Attribute rename** — `SerializableAttribute` → `StorageSerializableAttribute` to avoid collision with `System.SerializableAttribute`. Uses `[Conditional("BOUTQUIN_STORAGE_GENERATOR")]` to vanish from compiled output.
 
+#### Phase 0 — MarketData Integration Primitives (DDIA 2e Ch. 3, 5, 11, 12)
+- **Object storage** — `IObjectStore` / `FileSystemObjectStore` (atomic temp+rename, fsync, hierarchical keys), `InMemoryObjectStore` (concurrent-safe, independent read streams). (DDIA 2e Ch. 11)
+- **Checkpoint store** — `ICheckpointStore` / `FileCheckpointStore` (8-byte LE offset + state, atomic writes), `InMemoryCheckpointStore`. (DDIA 2e Ch. 12)
+- **Schema registry** — `ISchema`, `ISchemaRegistry`, `ISchemaCompatibilityChecker`, `IVersionedSerializer<T>` / `InMemorySchemaRegistry` (transitive compatibility), `FieldLevelCompatibilityChecker` (backward/forward/full/none), `JsonVersionedSerializer<T>` (4-byte LE version header), `SimpleSchema`. (DDIA 2e Ch. 5)
+- **Event log** — `IEventLog<TEvent>` / `AppendOnlyEventLog<TEvent>` (length-prefixed + CRC32, fsync, recovery), `InMemoryEventLog<TEvent>`. (DDIA 2e Ch. 3, 12)
+- **Change data capture** — `IChangeDataCaptureSource<TKey,TValue>` / `EventLogCdcSource<TKey,TValue>`, `ObjectStoreCdcSource<TKey>`. (DDIA 2e Ch. 12)
+- **Value objects** — `SchemaVersion`, `SchemaField`, `SchemaEnvelope<T>`, `EventEnvelope<TKey,TValue>`, `ChangeRecord<TKey,TValue>`.
+- **Enums** — `CompatibilityMode`, `SchemaFieldType`, `ChangeOperation`.
+- **ConcurrentKeyValueStore** — Thread-safe `IKeyValueStore` backed by `ConcurrentDictionary` for caching (no `ISerializable` constraint). (DDIA 2e Ch. 4)
+
+#### Architecture Tests
+- **18 architecture tests** using NetArchTest.eNhancedEdition: naming conventions (8), design rules (6), dependency enforcement (4).
+
+#### Build Infrastructure
+- **Central package management** — `Directory.Packages.props` centralizes all NuGet versions across 9 projects.
+
 #### Partitioning (DDIA Ch. 6)
 - **Consistent hash ring** — Virtual-node-based ring (default 150 per physical node) with `SortedDictionary` for O(log n) key lookup and wrap-around. Minimal key redistribution on node addition/removal. (474 → 496 tests, +22)
 - **Range partitioner** — Binary search on sorted immutable boundaries; N boundaries = N+1 partitions. Thread-safe after construction. (DDIA Ch. 6)
@@ -96,7 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WriteAheadLog on-disk record format documentation (length-prefix + payload + CRC32).
 - SSTable on-disk format documentation (sequential entries, sparse in-memory index, non-atomic write caveat).
 - LSM compaction documented as future work with rationale.
-- `docs/PITFALLS.md` — Catalog of 14 bug categories with traps, fixes, and prevention checklist.
+- `docs/PITFALLS.md` — Catalog of 15 bug categories with traps, fixes, and prevention checklist.
 
 #### Tests (232 → 386, +154 new tests)
 - xxHash32 reference validation against `System.IO.Hashing.XxHash32` (8 tests covering empty, 1-byte, 5-byte, 17-byte, and string inputs).
@@ -114,6 +130,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `global.json` and project-local `CLAUDE.md`.
 
 ### Changed
+- **Sealed 5 pre-existing classes** — `BloomFilter<T>`, `Fnv1aHash`, `Murmur3`, `XxHash32`, `InMemoryStorageIndex<,>` (found by architecture tests).
+- **CRC32 integrity** added to `AppendOnlyEventLog` entry format (per PITFALLS.md #4: skip corrupt entries, don't stop).
+- **CancellationToken** checks added to all Phase 0 implementations (per PITFALLS.md #10).
+- Test count: 702 → 803 (+101: 72 Phase 0 + 11 ConcurrentKeyValueStore + 18 architecture).
+- `docs/PITFALLS.md` count: 14 → 15 bug categories.
 - **xxHash32 correctness fix** — Single-byte remainder changed from XOR (`^=`) to ADD (`+=`) per the xxHash specification. Validated against `System.IO.Hashing.XxHash32`.
 - Fixed 14 HIGH + 26 MEDIUM code review findings across all components (TDD methodology).
 - Upgraded to .NET 10 / C# 14 with `TreatWarningsAsErrors` enabled.
