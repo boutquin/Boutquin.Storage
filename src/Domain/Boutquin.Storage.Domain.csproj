@@ -22,6 +22,14 @@
   <ItemGroup>
     <PackageReference Include="Boutquin.Domain" />
     <PackageReference Include="MinVer" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Public API surface tracking — baseline locked at each shipped release.
+       Additions/removals must land in PublicAPI.Unshipped.txt until release. -->
+  <ItemGroup>
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
 
 </Project>

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-04-14
+
+### Added
+
+#### Public API Tracking
+- **Microsoft.CodeAnalysis.PublicApiAnalyzers** wired for publishable NuGet projects (`Boutquin.Storage.Domain`, `Boutquin.Storage.Infrastructure`). Each project carries `PublicAPI.Shipped.txt` (baseline locked at release) and `PublicAPI.Unshipped.txt` (additions awaiting next release). With `TreatWarningsAsErrors=true`, adding or removing public API now fails the build unless the change is declared in `PublicAPI.Unshipped.txt` — eliminating accidental breaking changes. SourceGenerator project is excluded (not a shipped library surface; uses `AnalyzerReleases.*.md` for RS2000-family analyzer release tracking). Shipped baseline: 438 Domain symbols + 438 Infrastructure symbols.
+
+#### Phase 1 MarketData Integration — Download/Caching (DDIA 2e Ch. 5)
+- **`DownloadResult`** — `sealed record DownloadResult(int Downloaded, int Skipped, IReadOnlyList<string> Errors)` in `Boutquin.Storage.Domain.ValueObjects`. Immutable summary of a batch download (how many succeeded, how many were skipped as already-fresh, and per-item error messages for failures).
+- **`FreshnessChecker`** — `static class` in `Boutquin.Storage.Infrastructure.Caching`. `IsFresh(string filePath, TimeSpan maxAge, bool force = false)` compares a cached file's last-write timestamp against a configurable maximum age before re-download; returns `false` on force, non-positive `maxAge`, or missing file. (803 → 811 tests, +8: 5 FreshnessChecker + 3 DownloadResult)
+
+## [1.1.0] - 2026-04-12
+
 ### Added
 
 #### Source Generator

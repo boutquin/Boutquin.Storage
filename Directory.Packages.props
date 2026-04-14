@@ -32,6 +32,7 @@
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
 
     <!-- Build infrastructure -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="4.14.0" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
   </ItemGroup>
 </Project>

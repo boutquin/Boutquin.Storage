@@ -25,10 +25,20 @@ namespace Boutquin.Storage.ArchitectureTests;
 /// </summary>
 public sealed class DependencyTests : BaseArchitectureTest
 {
+    // Coverlet's code-coverage collector injects a
+    // `Coverlet.Core.Instrumentation.Tracker.<AssemblyName>_<guid>` type into every
+    // instrumented assembly. The tracker calls System.IO.File to persist hit counts,
+    // which would otherwise trip Domain_ShouldNotDependOnFileSystemTypes and any
+    // other Domain-scoped dependency assertion. These are test-time artefacts, not
+    // shipping types, so filter them out of every dependency test.
+    private const string CoverletInstrumentationNamespace = "Coverlet.Core.Instrumentation";
+
     [Fact]
     public void Domain_ShouldNotDependOnInfrastructure()
     {
         var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .DoNotResideInNamespace(CoverletInstrumentationNamespace)
             .Should()
             .NotHaveDependencyOnAny("Boutquin.Storage.Infrastructure")
             .GetResult();
@@ -41,6 +51,8 @@ public sealed class DependencyTests : BaseArchitectureTest
     public void Infrastructure_ShouldNotDependOnTests()
     {
         var result = Types.InAssembly(InfrastructureAssembly)
+            .That()
+            .DoNotResideInNamespace(CoverletInstrumentationNamespace)
             .Should()
             .NotHaveDependencyOnAny(
                 "Boutquin.Storage.Infrastructure.Tests",
@@ -57,6 +69,8 @@ public sealed class DependencyTests : BaseArchitectureTest
         // Domain should not depend on System.Text.Json or Newtonsoft.Json
         // Serialization is an Infrastructure concern
         var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .DoNotResideInNamespace(CoverletInstrumentationNamespace)
             .Should()
             .NotHaveDependencyOnAny(
                 "System.Text.Json",
@@ -73,6 +87,8 @@ public sealed class DependencyTests : BaseArchitectureTest
         // Domain interfaces should not reference concrete file system types
         // File I/O is an Infrastructure concern; Domain uses Stream as the abstraction boundary
         var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .DoNotResideInNamespace(CoverletInstrumentationNamespace)
             .Should()
             .NotHaveDependencyOnAny(
                 "System.IO.FileStream",

@@ -1,0 +1,439 @@
+#nullable enable
+Boutquin.Storage.Infrastructure.Algorithms.Fnv1aHash
+Boutquin.Storage.Infrastructure.Algorithms.Fnv1aHash.ComputeHash(System.ReadOnlySpan<byte> data) -> uint
+Boutquin.Storage.Infrastructure.Algorithms.Fnv1aHash.Fnv1aHash() -> void
+Boutquin.Storage.Infrastructure.Algorithms.Murmur3
+Boutquin.Storage.Infrastructure.Algorithms.Murmur3.ComputeHash(System.ReadOnlySpan<byte> data) -> uint
+Boutquin.Storage.Infrastructure.Algorithms.Murmur3.Murmur3() -> void
+Boutquin.Storage.Infrastructure.Algorithms.XxHash32
+Boutquin.Storage.Infrastructure.Algorithms.XxHash32.ComputeHash(System.ReadOnlySpan<byte> data) -> uint
+Boutquin.Storage.Infrastructure.Algorithms.XxHash32.XxHash32() -> void
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.AppendOnlyFileStorageEngine(Boutquin.Storage.Domain.Interfaces.IStorageFile! storageFile, Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>! entrySerializer) -> void
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.EntrySerializer.get -> Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>!
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.FileLocation.get -> string!
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.FileName.get -> string!
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.FileSize.get -> long
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.WriteEntryAsync(System.IO.Stream! stream, TKey key, TValue value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngineWithIndex<TKey, TValue>
+Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngineWithIndex<TKey, TValue>.AppendOnlyFileStorageEngineWithIndex(Boutquin.Storage.Domain.Interfaces.IStorageFile! storageFile, Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>! entrySerializer, Boutquin.Storage.Domain.Interfaces.IFileStorageIndex<TKey>! index) -> void
+Boutquin.Storage.Infrastructure.Caching.FreshnessChecker
+Boutquin.Storage.Infrastructure.Cdc.EventLogCdcSource<TKey, TValue>
+Boutquin.Storage.Infrastructure.Cdc.EventLogCdcSource<TKey, TValue>.EventLogCdcSource(Boutquin.Storage.Domain.Interfaces.Events.IEventLog<Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>!>! eventLog) -> void
+Boutquin.Storage.Infrastructure.Cdc.EventLogCdcSource<TKey, TValue>.ReadChangesAsync(long position, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>!>!
+Boutquin.Storage.Infrastructure.Cdc.ObjectStoreCdcSource<TKey>
+Boutquin.Storage.Infrastructure.Cdc.ObjectStoreCdcSource<TKey>.ObjectStoreCdcSource(Boutquin.Storage.Domain.Interfaces.Events.IEventLog<Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, byte[]!>!>! eventLog) -> void
+Boutquin.Storage.Infrastructure.Cdc.ObjectStoreCdcSource<TKey>.ReadChangesAsync(long position, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, byte[]!>!>!
+Boutquin.Storage.Infrastructure.Consensus.RaftCluster<TCommand>
+Boutquin.Storage.Infrastructure.Consensus.RaftCluster<TCommand>.AddNode(Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>! node) -> void
+Boutquin.Storage.Infrastructure.Consensus.RaftCluster<TCommand>.GetLeader() -> Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>?
+Boutquin.Storage.Infrastructure.Consensus.RaftCluster<TCommand>.GetNodes() -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>!>!
+Boutquin.Storage.Infrastructure.Consensus.RaftCluster<TCommand>.RaftCluster() -> void
+Boutquin.Storage.Infrastructure.Consensus.RaftCluster<TCommand>.TickAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Consensus.RaftCluster<TCommand>.TriggerElectionAsync(string! nodeId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.CurrentTerm.get -> long
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.GetCommittedLog() -> System.Collections.Generic.IReadOnlyList<(long Term, TCommand Command)>!
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.LeaderId.get -> string?
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.NodeId.get -> string!
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.ProposeAsync(TCommand command, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.RaftNode(string! nodeId) -> void
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.State.get -> Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Infrastructure.Consensus.RaftNode<TCommand>.VotedFor.get -> string?
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.BPlusTree(int order) -> void
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.Height.get -> int
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.Order.get -> int
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.RangeQueryAsync(TKey start, TKey end, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BPlusTree<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.BTree(int minimumDegree) -> void
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.Height.get -> int
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.Order.get -> int
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.BTree<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.DataStructures.BloomFilter<T>
+Boutquin.Storage.Infrastructure.DataStructures.BloomFilter<T>.Add(T item) -> void
+Boutquin.Storage.Infrastructure.DataStructures.BloomFilter<T>.BloomFilter(int expectedElements, double falsePositiveProbability) -> void
+Boutquin.Storage.Infrastructure.DataStructures.BloomFilter<T>.BloomFilter(int expectedElements, double falsePositiveProbability, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm! hashAlgorithm1, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm! hashAlgorithm2, System.Func<T, byte[]!>! itemToBytes) -> void
+Boutquin.Storage.Infrastructure.DataStructures.BloomFilter<T>.Clear() -> void
+Boutquin.Storage.Infrastructure.DataStructures.BloomFilter<T>.Contains(T item) -> bool
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>.Add(T item) -> void
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>.Clear() -> void
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>.Contains(T item) -> bool
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>.CountingBloomFilter(int expectedElements, double falsePositiveProbability) -> void
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>.CountingBloomFilter(int expectedElements, double falsePositiveProbability, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm! hashAlgorithm1, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm! hashAlgorithm2, System.Func<T, byte[]!>! itemToBytes) -> void
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>.GetCount(T item) -> int
+Boutquin.Storage.Infrastructure.DataStructures.CountingBloomFilter<T>.Remove(T item) -> void
+Boutquin.Storage.Infrastructure.DataStructures.MerkleTree
+Boutquin.Storage.Infrastructure.DataStructures.MerkleTree.Build(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> void
+Boutquin.Storage.Infrastructure.DataStructures.MerkleTree.GetProof(int leafIndex) -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+Boutquin.Storage.Infrastructure.DataStructures.MerkleTree.MerkleTree() -> void
+Boutquin.Storage.Infrastructure.DataStructures.MerkleTree.RootHash.get -> byte[]!
+Boutquin.Storage.Infrastructure.DataStructures.MerkleTree.Verify(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> bool
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.IsFull.get -> bool
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.RedBlackTree(int maxSize) -> void
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.RedBlackTree<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.IsFull.get -> bool
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.MaxLevel.get -> int
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.SkipListMemTable(int maxSize, int maxLevel = 16, double probability = 0.5) -> void
+Boutquin.Storage.Infrastructure.DataStructures.SkipListMemTable<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.DistributedSystems.GCounter
+Boutquin.Storage.Infrastructure.DistributedSystems.GCounter.GCounter() -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.GCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.GCounter.Merge(Boutquin.Storage.Domain.Interfaces.ICrdt<long>! other) -> Boutquin.Storage.Domain.Interfaces.ICrdt<long>!
+Boutquin.Storage.Infrastructure.DistributedSystems.GCounter.Value.get -> long
+Boutquin.Storage.Infrastructure.DistributedSystems.GSet<T>
+Boutquin.Storage.Infrastructure.DistributedSystems.GSet<T>.Add(T item) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.GSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Infrastructure.DistributedSystems.GSet<T>.GSet() -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.GSet<T>.Merge(Boutquin.Storage.Domain.Interfaces.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>! other) -> Boutquin.Storage.Domain.Interfaces.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>!
+Boutquin.Storage.Infrastructure.DistributedSystems.GSet<T>.Value.get -> System.Collections.Generic.IReadOnlySet<T>!
+Boutquin.Storage.Infrastructure.DistributedSystems.GossipProtocol<TNodeId, TState>
+Boutquin.Storage.Infrastructure.DistributedSystems.GossipProtocol<TNodeId, TState>.GetClusterState() -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Infrastructure.DistributedSystems.GossipProtocol<TNodeId, TState>.GossipProtocol() -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.GossipProtocol<TNodeId, TState>.PrepareSyncMessage(TNodeId fromNode) -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Infrastructure.DistributedSystems.GossipProtocol<TNodeId, TState>.ProcessSyncMessage(System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>! remoteState) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.GossipProtocol<TNodeId, TState>.UpdateLocalState(TNodeId nodeId, TState state) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.LamportTimestamp
+Boutquin.Storage.Infrastructure.DistributedSystems.LamportTimestamp.CompareTo(long otherTimestamp, string! otherNodeId) -> int
+Boutquin.Storage.Infrastructure.DistributedSystems.LamportTimestamp.GetCurrentTimestamp() -> long
+Boutquin.Storage.Infrastructure.DistributedSystems.LamportTimestamp.Increment() -> long
+Boutquin.Storage.Infrastructure.DistributedSystems.LamportTimestamp.LamportTimestamp(string! nodeId, long initialCounter = 0) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.LamportTimestamp.NodeId.get -> string!
+Boutquin.Storage.Infrastructure.DistributedSystems.LamportTimestamp.Update(long receivedTimestamp) -> long
+Boutquin.Storage.Infrastructure.DistributedSystems.ORSet<T>
+Boutquin.Storage.Infrastructure.DistributedSystems.ORSet<T>.Add(string! nodeId, T item) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.ORSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Infrastructure.DistributedSystems.ORSet<T>.Merge(Boutquin.Storage.Domain.Interfaces.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>! other) -> Boutquin.Storage.Domain.Interfaces.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>!
+Boutquin.Storage.Infrastructure.DistributedSystems.ORSet<T>.ORSet() -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.ORSet<T>.Remove(T item) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.ORSet<T>.Value.get -> System.Collections.Generic.IReadOnlySet<T>!
+Boutquin.Storage.Infrastructure.DistributedSystems.PNCounter
+Boutquin.Storage.Infrastructure.DistributedSystems.PNCounter.Decrement(string! nodeId) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.PNCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.PNCounter.Merge(Boutquin.Storage.Domain.Interfaces.ICrdt<long>! other) -> Boutquin.Storage.Domain.Interfaces.ICrdt<long>!
+Boutquin.Storage.Infrastructure.DistributedSystems.PNCounter.PNCounter() -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.PNCounter.Value.get -> long
+Boutquin.Storage.Infrastructure.DistributedSystems.VectorClock
+Boutquin.Storage.Infrastructure.DistributedSystems.VectorClock.CompareTo(Boutquin.Storage.Domain.Interfaces.IVectorClock! other) -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Infrastructure.DistributedSystems.VectorClock.GetClock() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Infrastructure.DistributedSystems.VectorClock.Increment(string! nodeId) -> void
+Boutquin.Storage.Infrastructure.DistributedSystems.VectorClock.Merge(Boutquin.Storage.Domain.Interfaces.IVectorClock! other) -> Boutquin.Storage.Domain.Interfaces.IVectorClock!
+Boutquin.Storage.Infrastructure.DistributedSystems.VectorClock.VectorClock() -> void
+Boutquin.Storage.Infrastructure.Events.AppendOnlyEventLog<TEvent>
+Boutquin.Storage.Infrastructure.Events.AppendOnlyEventLog<TEvent>.AppendAsync(TEvent event, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<long>
+Boutquin.Storage.Infrastructure.Events.AppendOnlyEventLog<TEvent>.AppendOnlyEventLog(string! filePath, System.Text.Json.JsonSerializerOptions? jsonOptions = null) -> void
+Boutquin.Storage.Infrastructure.Events.AppendOnlyEventLog<TEvent>.Dispose() -> void
+Boutquin.Storage.Infrastructure.Events.AppendOnlyEventLog<TEvent>.ReadFromAsync(long position, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<(long Position, TEvent Event)>!
+Boutquin.Storage.Infrastructure.Events.InMemoryEventLog<TEvent>
+Boutquin.Storage.Infrastructure.Events.InMemoryEventLog<TEvent>.AppendAsync(TEvent event, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<long>
+Boutquin.Storage.Infrastructure.Events.InMemoryEventLog<TEvent>.InMemoryEventLog() -> void
+Boutquin.Storage.Infrastructure.Events.InMemoryEventLog<TEvent>.ReadFromAsync(long position, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<(long Position, TEvent Event)>!
+Boutquin.Storage.Infrastructure.Indexing.InMemoryFileIndex<TKey>
+Boutquin.Storage.Infrastructure.Indexing.InMemoryFileIndex<TKey>.InMemoryFileIndex() -> void
+Boutquin.Storage.Infrastructure.Indexing.InMemoryStorageIndex<TKey, TValue>
+Boutquin.Storage.Infrastructure.Indexing.InMemoryStorageIndex<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Indexing.InMemoryStorageIndex<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.Indexing.InMemoryStorageIndex<TKey, TValue>.InMemoryStorageIndex() -> void
+Boutquin.Storage.Infrastructure.Indexing.InMemoryStorageIndex<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Indexing.InMemoryStorageIndex<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Indexing.InMemoryStorageIndex<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.Indexing.SecondaryIndex<TKey, TValue, TIndexKey>
+Boutquin.Storage.Infrastructure.Indexing.SecondaryIndex<TKey, TValue, TIndexKey>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Indexing.SecondaryIndex<TKey, TValue, TIndexKey>.IndexAsync(TKey primaryKey, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Indexing.SecondaryIndex<TKey, TValue, TIndexKey>.LookupAsync(TIndexKey indexKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<TKey>!>!
+Boutquin.Storage.Infrastructure.Indexing.SecondaryIndex<TKey, TValue, TIndexKey>.RemoveAsync(TKey primaryKey, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Indexing.SecondaryIndex<TKey, TValue, TIndexKey>.SecondaryIndex(System.Func<TValue, TIndexKey>! keyExtractor) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.ConcurrentKeyValueStore<TKey, TValue>
+Boutquin.Storage.Infrastructure.KeyValueStore.ConcurrentKeyValueStore<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.ConcurrentKeyValueStore<TKey, TValue>.ConcurrentKeyValueStore() -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.ConcurrentKeyValueStore<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.KeyValueStore.ConcurrentKeyValueStore<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.ConcurrentKeyValueStore<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.ConcurrentKeyValueStore<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.InMemoryKeyValueStore() -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.InMemoryKeyValueStore<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.AppendAllBytes(byte[]! content) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.AppendAllBytesAsync(byte[]! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.AppendAllText(string! content, System.Text.Encoding! encoding) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.AppendAllTextAsync(string! content, System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.Close() -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.Create(Boutquin.Storage.Domain.Enums.FileExistenceHandling existenceHandling) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.Delete(Boutquin.Storage.Domain.Enums.FileDeletionHandling deletionHandling) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.Dispose() -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.Exists() -> bool
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.FileLocation.get -> string!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.FileName.get -> string!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.FilePath.get -> string!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.FileSize.get -> long
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.Open(System.IO.FileMode mode) -> System.IO.Stream!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.ReadAllBytes() -> byte[]!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.ReadAllBytesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.ReadAllText(System.Text.Encoding! encoding) -> string!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.ReadAllTextAsync(System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.ReadBytes(long offset, long count) -> byte[]!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.ReadBytesAsync(long offset, long count, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.StorageFile(string! fileLocation, string! fileName) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.WriteAllBytes(byte[]! content) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.WriteAllBytesAsync(byte[]! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.WriteAllText(string! content, System.Text.Encoding! encoding) -> void
+Boutquin.Storage.Infrastructure.KeyValueStore.StorageFile.WriteAllTextAsync(string! content, System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.EntrySerializer.get -> Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.FileLocation.get -> string!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.FileName.get -> string!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.FileSize.get -> long
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.LogSegmentFile(Boutquin.Storage.Domain.Interfaces.IFileBasedStorageEngine<TKey, TValue>! storageEngine, long maxSegmentSize) -> void
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentFile<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.EntrySerializer.get -> Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.LogSegmentedStorageEngine(Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>! entrySerializer, string! folder, string! prefix, long maxSegmentSize, System.Func<string!, string!, Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>!, long, Boutquin.Storage.Domain.Interfaces.IFileBasedStorageEngine<TKey, TValue>!>! storageEngineFactory) -> void
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LogSegmentFileStorage.LogSegmentedStorageEngine<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.LsmTree.FullCompactionStrategy
+Boutquin.Storage.Infrastructure.LsmTree.FullCompactionStrategy.FullCompactionStrategy(int threshold) -> void
+Boutquin.Storage.Infrastructure.LsmTree.FullCompactionStrategy.SelectSegments(int segmentCount) -> System.Collections.Generic.IReadOnlyList<int>!
+Boutquin.Storage.Infrastructure.LsmTree.FullCompactionStrategy.ShouldCompact(int segmentCount) -> bool
+Boutquin.Storage.Infrastructure.LsmTree.LeveledCompactionStrategy
+Boutquin.Storage.Infrastructure.LsmTree.LeveledCompactionStrategy.BaseLevelSizeMB.get -> int
+Boutquin.Storage.Infrastructure.LsmTree.LeveledCompactionStrategy.LevelSizeMultiplier.get -> int
+Boutquin.Storage.Infrastructure.LsmTree.LeveledCompactionStrategy.LeveledCompactionStrategy(int level0Threshold = 4, int levelSizeMultiplier = 10, int baseLevelSizeMB = 10) -> void
+Boutquin.Storage.Infrastructure.LsmTree.LeveledCompactionStrategy.SelectSegments(int segmentCount) -> System.Collections.Generic.IReadOnlyList<int>!
+Boutquin.Storage.Infrastructure.LsmTree.LeveledCompactionStrategy.ShouldCompact(int segmentCount) -> bool
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.FlushAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.GetRangeAsync(TKey startKey, TKey endKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.LsmStorageEngine(int memTableCapacity, string! segmentFolder, string! segmentPrefix, Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>! entrySerializer, int compactionThreshold = 0, Boutquin.Storage.Domain.Interfaces.IWriteAheadLog<TKey, TValue>? writeAheadLog = null, bool enableTombstones = false, System.Func<Boutquin.Storage.Domain.Interfaces.IBloomFilter<TKey>!>? bloomFilterFactory = null, Boutquin.Storage.Domain.Interfaces.ICompactionStrategy? compactionStrategy = null) -> void
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.SegmentCount.get -> int
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.LsmTree.SizeTieredCompactionStrategy
+Boutquin.Storage.Infrastructure.LsmTree.SizeTieredCompactionStrategy.SelectSegments(int segmentCount) -> System.Collections.Generic.IReadOnlyList<int>!
+Boutquin.Storage.Infrastructure.LsmTree.SizeTieredCompactionStrategy.ShouldCompact(int segmentCount) -> bool
+Boutquin.Storage.Infrastructure.LsmTree.SizeTieredCompactionStrategy.SizeTieredCompactionStrategy(int minSegments = 4) -> void
+Boutquin.Storage.Infrastructure.ObjectStore.FileSystemObjectStore
+Boutquin.Storage.Infrastructure.ObjectStore.FileSystemObjectStore.DeleteAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Infrastructure.ObjectStore.FileSystemObjectStore.ExistsAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Boutquin.Storage.Infrastructure.ObjectStore.FileSystemObjectStore.FileSystemObjectStore(string! rootDirectory) -> void
+Boutquin.Storage.Infrastructure.ObjectStore.FileSystemObjectStore.ReadAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.IO.Stream?>
+Boutquin.Storage.Infrastructure.ObjectStore.FileSystemObjectStore.WriteAsync(string! key, System.IO.Stream! content, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Infrastructure.ObjectStore.InMemoryObjectStore
+Boutquin.Storage.Infrastructure.ObjectStore.InMemoryObjectStore.DeleteAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Infrastructure.ObjectStore.InMemoryObjectStore.ExistsAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Boutquin.Storage.Infrastructure.ObjectStore.InMemoryObjectStore.InMemoryObjectStore() -> void
+Boutquin.Storage.Infrastructure.ObjectStore.InMemoryObjectStore.ReadAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.IO.Stream?>
+Boutquin.Storage.Infrastructure.ObjectStore.InMemoryObjectStore.WriteAsync(string! key, System.IO.Stream! content, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Infrastructure.Partitioning.ConsistentHashRing<TNode>
+Boutquin.Storage.Infrastructure.Partitioning.ConsistentHashRing<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Infrastructure.Partitioning.ConsistentHashRing<TNode>.ConsistentHashRing(int virtualNodeCount = 150, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm? hashAlgorithm = null) -> void
+Boutquin.Storage.Infrastructure.Partitioning.ConsistentHashRing<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Infrastructure.Partitioning.ConsistentHashRing<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Infrastructure.Partitioning.ConsistentHashRing<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Infrastructure.Partitioning.HashPartitioner<TKey>
+Boutquin.Storage.Infrastructure.Partitioning.HashPartitioner<TKey>.GetPartition(TKey key) -> int
+Boutquin.Storage.Infrastructure.Partitioning.HashPartitioner<TKey>.HashPartitioner(int partitionCount, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm? hashAlgorithm = null) -> void
+Boutquin.Storage.Infrastructure.Partitioning.HashPartitioner<TKey>.PartitionCount.get -> int
+Boutquin.Storage.Infrastructure.Partitioning.RangePartitioner<TKey>
+Boutquin.Storage.Infrastructure.Partitioning.RangePartitioner<TKey>.GetBoundaries() -> System.Collections.Generic.IReadOnlyList<TKey>!
+Boutquin.Storage.Infrastructure.Partitioning.RangePartitioner<TKey>.GetPartition(TKey key) -> int
+Boutquin.Storage.Infrastructure.Partitioning.RangePartitioner<TKey>.GetPartitionRange(TKey startKey, TKey endKey) -> (int StartPartition, int EndPartition)
+Boutquin.Storage.Infrastructure.Partitioning.RangePartitioner<TKey>.PartitionCount.get -> int
+Boutquin.Storage.Infrastructure.Partitioning.RangePartitioner<TKey>.RangePartitioner(System.Collections.Generic.IReadOnlyList<TKey>! boundaries) -> void
+Boutquin.Storage.Infrastructure.Partitioning.RendezvousHash<TNode>
+Boutquin.Storage.Infrastructure.Partitioning.RendezvousHash<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Infrastructure.Partitioning.RendezvousHash<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Infrastructure.Partitioning.RendezvousHash<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Infrastructure.Partitioning.RendezvousHash<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Infrastructure.Partitioning.RendezvousHash<TNode>.RendezvousHash(Boutquin.Storage.Domain.Interfaces.IHashAlgorithm? hashAlgorithm = null) -> void
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>.N.get -> int
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>.QuorumReplication(int n, int w, int r) -> void
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>.R.get -> int
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>.ReadAsync(TKey key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found, long Version)>!
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>.SetReplicaAvailability(string! replicaId, bool isAvailable) -> void
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>.W.get -> int
+Boutquin.Storage.Infrastructure.Replication.QuorumReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.Replication.ReplicationLog<TKey, TValue>
+Boutquin.Storage.Infrastructure.Replication.ReplicationLog<TKey, TValue>.AppendAsync(TKey key, TValue value, long sequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Replication.ReplicationLog<TKey, TValue>.GetEntriesAfterAsync(long afterSequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(TKey Key, TValue Value, long SequenceNumber)>!>!
+Boutquin.Storage.Infrastructure.Replication.ReplicationLog<TKey, TValue>.GetLatestSequenceNumber() -> long
+Boutquin.Storage.Infrastructure.Replication.ReplicationLog<TKey, TValue>.ReplicationLog() -> void
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>.AddFollower(string! followerId) -> void
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>.GetReplicationLag() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>.ReadAsync(TKey key, string? preferredReplica = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>.RemoveFollower(string! followerId) -> void
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>.SingleLeaderReplication() -> void
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>.SyncFollowerAsync(string! followerId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Infrastructure.Replication.SingleLeaderReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Schemas.FieldLevelCompatibilityChecker
+Boutquin.Storage.Infrastructure.Schemas.FieldLevelCompatibilityChecker.FieldLevelCompatibilityChecker() -> void
+Boutquin.Storage.Infrastructure.Schemas.FieldLevelCompatibilityChecker.IsCompatible(Boutquin.Storage.Domain.Interfaces.Schemas.ISchema! existing, Boutquin.Storage.Domain.Interfaces.Schemas.ISchema! candidate, Boutquin.Storage.Domain.Enums.CompatibilityMode mode) -> bool
+Boutquin.Storage.Infrastructure.Schemas.InMemorySchemaRegistry
+Boutquin.Storage.Infrastructure.Schemas.InMemorySchemaRegistry.GetAsync(string! subject, Boutquin.Storage.Domain.ValueObjects.SchemaVersion version, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Boutquin.Storage.Domain.Interfaces.Schemas.ISchema!>
+Boutquin.Storage.Infrastructure.Schemas.InMemorySchemaRegistry.InMemorySchemaRegistry(Boutquin.Storage.Domain.Interfaces.Schemas.ISchemaCompatibilityChecker! checker) -> void
+Boutquin.Storage.Infrastructure.Schemas.InMemorySchemaRegistry.RegisterAsync(string! subject, Boutquin.Storage.Domain.Interfaces.Schemas.ISchema! schema, Boutquin.Storage.Domain.Enums.CompatibilityMode mode, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Boutquin.Storage.Domain.ValueObjects.SchemaVersion>
+Boutquin.Storage.Infrastructure.Schemas.JsonVersionedSerializer<T>
+Boutquin.Storage.Infrastructure.Schemas.JsonVersionedSerializer<T>.DeserializeAsync(System.IO.Stream! stream, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<(Boutquin.Storage.Domain.ValueObjects.SchemaVersion Version, T Value)>
+Boutquin.Storage.Infrastructure.Schemas.JsonVersionedSerializer<T>.JsonVersionedSerializer(System.Text.Json.JsonSerializerOptions? options = null) -> void
+Boutquin.Storage.Infrastructure.Schemas.JsonVersionedSerializer<T>.SerializeAsync(System.IO.Stream! stream, T value, Boutquin.Storage.Domain.ValueObjects.SchemaVersion schemaVersion, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Infrastructure.Schemas.SimpleSchema
+Boutquin.Storage.Infrastructure.Schemas.SimpleSchema.Fields.get -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Domain.ValueObjects.SchemaField>!
+Boutquin.Storage.Infrastructure.Schemas.SimpleSchema.SimpleSchema(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Domain.ValueObjects.SchemaField>! fields) -> void
+Boutquin.Storage.Infrastructure.Schemas.SimpleSchema.SimpleSchema(params Boutquin.Storage.Domain.ValueObjects.SchemaField[]! fields) -> void
+Boutquin.Storage.Infrastructure.Serialization.BinaryEntrySerializer<TKey, TValue>
+Boutquin.Storage.Infrastructure.Serialization.BinaryEntrySerializer<TKey, TValue>.BinaryEntrySerializer() -> void
+Boutquin.Storage.Infrastructure.Serialization.BinaryEntrySerializer<TKey, TValue>.CanRead(System.IO.Stream! stream) -> bool
+Boutquin.Storage.Infrastructure.Serialization.BinaryEntrySerializer<TKey, TValue>.ReadEntry(System.IO.Stream! stream) -> (TKey Key, TValue Value)?
+Boutquin.Storage.Infrastructure.Serialization.BinaryEntrySerializer<TKey, TValue>.WriteEntry(System.IO.Stream! stream, TKey key, TValue value) -> void
+Boutquin.Storage.Infrastructure.Serialization.BinaryEntrySerializer<TKey, TValue>.WriteEntryAsync(System.IO.Stream! stream, TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Serialization.CsvEntrySerializer<TKey, TValue>
+Boutquin.Storage.Infrastructure.Serialization.CsvEntrySerializer<TKey, TValue>.CanRead(System.IO.Stream! stream) -> bool
+Boutquin.Storage.Infrastructure.Serialization.CsvEntrySerializer<TKey, TValue>.CsvEntrySerializer() -> void
+Boutquin.Storage.Infrastructure.Serialization.CsvEntrySerializer<TKey, TValue>.ReadEntry(System.IO.Stream! stream) -> (TKey Key, TValue Value)?
+Boutquin.Storage.Infrastructure.Serialization.CsvEntrySerializer<TKey, TValue>.WriteEntry(System.IO.Stream! stream, TKey key, TValue value) -> void
+Boutquin.Storage.Infrastructure.Serialization.CsvEntrySerializer<TKey, TValue>.WriteEntryAsync(System.IO.Stream! stream, TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.AppendAllBytes(byte[]! content) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.AppendAllBytesAsync(byte[]! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.AppendAllText(string! content, System.Text.Encoding! encoding) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.AppendAllTextAsync(string! content, System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Close() -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Create(Boutquin.Storage.Domain.Enums.FileExistenceHandling existenceHandling) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Delete(Boutquin.Storage.Domain.Enums.FileDeletionHandling deletionHandling) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Exists() -> bool
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.FileLocation.get -> string!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.FileName.get -> string!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.FilePath.get -> string!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.FileSize.get -> long
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.GetCreationTime() -> System.DateTime
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.GetEntryCount() -> int
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.GetLastModificationTime() -> System.DateTime
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Merge(Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>! otherTable) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Open(System.IO.FileMode mode) -> System.IO.Stream!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.ReadAllBytes() -> byte[]!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.ReadAllBytesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.ReadAllText(System.Text.Encoding! encoding) -> string!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.ReadAllTextAsync(System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.ReadBytes(long offset, long count) -> byte[]!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.ReadBytesAsync(long offset, long count, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.SortedStringTable(string! fileLocation, string! fileName, int sparseIndexInterval = 4, bool enableCompression = false) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.Write(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.WriteAllBytes(byte[]! content) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.WriteAllBytesAsync(byte[]! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.WriteAllText(string! content, System.Text.Encoding! encoding) -> void
+Boutquin.Storage.Infrastructure.SortedStringTable.SortedStringTable<TKey, TValue>.WriteAllTextAsync(string! content, System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.BulkKeyValueStoreWithBloomFilter(Boutquin.Storage.Domain.Interfaces.ICompactableBulkStorageEngine<TKey, TValue>! innerStore, Boutquin.Storage.Domain.Interfaces.IBloomFilter<TKey>! bloomFilter) -> void
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.EntrySerializer.get -> Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.StorageWithBloomFilter.BulkKeyValueStoreWithBloomFilter<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.FileCheckpointStore
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.FileCheckpointStore.FileCheckpointStore(string! directory) -> void
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.FileCheckpointStore.LoadAsync(string! processorId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<(long Offset, byte[]! State)?>
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.FileCheckpointStore.SaveAsync(string! processorId, long offset, System.ReadOnlyMemory<byte> state, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.InMemoryCheckpointStore
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.InMemoryCheckpointStore.InMemoryCheckpointStore() -> void
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.InMemoryCheckpointStore.LoadAsync(string! processorId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<(long Offset, byte[]! State)?>
+Boutquin.Storage.Infrastructure.Streaming.Checkpointing.InMemoryCheckpointStore.SaveAsync(string! processorId, long offset, System.ReadOnlyMemory<byte> state, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Infrastructure.Transactions.MvccStore<TKey, TValue>
+Boutquin.Storage.Infrastructure.Transactions.MvccStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Infrastructure.Transactions.MvccStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Infrastructure.Transactions.MvccStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.Transactions.MvccStore<TKey, TValue>.MvccStore() -> void
+Boutquin.Storage.Infrastructure.Transactions.MvccStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.Transactions.MvccStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.Transactions.SsiStore<TKey, TValue>
+Boutquin.Storage.Infrastructure.Transactions.SsiStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Infrastructure.Transactions.SsiStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Infrastructure.Transactions.SsiStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Infrastructure.Transactions.SsiStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Infrastructure.Transactions.SsiStore<TKey, TValue>.SsiStore() -> void
+Boutquin.Storage.Infrastructure.Transactions.SsiStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.WriteAheadLog.WriteAheadLog<TKey, TValue>
+Boutquin.Storage.Infrastructure.WriteAheadLog.WriteAheadLog<TKey, TValue>.AppendAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.WriteAheadLog.WriteAheadLog<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Infrastructure.WriteAheadLog.WriteAheadLog<TKey, TValue>.RecoverAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Infrastructure.WriteAheadLog.WriteAheadLog<TKey, TValue>.TruncateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Infrastructure.WriteAheadLog.WriteAheadLog<TKey, TValue>.WriteAheadLog(string! filePath) -> void
+const Boutquin.Storage.Infrastructure.LsmTree.LsmStorageEngine<TKey, TValue>.DefaultCompactionThreshold = 0 -> int
+override Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngineWithIndex<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+override Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngineWithIndex<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+override Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngineWithIndex<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+override Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngineWithIndex<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+override Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngineWithIndex<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+readonly Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.StorageFile -> Boutquin.Storage.Domain.Interfaces.IStorageFile!
+static Boutquin.Storage.Infrastructure.Caching.FreshnessChecker.IsFresh(string! filePath, System.TimeSpan maxAge, bool force = false) -> bool
+static Boutquin.Storage.Infrastructure.DataStructures.MerkleTree.VerifyProof(byte[]! leafHash, System.Collections.Generic.IReadOnlyList<byte[]!>! proof, byte[]! rootHash, int leafIndex) -> bool
+virtual Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+virtual Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+virtual Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+virtual Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+virtual Boutquin.Storage.Infrastructure.AppendOnlyFileStorage.AppendOnlyFileStorageEngine<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!

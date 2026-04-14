@@ -25,10 +25,18 @@
     <PackageReference Include="MinVer" PrivateAssets="All" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\Boutquin.Storage.Domain.csproj" />
+  </ItemGroup>
+
+  <!-- Public API surface tracking — baseline locked at each shipped release.
+       Additions/removals must land in PublicAPI.Unshipped.txt until release. -->
+  <ItemGroup>
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
 
 </Project>

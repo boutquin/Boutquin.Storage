@@ -28,6 +28,18 @@ dotnet format --verify-no-changes  # Verify code formatting
 - **Phase 0 interface families** — `IObjectStore`, `ICheckpointStore`, `ISchemaRegistry`, `IEventLog<TEvent>`, `IChangeDataCaptureSource<TKey,TValue>` (MarketData integration primitives)
 - **Architecture tests** in `tests/ArchitectureTests/` enforce sealed classes, naming conventions, dependency rules, and namespace purity via NetArchTest
 - **Central package management** — Package versions managed centrally via `Directory.Packages.props`
+- **Public API tracking** — `Microsoft.CodeAnalysis.PublicApiAnalyzers` wired for `Boutquin.Storage.Domain` and `Boutquin.Storage.Infrastructure`. Each carries `PublicAPI.Shipped.txt` (locked at release) and `PublicAPI.Unshipped.txt` (pending). Build fails (RS0016/RS0017) on any undeclared public API change
+
+## Public API Workflow
+
+When you add, change, or remove public API:
+
+1. Build. The analyzer emits RS0016 (new symbol) or RS0017 (removed symbol).
+2. Run `dotnet format analyzers --diagnostics RS0016 RS0017` in the affected project to auto-populate `PublicAPI.Unshipped.txt`. Removals are written as `*REMOVED*Symbol.Name -> type` entries.
+3. Commit the `PublicAPI.Unshipped.txt` delta alongside the code change.
+4. **At release time**, move every line from `PublicAPI.Unshipped.txt` into `PublicAPI.Shipped.txt` (sorted, keep `#nullable enable` header), then empty `Unshipped.txt` back to just the header. This locks the new baseline. Done per packable project: `src/Domain/` and `src/Infrastructure/`.
+
+Baselines are v1.1.0 (422 Domain symbols, 436 Infrastructure symbols). SourceGenerator is not tracked (not a shipped library — uses `AnalyzerReleases.*.md` for RS2000-family analyzer release tracking instead).
 
 ## Source Generator
 

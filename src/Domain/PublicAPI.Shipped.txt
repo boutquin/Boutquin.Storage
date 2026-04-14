@@ -1,0 +1,439 @@
+#nullable enable
+Boutquin.Storage.Domain.Attributes.KeyAttribute
+Boutquin.Storage.Domain.Attributes.KeyAttribute.KeyAttribute() -> void
+Boutquin.Storage.Domain.Attributes.StorageDefaultsAttribute
+Boutquin.Storage.Domain.Attributes.StorageDefaultsAttribute.GenerateComparisonOperators.get -> bool
+Boutquin.Storage.Domain.Attributes.StorageDefaultsAttribute.GenerateComparisonOperators.set -> void
+Boutquin.Storage.Domain.Attributes.StorageDefaultsAttribute.StorageDefaultsAttribute() -> void
+Boutquin.Storage.Domain.Attributes.StorageSerializableAttribute
+Boutquin.Storage.Domain.Attributes.StorageSerializableAttribute.StorageSerializableAttribute() -> void
+Boutquin.Storage.Domain.Enums.ChangeOperation
+Boutquin.Storage.Domain.Enums.ChangeOperation.Delete = 2 -> Boutquin.Storage.Domain.Enums.ChangeOperation
+Boutquin.Storage.Domain.Enums.ChangeOperation.Insert = 0 -> Boutquin.Storage.Domain.Enums.ChangeOperation
+Boutquin.Storage.Domain.Enums.ChangeOperation.Snapshot = 3 -> Boutquin.Storage.Domain.Enums.ChangeOperation
+Boutquin.Storage.Domain.Enums.ChangeOperation.Update = 1 -> Boutquin.Storage.Domain.Enums.ChangeOperation
+Boutquin.Storage.Domain.Enums.CompatibilityMode
+Boutquin.Storage.Domain.Enums.CompatibilityMode.Backward = 0 -> Boutquin.Storage.Domain.Enums.CompatibilityMode
+Boutquin.Storage.Domain.Enums.CompatibilityMode.Forward = 1 -> Boutquin.Storage.Domain.Enums.CompatibilityMode
+Boutquin.Storage.Domain.Enums.CompatibilityMode.Full = 2 -> Boutquin.Storage.Domain.Enums.CompatibilityMode
+Boutquin.Storage.Domain.Enums.CompatibilityMode.None = 3 -> Boutquin.Storage.Domain.Enums.CompatibilityMode
+Boutquin.Storage.Domain.Enums.FileDeletionHandling
+Boutquin.Storage.Domain.Enums.FileDeletionHandling.DeleteIfExists = 0 -> Boutquin.Storage.Domain.Enums.FileDeletionHandling
+Boutquin.Storage.Domain.Enums.FileDeletionHandling.ThrowIfNotExists = 1 -> Boutquin.Storage.Domain.Enums.FileDeletionHandling
+Boutquin.Storage.Domain.Enums.FileExistenceHandling
+Boutquin.Storage.Domain.Enums.FileExistenceHandling.DoNothingIfExists = 1 -> Boutquin.Storage.Domain.Enums.FileExistenceHandling
+Boutquin.Storage.Domain.Enums.FileExistenceHandling.Overwrite = 0 -> Boutquin.Storage.Domain.Enums.FileExistenceHandling
+Boutquin.Storage.Domain.Enums.FileExistenceHandling.ThrowIfExists = 2 -> Boutquin.Storage.Domain.Enums.FileExistenceHandling
+Boutquin.Storage.Domain.Enums.FileOpenHandling
+Boutquin.Storage.Domain.Enums.FileOpenHandling.CreateIfNotExists = 2 -> Boutquin.Storage.Domain.Enums.FileOpenHandling
+Boutquin.Storage.Domain.Enums.FileOpenHandling.OpenIfExists = 0 -> Boutquin.Storage.Domain.Enums.FileOpenHandling
+Boutquin.Storage.Domain.Enums.FileOpenHandling.ThrowIfNotExists = 1 -> Boutquin.Storage.Domain.Enums.FileOpenHandling
+Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Domain.Enums.RaftNodeState.Candidate = 1 -> Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Domain.Enums.RaftNodeState.Follower = 0 -> Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Domain.Enums.RaftNodeState.Leader = 2 -> Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.SchemaFieldType.Binary = 5 -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.SchemaFieldType.Boolean = 4 -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.SchemaFieldType.Float64 = 3 -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.SchemaFieldType.Int32 = 1 -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.SchemaFieldType.Int64 = 2 -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.SchemaFieldType.String = 0 -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.SchemaFieldType.Timestamp = 6 -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Domain.Enums.VectorClockComparison.After = 1 -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Domain.Enums.VectorClockComparison.Before = 0 -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Domain.Enums.VectorClockComparison.Concurrent = 2 -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Domain.Enums.VectorClockComparison.Equal = 3 -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Domain.Exceptions.DeserializationException
+Boutquin.Storage.Domain.Exceptions.DeserializationException.DeserializationException(string! message) -> void
+Boutquin.Storage.Domain.Exceptions.DeserializationException.DeserializationException(string! message, System.Exception! innerException) -> void
+Boutquin.Storage.Domain.Exceptions.SerializationException
+Boutquin.Storage.Domain.Exceptions.SerializationException.SerializationException(string! message) -> void
+Boutquin.Storage.Domain.Exceptions.SerializationException.SerializationException(string! message, System.Exception! innerException) -> void
+Boutquin.Storage.Domain.Helpers.ComparisonHelper
+Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>
+Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.CompareTo(Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>? other) -> int
+Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.SerializableWrapper() -> void
+Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.SerializableWrapper(T value) -> void
+Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.Serialize(System.IO.Stream! stream) -> void
+Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.Value.get -> T
+Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.Value.set -> void
+Boutquin.Storage.Domain.Interfaces.Cdc.IChangeDataCaptureSource<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.Cdc.IChangeDataCaptureSource<TKey, TValue>.ReadChangesAsync(long position, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>!>!
+Boutquin.Storage.Domain.Interfaces.Events.IEventLog<TEvent>
+Boutquin.Storage.Domain.Interfaces.Events.IEventLog<TEvent>.AppendAsync(TEvent event, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<long>
+Boutquin.Storage.Domain.Interfaces.Events.IEventLog<TEvent>.ReadFromAsync(long position, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<(long Position, TEvent Event)>!
+Boutquin.Storage.Domain.Interfaces.IBPlusTree<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IBPlusTree<TKey, TValue>.Height.get -> int
+Boutquin.Storage.Domain.Interfaces.IBPlusTree<TKey, TValue>.Order.get -> int
+Boutquin.Storage.Domain.Interfaces.IBPlusTree<TKey, TValue>.RangeQueryAsync(TKey start, TKey end, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Domain.Interfaces.IBTree<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IBTree<TKey, TValue>.Height.get -> int
+Boutquin.Storage.Domain.Interfaces.IBTree<TKey, TValue>.Order.get -> int
+Boutquin.Storage.Domain.Interfaces.IBloomFilter<T>
+Boutquin.Storage.Domain.Interfaces.IBloomFilter<T>.Add(T item) -> void
+Boutquin.Storage.Domain.Interfaces.IBloomFilter<T>.Clear() -> void
+Boutquin.Storage.Domain.Interfaces.IBloomFilter<T>.Contains(T item) -> bool
+Boutquin.Storage.Domain.Interfaces.IBulkKeyValueStore<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IBulkKeyValueStore<TKey, TValue>.GetAllItemsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Domain.Interfaces.IBulkKeyValueStore<TKey, TValue>.SetBulkAsync(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IBulkStorageEngine<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ICompactableBulkStorageEngine<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ICompactableBulkStorageEngine<TKey, TValue>.EntrySerializer.get -> Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>!
+Boutquin.Storage.Domain.Interfaces.ICompactableStorageEngine<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ICompactableStorageEngine<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ICompactionStrategy
+Boutquin.Storage.Domain.Interfaces.ICompactionStrategy.SelectSegments(int segmentCount) -> System.Collections.Generic.IReadOnlyList<int>!
+Boutquin.Storage.Domain.Interfaces.ICompactionStrategy.ShouldCompact(int segmentCount) -> bool
+Boutquin.Storage.Domain.Interfaces.IConsistentHashRing<TNode>
+Boutquin.Storage.Domain.Interfaces.IConsistentHashRing<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Domain.Interfaces.IConsistentHashRing<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Domain.Interfaces.IConsistentHashRing<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Domain.Interfaces.IConsistentHashRing<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Domain.Interfaces.ICountingBloomFilter<T>
+Boutquin.Storage.Domain.Interfaces.ICountingBloomFilter<T>.GetCount(T item) -> int
+Boutquin.Storage.Domain.Interfaces.ICountingBloomFilter<T>.Remove(T item) -> void
+Boutquin.Storage.Domain.Interfaces.ICrdt<T>
+Boutquin.Storage.Domain.Interfaces.ICrdt<T>.Merge(Boutquin.Storage.Domain.Interfaces.ICrdt<T>! other) -> Boutquin.Storage.Domain.Interfaces.ICrdt<T>!
+Boutquin.Storage.Domain.Interfaces.ICrdt<T>.Value.get -> T
+Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>.CanRead(System.IO.Stream! stream) -> bool
+Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>.ReadEntry(System.IO.Stream! stream) -> (TKey Key, TValue Value)?
+Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>.WriteEntry(System.IO.Stream! stream, TKey key, TValue value) -> void
+Boutquin.Storage.Domain.Interfaces.IEntrySerializer<TKey, TValue>.WriteEntryAsync(System.IO.Stream! stream, TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IFileBasedStorageEngine<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IFileInformation
+Boutquin.Storage.Domain.Interfaces.IFileInformation.FileLocation.get -> string!
+Boutquin.Storage.Domain.Interfaces.IFileInformation.FileName.get -> string!
+Boutquin.Storage.Domain.Interfaces.IFileInformation.FilePath.get -> string!
+Boutquin.Storage.Domain.Interfaces.IFileInformation.FileSize.get -> long
+Boutquin.Storage.Domain.Interfaces.IFileStorageIndex<TKey>
+Boutquin.Storage.Domain.Interfaces.IGCounter
+Boutquin.Storage.Domain.Interfaces.IGCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Domain.Interfaces.IGSet<T>
+Boutquin.Storage.Domain.Interfaces.IGSet<T>.Add(T item) -> void
+Boutquin.Storage.Domain.Interfaces.IGSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Domain.Interfaces.IGossipProtocol<TNodeId, TState>
+Boutquin.Storage.Domain.Interfaces.IGossipProtocol<TNodeId, TState>.GetClusterState() -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Domain.Interfaces.IGossipProtocol<TNodeId, TState>.PrepareSyncMessage(TNodeId fromNode) -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Domain.Interfaces.IGossipProtocol<TNodeId, TState>.ProcessSyncMessage(System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>! remoteState) -> void
+Boutquin.Storage.Domain.Interfaces.IGossipProtocol<TNodeId, TState>.UpdateLocalState(TNodeId nodeId, TState state) -> void
+Boutquin.Storage.Domain.Interfaces.IHashAlgorithm
+Boutquin.Storage.Domain.Interfaces.IHashAlgorithm.ComputeHash(System.ReadOnlySpan<byte> data) -> uint
+Boutquin.Storage.Domain.Interfaces.IKeyValueStore<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IKeyValueStore<TKey, TValue>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IKeyValueStore<TKey, TValue>.RemoveAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IKeyValueStore<TKey, TValue>.SetAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ILamportTimestamp
+Boutquin.Storage.Domain.Interfaces.ILamportTimestamp.CompareTo(long otherTimestamp, string! otherNodeId) -> int
+Boutquin.Storage.Domain.Interfaces.ILamportTimestamp.GetCurrentTimestamp() -> long
+Boutquin.Storage.Domain.Interfaces.ILamportTimestamp.Increment() -> long
+Boutquin.Storage.Domain.Interfaces.ILamportTimestamp.NodeId.get -> string!
+Boutquin.Storage.Domain.Interfaces.ILamportTimestamp.Update(long receivedTimestamp) -> long
+Boutquin.Storage.Domain.Interfaces.ILogSegmentedStorageEngine<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ILsmStorageEngine<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ILsmStorageEngine<TKey, TValue>.CompactAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ILsmStorageEngine<TKey, TValue>.FlushAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ILsmStorageEngine<TKey, TValue>.GetRangeAsync(TKey startKey, TKey endKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Domain.Interfaces.ILsmStorageEngine<TKey, TValue>.SegmentCount.get -> int
+Boutquin.Storage.Domain.Interfaces.IMemTable<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IMerkleTree
+Boutquin.Storage.Domain.Interfaces.IMerkleTree.Build(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> void
+Boutquin.Storage.Domain.Interfaces.IMerkleTree.GetProof(int leafIndex) -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+Boutquin.Storage.Domain.Interfaces.IMerkleTree.RootHash.get -> byte[]!
+Boutquin.Storage.Domain.Interfaces.IMerkleTree.Verify(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> bool
+Boutquin.Storage.Domain.Interfaces.IMerkleTree.VerifyProof(byte[]! leafHash, System.Collections.Generic.IReadOnlyList<byte[]!>! proof, byte[]! rootHash, int leafIndex) -> bool
+Boutquin.Storage.Domain.Interfaces.IMvccStore<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IMvccStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Domain.Interfaces.IMvccStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Domain.Interfaces.IMvccStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Domain.Interfaces.IMvccStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Domain.Interfaces.IMvccStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IORSet<T>
+Boutquin.Storage.Domain.Interfaces.IORSet<T>.Add(string! nodeId, T item) -> void
+Boutquin.Storage.Domain.Interfaces.IORSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Domain.Interfaces.IORSet<T>.Remove(T item) -> void
+Boutquin.Storage.Domain.Interfaces.IPNCounter
+Boutquin.Storage.Domain.Interfaces.IPNCounter.Decrement(string! nodeId) -> void
+Boutquin.Storage.Domain.Interfaces.IPNCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Domain.Interfaces.IPartitioner<TKey>
+Boutquin.Storage.Domain.Interfaces.IPartitioner<TKey>.GetPartition(TKey key) -> int
+Boutquin.Storage.Domain.Interfaces.IPartitioner<TKey>.PartitionCount.get -> int
+Boutquin.Storage.Domain.Interfaces.IQuorumReplication<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IQuorumReplication<TKey, TValue>.N.get -> int
+Boutquin.Storage.Domain.Interfaces.IQuorumReplication<TKey, TValue>.R.get -> int
+Boutquin.Storage.Domain.Interfaces.IQuorumReplication<TKey, TValue>.ReadAsync(TKey key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found, long Version)>!
+Boutquin.Storage.Domain.Interfaces.IQuorumReplication<TKey, TValue>.SetReplicaAvailability(string! replicaId, bool isAvailable) -> void
+Boutquin.Storage.Domain.Interfaces.IQuorumReplication<TKey, TValue>.W.get -> int
+Boutquin.Storage.Domain.Interfaces.IQuorumReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Domain.Interfaces.IRaftCluster<TCommand>
+Boutquin.Storage.Domain.Interfaces.IRaftCluster<TCommand>.AddNode(Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>! node) -> void
+Boutquin.Storage.Domain.Interfaces.IRaftCluster<TCommand>.GetLeader() -> Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>?
+Boutquin.Storage.Domain.Interfaces.IRaftCluster<TCommand>.GetNodes() -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>!>!
+Boutquin.Storage.Domain.Interfaces.IRaftCluster<TCommand>.TickAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IRaftCluster<TCommand>.TriggerElectionAsync(string! nodeId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>.CurrentTerm.get -> long
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>.GetCommittedLog() -> System.Collections.Generic.IReadOnlyList<(long Term, TCommand Command)>!
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>.LeaderId.get -> string?
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>.NodeId.get -> string!
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>.ProposeAsync(TCommand command, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>.State.get -> Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Domain.Interfaces.IRaftNode<TCommand>.VotedFor.get -> string?
+Boutquin.Storage.Domain.Interfaces.IRangePartitioner<TKey>
+Boutquin.Storage.Domain.Interfaces.IRangePartitioner<TKey>.GetBoundaries() -> System.Collections.Generic.IReadOnlyList<TKey>!
+Boutquin.Storage.Domain.Interfaces.IRangePartitioner<TKey>.GetPartitionRange(TKey startKey, TKey endKey) -> (int StartPartition, int EndPartition)
+Boutquin.Storage.Domain.Interfaces.IReadOnlyKeyValueStore<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IReadOnlyKeyValueStore<TKey, TValue>.ContainsKeyAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Domain.Interfaces.IReadOnlyKeyValueStore<TKey, TValue>.TryGetValueAsync(TKey key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Domain.Interfaces.IRedBlackTree<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IRedBlackTree<TKey, TValue>.IsFull.get -> bool
+Boutquin.Storage.Domain.Interfaces.IRendezvousHash<TNode>
+Boutquin.Storage.Domain.Interfaces.IRendezvousHash<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Domain.Interfaces.IRendezvousHash<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Domain.Interfaces.IRendezvousHash<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Domain.Interfaces.IRendezvousHash<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Domain.Interfaces.IReplicationLog<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IReplicationLog<TKey, TValue>.AppendAsync(TKey key, TValue value, long sequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IReplicationLog<TKey, TValue>.GetEntriesAfterAsync(long afterSequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(TKey Key, TValue Value, long SequenceNumber)>!>!
+Boutquin.Storage.Domain.Interfaces.IReplicationLog<TKey, TValue>.GetLatestSequenceNumber() -> long
+Boutquin.Storage.Domain.Interfaces.ISecondaryIndex<TKey, TValue, TIndexKey>
+Boutquin.Storage.Domain.Interfaces.ISecondaryIndex<TKey, TValue, TIndexKey>.ClearAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ISecondaryIndex<TKey, TValue, TIndexKey>.IndexAsync(TKey primaryKey, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ISecondaryIndex<TKey, TValue, TIndexKey>.LookupAsync(TIndexKey indexKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<TKey>!>!
+Boutquin.Storage.Domain.Interfaces.ISecondaryIndex<TKey, TValue, TIndexKey>.RemoveAsync(TKey primaryKey, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ISerializable<T>
+Boutquin.Storage.Domain.Interfaces.ISerializable<T>.Deserialize(System.IO.Stream! stream) -> T
+Boutquin.Storage.Domain.Interfaces.ISerializable<T>.Serialize(System.IO.Stream! stream) -> void
+Boutquin.Storage.Domain.Interfaces.ISingleLeaderReplication<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ISingleLeaderReplication<TKey, TValue>.AddFollower(string! followerId) -> void
+Boutquin.Storage.Domain.Interfaces.ISingleLeaderReplication<TKey, TValue>.GetReplicationLag() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Domain.Interfaces.ISingleLeaderReplication<TKey, TValue>.ReadAsync(TKey key, string? preferredReplica = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Domain.Interfaces.ISingleLeaderReplication<TKey, TValue>.RemoveFollower(string! followerId) -> void
+Boutquin.Storage.Domain.Interfaces.ISingleLeaderReplication<TKey, TValue>.SyncFollowerAsync(string! followerId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Domain.Interfaces.ISingleLeaderReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ISkipListMemTable<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ISkipListMemTable<TKey, TValue>.IsFull.get -> bool
+Boutquin.Storage.Domain.Interfaces.ISkipListMemTable<TKey, TValue>.MaxLevel.get -> int
+Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>.GetCreationTime() -> System.DateTime
+Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>.GetEntryCount() -> int
+Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>.GetLastModificationTime() -> System.DateTime
+Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>.Merge(Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>! otherTable) -> void
+Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>.TryGetValue(TKey key, out TValue value) -> bool
+Boutquin.Storage.Domain.Interfaces.ISortedStringTable<TKey, TValue>.Write(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>! items) -> void
+Boutquin.Storage.Domain.Interfaces.ISsiStore<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.ISsiStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Domain.Interfaces.ISsiStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Domain.Interfaces.ISsiStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Domain.Interfaces.ISsiStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Domain.Interfaces.ISsiStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IStorageEngine<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IStorageFile
+Boutquin.Storage.Domain.Interfaces.IStorageFile.AppendAllBytes(byte[]! content) -> void
+Boutquin.Storage.Domain.Interfaces.IStorageFile.AppendAllBytesAsync(byte[]! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.AppendAllText(string! content, System.Text.Encoding! encoding) -> void
+Boutquin.Storage.Domain.Interfaces.IStorageFile.AppendAllTextAsync(string! content, System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.Close() -> void
+Boutquin.Storage.Domain.Interfaces.IStorageFile.Create(Boutquin.Storage.Domain.Enums.FileExistenceHandling existenceHandling) -> void
+Boutquin.Storage.Domain.Interfaces.IStorageFile.Delete(Boutquin.Storage.Domain.Enums.FileDeletionHandling deletionHandling) -> void
+Boutquin.Storage.Domain.Interfaces.IStorageFile.Exists() -> bool
+Boutquin.Storage.Domain.Interfaces.IStorageFile.Open(System.IO.FileMode mode) -> System.IO.Stream!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.ReadAllBytes() -> byte[]!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.ReadAllBytesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.ReadAllText(System.Text.Encoding! encoding) -> string!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.ReadAllTextAsync(System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.ReadBytes(long offset, long count) -> byte[]!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.ReadBytesAsync(long offset, long count, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<byte[]!>!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.WriteAllBytes(byte[]! content) -> void
+Boutquin.Storage.Domain.Interfaces.IStorageFile.WriteAllBytesAsync(byte[]! content, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IStorageFile.WriteAllText(string! content, System.Text.Encoding! encoding) -> void
+Boutquin.Storage.Domain.Interfaces.IStorageFile.WriteAllTextAsync(string! content, System.Text.Encoding! encoding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IStorageIndex<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IVectorClock
+Boutquin.Storage.Domain.Interfaces.IVectorClock.CompareTo(Boutquin.Storage.Domain.Interfaces.IVectorClock! other) -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Domain.Interfaces.IVectorClock.GetClock() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Domain.Interfaces.IVectorClock.Increment(string! nodeId) -> void
+Boutquin.Storage.Domain.Interfaces.IVectorClock.Merge(Boutquin.Storage.Domain.Interfaces.IVectorClock! other) -> Boutquin.Storage.Domain.Interfaces.IVectorClock!
+Boutquin.Storage.Domain.Interfaces.IWriteAheadLog<TKey, TValue>
+Boutquin.Storage.Domain.Interfaces.IWriteAheadLog<TKey, TValue>.AppendAsync(TKey key, TValue value, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.IWriteAheadLog<TKey, TValue>.RecoverAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(TKey Key, TValue Value)>!>!
+Boutquin.Storage.Domain.Interfaces.IWriteAheadLog<TKey, TValue>.TruncateAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Domain.Interfaces.ObjectStore.IObjectStore
+Boutquin.Storage.Domain.Interfaces.ObjectStore.IObjectStore.DeleteAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Domain.Interfaces.ObjectStore.IObjectStore.ExistsAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Boutquin.Storage.Domain.Interfaces.ObjectStore.IObjectStore.ReadAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.IO.Stream?>
+Boutquin.Storage.Domain.Interfaces.ObjectStore.IObjectStore.WriteAsync(string! key, System.IO.Stream! content, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Domain.Interfaces.Schemas.ISchema
+Boutquin.Storage.Domain.Interfaces.Schemas.ISchema.Fields.get -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Domain.ValueObjects.SchemaField>!
+Boutquin.Storage.Domain.Interfaces.Schemas.ISchemaCompatibilityChecker
+Boutquin.Storage.Domain.Interfaces.Schemas.ISchemaCompatibilityChecker.IsCompatible(Boutquin.Storage.Domain.Interfaces.Schemas.ISchema! existing, Boutquin.Storage.Domain.Interfaces.Schemas.ISchema! candidate, Boutquin.Storage.Domain.Enums.CompatibilityMode mode) -> bool
+Boutquin.Storage.Domain.Interfaces.Schemas.ISchemaRegistry
+Boutquin.Storage.Domain.Interfaces.Schemas.ISchemaRegistry.GetAsync(string! subject, Boutquin.Storage.Domain.ValueObjects.SchemaVersion version, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Boutquin.Storage.Domain.Interfaces.Schemas.ISchema!>
+Boutquin.Storage.Domain.Interfaces.Schemas.ISchemaRegistry.RegisterAsync(string! subject, Boutquin.Storage.Domain.Interfaces.Schemas.ISchema! schema, Boutquin.Storage.Domain.Enums.CompatibilityMode mode, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Boutquin.Storage.Domain.ValueObjects.SchemaVersion>
+Boutquin.Storage.Domain.Interfaces.Schemas.IVersionedSerializer<T>
+Boutquin.Storage.Domain.Interfaces.Schemas.IVersionedSerializer<T>.DeserializeAsync(System.IO.Stream! stream, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<(Boutquin.Storage.Domain.ValueObjects.SchemaVersion Version, T Value)>
+Boutquin.Storage.Domain.Interfaces.Schemas.IVersionedSerializer<T>.SerializeAsync(System.IO.Stream! stream, T value, Boutquin.Storage.Domain.ValueObjects.SchemaVersion schemaVersion, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Domain.Interfaces.Streaming.ICheckpointStore
+Boutquin.Storage.Domain.Interfaces.Streaming.ICheckpointStore.LoadAsync(string! processorId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<(long Offset, byte[]! State)?>
+Boutquin.Storage.Domain.Interfaces.Streaming.ICheckpointStore.SaveAsync(string! processorId, long offset, System.ReadOnlyMemory<byte> state, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.<Clone>$() -> Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>!
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.ChangeRecord(long Position, Boutquin.Storage.Domain.Enums.ChangeOperation Operation, TKey Key, TValue? Value, System.DateTimeOffset Timestamp) -> void
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Deconstruct(out long Position, out Boutquin.Storage.Domain.Enums.ChangeOperation Operation, out TKey Key, out TValue? Value, out System.DateTimeOffset Timestamp) -> void
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Equals(Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>? other) -> bool
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Key.get -> TKey
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Key.init -> void
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Operation.get -> Boutquin.Storage.Domain.Enums.ChangeOperation
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Operation.init -> void
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Position.get -> long
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Position.init -> void
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Timestamp.get -> System.DateTimeOffset
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Timestamp.init -> void
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Value.get -> TValue?
+Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Value.init -> void
+Boutquin.Storage.Domain.ValueObjects.DownloadResult
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.<Clone>$() -> Boutquin.Storage.Domain.ValueObjects.DownloadResult!
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Deconstruct(out int Downloaded, out int Skipped, out System.Collections.Generic.IReadOnlyList<string!>! Errors) -> void
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.DownloadResult(int Downloaded, int Skipped, System.Collections.Generic.IReadOnlyList<string!>! Errors) -> void
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Downloaded.get -> int
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Downloaded.init -> void
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Equals(Boutquin.Storage.Domain.ValueObjects.DownloadResult? other) -> bool
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Errors.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Errors.init -> void
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Skipped.get -> int
+Boutquin.Storage.Domain.ValueObjects.DownloadResult.Skipped.init -> void
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.<Clone>$() -> Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>!
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Deconstruct(out Boutquin.Storage.Domain.ValueObjects.SchemaVersion Version, out TKey Key, out TValue Value, out System.DateTimeOffset Timestamp, out long Position) -> void
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Equals(Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>? other) -> bool
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.EventEnvelope(Boutquin.Storage.Domain.ValueObjects.SchemaVersion Version, TKey Key, TValue Value, System.DateTimeOffset Timestamp, long Position) -> void
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Key.get -> TKey
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Key.init -> void
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Position.get -> long
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Position.init -> void
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Timestamp.get -> System.DateTimeOffset
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Timestamp.init -> void
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Value.get -> TValue
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Value.init -> void
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Version.get -> Boutquin.Storage.Domain.ValueObjects.SchemaVersion
+Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Version.init -> void
+Boutquin.Storage.Domain.ValueObjects.FileLocation
+Boutquin.Storage.Domain.ValueObjects.FileLocation.Count.get -> long
+Boutquin.Storage.Domain.ValueObjects.FileLocation.Count.init -> void
+Boutquin.Storage.Domain.ValueObjects.FileLocation.Deconstruct(out long Offset, out long Count) -> void
+Boutquin.Storage.Domain.ValueObjects.FileLocation.Equals(Boutquin.Storage.Domain.ValueObjects.FileLocation other) -> bool
+Boutquin.Storage.Domain.ValueObjects.FileLocation.FileLocation() -> void
+Boutquin.Storage.Domain.ValueObjects.FileLocation.FileLocation(long Offset, long Count) -> void
+Boutquin.Storage.Domain.ValueObjects.FileLocation.Offset.get -> long
+Boutquin.Storage.Domain.ValueObjects.FileLocation.Offset.init -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.<Clone>$() -> Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>!
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Deconstruct(out Boutquin.Storage.Domain.ValueObjects.SchemaVersion Version, out T Payload, out System.DateTimeOffset Timestamp) -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Equals(Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>? other) -> bool
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Payload.get -> T
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Payload.init -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.SchemaEnvelope(Boutquin.Storage.Domain.ValueObjects.SchemaVersion Version, T Payload, System.DateTimeOffset Timestamp) -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Timestamp.get -> System.DateTimeOffset
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Timestamp.init -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Version.get -> Boutquin.Storage.Domain.ValueObjects.SchemaVersion
+Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Version.init -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaField
+Boutquin.Storage.Domain.ValueObjects.SchemaField.Deconstruct(out string! Name, out Boutquin.Storage.Domain.Enums.SchemaFieldType FieldType, out bool IsOptional) -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaField.Equals(Boutquin.Storage.Domain.ValueObjects.SchemaField other) -> bool
+Boutquin.Storage.Domain.ValueObjects.SchemaField.FieldType.get -> Boutquin.Storage.Domain.Enums.SchemaFieldType
+Boutquin.Storage.Domain.ValueObjects.SchemaField.FieldType.init -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaField.IsOptional.get -> bool
+Boutquin.Storage.Domain.ValueObjects.SchemaField.IsOptional.init -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaField.Name.get -> string!
+Boutquin.Storage.Domain.ValueObjects.SchemaField.Name.init -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaField.SchemaField() -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaField.SchemaField(string! Name, Boutquin.Storage.Domain.Enums.SchemaFieldType FieldType, bool IsOptional) -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaVersion
+Boutquin.Storage.Domain.ValueObjects.SchemaVersion.Deconstruct(out int Value) -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaVersion.Equals(Boutquin.Storage.Domain.ValueObjects.SchemaVersion other) -> bool
+Boutquin.Storage.Domain.ValueObjects.SchemaVersion.SchemaVersion() -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaVersion.SchemaVersion(int Value) -> void
+Boutquin.Storage.Domain.ValueObjects.SchemaVersion.Value.get -> int
+Boutquin.Storage.Domain.ValueObjects.SchemaVersion.Value.init -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.CreationTime.get -> System.DateTime
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.CreationTime.init -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.Deconstruct(out int EntryCount, out long FileSize, out System.DateTime CreationTime, out System.DateTime LastModificationTime, out string! FileName, out string! FileLocation) -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.EntryCount.get -> int
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.EntryCount.init -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.Equals(Boutquin.Storage.Domain.ValueObjects.SsTableMetadata other) -> bool
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.FileLocation.get -> string!
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.FileLocation.init -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.FileName.get -> string!
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.FileName.init -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.FileSize.get -> long
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.FileSize.init -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.LastModificationTime.get -> System.DateTime
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.LastModificationTime.init -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.SsTableMetadata() -> void
+Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.SsTableMetadata(int EntryCount, long FileSize, System.DateTime CreationTime, System.DateTime LastModificationTime, string! FileName, string! FileLocation) -> void
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.Deconstruct(out TValue Value, out long TransactionId, out bool IsDeleted) -> void
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.Equals(Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue> other) -> bool
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.IsDeleted.get -> bool
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.IsDeleted.init -> void
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.TransactionId.get -> long
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.TransactionId.init -> void
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.Value.get -> TValue
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.Value.init -> void
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.VersionedValue() -> void
+Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.VersionedValue(TValue Value, long TransactionId, bool IsDeleted) -> void
+override Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.Equals(object? obj) -> bool
+override Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.GetHashCode() -> int
+override Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.ToString() -> string!
+override Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.Equals(object? obj) -> bool
+override Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.ToString() -> string!
+override Boutquin.Storage.Domain.ValueObjects.DownloadResult.Equals(object? obj) -> bool
+override Boutquin.Storage.Domain.ValueObjects.DownloadResult.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.DownloadResult.ToString() -> string!
+override Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.Equals(object? obj) -> bool
+override Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.ToString() -> string!
+override Boutquin.Storage.Domain.ValueObjects.FileLocation.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.Equals(object? obj) -> bool
+override Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.ToString() -> string!
+override Boutquin.Storage.Domain.ValueObjects.SchemaField.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.SchemaVersion.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.SchemaVersion.ToString() -> string!
+override Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.GetHashCode() -> int
+override Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.GetHashCode() -> int
+static Boutquin.Storage.Domain.Helpers.ComparisonHelper.SafeCompareTo<T>(T? obj, T? other) -> int
+static Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.Deserialize(System.IO.Stream! stream) -> Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>!
+static Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.implicit operator Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>!(T value) -> Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>!
+static Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>.implicit operator T(Boutquin.Storage.Domain.Helpers.SerializableWrapper<T>! wrapper) -> T
+static Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.operator !=(Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>? left, Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>.operator ==(Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>? left, Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.DownloadResult.operator !=(Boutquin.Storage.Domain.ValueObjects.DownloadResult? left, Boutquin.Storage.Domain.ValueObjects.DownloadResult? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.DownloadResult.operator ==(Boutquin.Storage.Domain.ValueObjects.DownloadResult? left, Boutquin.Storage.Domain.ValueObjects.DownloadResult? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.operator !=(Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>? left, Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>.operator ==(Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>? left, Boutquin.Storage.Domain.ValueObjects.EventEnvelope<TKey, TValue>? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.FileLocation.operator !=(Boutquin.Storage.Domain.ValueObjects.FileLocation left, Boutquin.Storage.Domain.ValueObjects.FileLocation right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.FileLocation.operator ==(Boutquin.Storage.Domain.ValueObjects.FileLocation left, Boutquin.Storage.Domain.ValueObjects.FileLocation right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.operator !=(Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>? left, Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>.operator ==(Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>? left, Boutquin.Storage.Domain.ValueObjects.SchemaEnvelope<T>? right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SchemaField.operator !=(Boutquin.Storage.Domain.ValueObjects.SchemaField left, Boutquin.Storage.Domain.ValueObjects.SchemaField right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SchemaField.operator ==(Boutquin.Storage.Domain.ValueObjects.SchemaField left, Boutquin.Storage.Domain.ValueObjects.SchemaField right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SchemaVersion.operator !=(Boutquin.Storage.Domain.ValueObjects.SchemaVersion left, Boutquin.Storage.Domain.ValueObjects.SchemaVersion right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SchemaVersion.operator ==(Boutquin.Storage.Domain.ValueObjects.SchemaVersion left, Boutquin.Storage.Domain.ValueObjects.SchemaVersion right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.operator !=(Boutquin.Storage.Domain.ValueObjects.SsTableMetadata left, Boutquin.Storage.Domain.ValueObjects.SsTableMetadata right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.operator ==(Boutquin.Storage.Domain.ValueObjects.SsTableMetadata left, Boutquin.Storage.Domain.ValueObjects.SsTableMetadata right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.operator !=(Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue> left, Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue> right) -> bool
+static Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.operator ==(Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue> left, Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue> right) -> bool
+~override Boutquin.Storage.Domain.ValueObjects.FileLocation.Equals(object obj) -> bool
+~override Boutquin.Storage.Domain.ValueObjects.FileLocation.ToString() -> string
+~override Boutquin.Storage.Domain.ValueObjects.SchemaField.Equals(object obj) -> bool
+~override Boutquin.Storage.Domain.ValueObjects.SchemaField.ToString() -> string
+~override Boutquin.Storage.Domain.ValueObjects.SchemaVersion.Equals(object obj) -> bool
+~override Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.Equals(object obj) -> bool
+~override Boutquin.Storage.Domain.ValueObjects.SsTableMetadata.ToString() -> string
+~override Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.Equals(object obj) -> bool
+~override Boutquin.Storage.Domain.ValueObjects.VersionedValue<TValue>.ToString() -> string
