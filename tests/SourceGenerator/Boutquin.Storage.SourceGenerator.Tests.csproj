@@ -7,11 +7,17 @@
     <!-- NU1701: Microsoft.CodeAnalysis.CSharp.Analyzer.Testing pulls in old indirect
          dependencies that show net4x-only targeting. These are test-only packages and
          do not affect runtime behavior. Safe to suppress. -->
-    <NoWarn>$(NoWarn);NU1701;CA2007</NoWarn>
+    <!-- BSSG021 (unbounded decoded-length allocation) targets untrusted production decode paths;
+         it ships in the source-generator assembly this project references but does not apply to
+         test code. The analyzer's own behaviour is verified in
+         UnboundedDecodedLengthAllocationAnalyzerTests via a separate in-memory compilation. -->
+    <NoWarn>$(NoWarn);NU1701;CA2007;BSSG021;RS0030</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="Verify.SourceGenerators" />
     <PackageReference Include="Verify.Xunit" />
     <PackageReference Include="xunit" />
@@ -32,6 +38,7 @@
        Tests drive the generator explicitly via CSharpGeneratorDriver. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\SourceGenerator\Boutquin.Storage.SourceGenerator.csproj" />
+    <ProjectReference Include="..\..\src\SourceGenerator.CodeFixes\Boutquin.Storage.SourceGenerator.CodeFixes.csproj" />
     <ProjectReference Include="..\..\src\Domain\Boutquin.Storage.Domain.csproj" />
   </ItemGroup>
 </Project>

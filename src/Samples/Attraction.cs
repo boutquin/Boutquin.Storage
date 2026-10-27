@@ -16,4 +16,4 @@
 namespace Boutquin.Storage.Samples;
 
 [StorageSerializable]
-public partial record struct Attraction(string Name);
+public partial record struct Attraction([property: Tag(1)] string Name);

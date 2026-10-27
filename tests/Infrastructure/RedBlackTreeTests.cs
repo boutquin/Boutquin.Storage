@@ -287,8 +287,9 @@ public sealed class RedBlackTreeTests
         const int count = 10_000;
         var tree = new RedBlackTree<int, string>(count);
 
-        // Insert in a pattern that creates deep trees (sequential insert)
-        for (var i = 0; i < count; i++)
+        // Insert in a pattern that creates deep trees (sequential insert).
+        // Keys are 1-based: default keys are rejected at the API boundary.
+        for (var i = 1; i <= count; i++)
         {
             await tree.SetAsync(i, $"value_{i}");
         }
@@ -298,10 +299,10 @@ public sealed class RedBlackTreeTests
 
         // Assert: All items present and in sorted order
         Assert.Equal(count, items.Count);
-        for (var i = 0; i < count; i++)
+        for (var i = 1; i <= count; i++)
         {
-            Assert.Equal(i, items[i].Key);
-            Assert.Equal($"value_{i}", items[i].Value);
+            Assert.Equal(i, items[i - 1].Key);
+            Assert.Equal($"value_{i}", items[i - 1].Value);
         }
     }
 
@@ -353,5 +354,136 @@ public sealed class RedBlackTreeTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() => tree.SetAsync(null, "value"));
+    }
+
+    [Fact]
+    public async Task ContainsKeyAsync_ShouldReturnTrue_WhenKeyExists()
+    {
+        var tree = new RedBlackTree<int, string>(maxSize: 100);
+        await tree.SetAsync(42, "val");
+
+        var found = await tree.ContainsKeyAsync(42);
+
+        found.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ContainsKeyAsync_ShouldReturnFalse_WhenKeyAbsent()
+    {
+        var tree = new RedBlackTree<int, string>(maxSize: 100);
+
+        var found = await tree.ContainsKeyAsync(99);
+
+        found.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RemoveAsync_ShouldThrowNotSupportedException()
+    {
+        var tree = new RedBlackTree<int, string>(maxSize: 100);
+        await tree.SetAsync(1, "one");
+
+        await Assert.ThrowsAsync<NotSupportedException>(() => tree.RemoveAsync(1));
+    }
+
+    [Fact]
+    public async Task SetBulkAsync_ShouldInsertAllItems()
+    {
+        var tree = new RedBlackTree<int, string>(maxSize: 100);
+        var items = new[]
+        {
+            new KeyValuePair<int, string>(1, "a"),
+            new KeyValuePair<int, string>(2, "b"),
+        };
+
+        await tree.SetBulkAsync(items);
+
+        var (v1, f1) = await tree.TryGetValueAsync(1);
+        Assert.True(f1);
+        Assert.Equal("a", v1);
+        var (v2, f2) = await tree.TryGetValueAsync(2);
+        Assert.True(f2);
+        Assert.Equal("b", v2);
+
+        var all = (await tree.GetAllItemsAsync()).ToList();
+        Assert.Equal(2, all.Count);
+        Assert.Equal(1, all[0].Key);
+        Assert.Equal(2, all[1].Key);
+    }
+
+    [Fact]
+    public async Task SetBulkAsync_EmptyEnumerable_IsNoOp()
+    {
+        var tree = new RedBlackTree<int, string>(maxSize: 100);
+
+        await tree.SetBulkAsync([]);
+
+        var all = (await tree.GetAllItemsAsync()).ToList();
+        Assert.Empty(all);
+    }
+
+    /// <summary>
+    /// SetBulkAsync must reject a default key or value exactly as SetAsync does: the bulk path
+    /// is not a back door around the per-item contract.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 7)]
+    [InlineData(5, 0)]
+    public async Task SetBulkAsync_WithDefaultKeyOrValue_ThrowsArgumentExceptionLikeSetAsync(int key, int value)
+    {
+        var tree = new RedBlackTree<int, int>(maxSize: 100);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => tree.SetAsync(key, value));
+        await Assert.ThrowsAsync<ArgumentException>(() => tree.SetBulkAsync([new(key, value)]));
+
+        Assert.Equal(0, tree.Count);
+    }
+
+    /// <summary>
+    /// SetBulkAsync must reject a null key or value exactly as SetAsync does.
+    /// </summary>
+    [Theory]
+    [InlineData(null, "x")]
+    [InlineData("b", null)]
+    public async Task SetBulkAsync_WithNullKeyOrValue_ThrowsArgumentNullExceptionLikeSetAsync(string key, string value)
+    {
+        var tree = new RedBlackTree<string, string>(maxSize: 100);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => tree.SetAsync(key!, value!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => tree.SetBulkAsync([new(key!, value!)]));
+
+        Assert.Equal(0, tree.Count);
+    }
+
+    /// <summary>
+    /// The bulk contract documents ArgumentNullException for a null collection.
+    /// </summary>
+    [Fact]
+    public async Task SetBulkAsync_WithNullItems_ThrowsArgumentNullException()
+    {
+        var tree = new RedBlackTree<int, string>(maxSize: 100);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => tree.SetBulkAsync(null!));
+    }
+
+    /// <summary>
+    /// AC-7.7: Count property must reflect the number of distinct keys stored.
+    /// </summary>
+    [Fact]
+    public async Task Count_ReflectsInsertedDistinctKeys()
+    {
+        var tree = new RedBlackTree<int, string>(maxSize: 100);
+
+        Assert.Equal(0, tree.Count);
+
+        await tree.SetAsync(1, "a");
+        Assert.Equal(1, tree.Count);
+
+        await tree.SetAsync(2, "b");
+        Assert.Equal(2, tree.Count);
+
+        // Update existing key must not increment count
+        await tree.SetAsync(1, "updated");
+        Assert.Equal(2, tree.Count);
     }
 }

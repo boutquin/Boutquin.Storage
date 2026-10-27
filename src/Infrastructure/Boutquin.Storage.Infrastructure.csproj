@@ -7,13 +7,12 @@
     <Title>Boutquin.Storage.Infrastructure</Title>
     <Description>Storage engine implementations inspired by Designing Data-Intensive Applications — append-only file storage, log-segmented engines, Red-Black trees, Bloom filters, hash algorithms (FNV-1a, Murmur3, xxHash32), and binary/CSV serializers.</Description>
     <PackageTags>storage;lsm-tree;key-value-store;bloom-filter;red-black-tree;murmur3;xxhash;fnv1a;append-only;dotnet;csharp</PackageTags>
-    <PackageReleaseNotes>See CHANGELOG.md for release notes.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\README.md">
+    <None Include="..\..\docs\nuget-readme.md">
       <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
+      <PackagePath>README.md</PackagePath>
     </None>
     <None Include="..\..\Resources\icon.png">
       <Pack>True</Pack>
@@ -22,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="K4os.Compression.LZ4" />
+    <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="MinVer" PrivateAssets="All" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="TestableIO.System.IO.Abstractions" />
@@ -30,6 +31,28 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\Boutquin.Storage.Domain.csproj" />
+    <!-- Reference the source-generator assembly analyzer-only (ReferenceOutputAssembly=false): it
+         carries the BSSG021 UnboundedDecodedLengthAllocation analyzer, which guards the decode
+         paths in this project (codecs, segment formats, footer readers, SSTable block decoder,
+         serializers) against the unbounded-allocation-from-untrusted-length defect class. The
+         generator's [StorageSerializable]/[Key]/[ColumnarStorable] generators are a no-op here —
+         this project applies none of those attributes — so only the analyzer does work. -->
+    <ProjectReference Include="..\SourceGenerator\Boutquin.Storage.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Tests access internal helpers (e.g., Crc32C) for hand-crafted corrupt streams.
+       Distributed reuses the repo-standard Castagnoli Crc32C for its file-backed Raft log
+       framing — the repo's single-checksum convention forbids reintroducing the
+       Ethernet-polynomial Crc32, so
+       the file-backed log shares the one hardware-accelerated path rather than rolling a
+       second checksum. Dependency flows Distributed → Infrastructure (already established
+       via ProjectReference); this only widens internal-helper visibility, not the public API. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Boutquin.Storage.Infrastructure.Tests" />
+    <InternalsVisibleTo Include="Boutquin.Storage.Distributed" />
   </ItemGroup>
 
   <!-- Public API surface tracking — baseline locked at each shipped release.

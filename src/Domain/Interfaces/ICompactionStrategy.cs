@@ -13,43 +13,67 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using Boutquin.Storage.Domain.ValueObjects.LsmTree;
+
 namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Defines a strategy for selecting which segments to compact in an LSM-tree storage engine.
+/// Selects which segments an LSM storage engine should merge on each compaction cycle.
 /// </summary>
+/// <typeparam name="TKey">Key type carried in <see cref="SegmentMetadata{TKey}"/> to let the
+/// strategy reason about key-range overlap for leveled compaction.</typeparam>
 /// <remarks>
 /// <para>
-/// <b>Theory:</b> Different compaction strategies offer different trade-offs between write
-/// amplification, read amplification, and space amplification. This interface allows the LSM
-/// engine to be configured with different strategies without changing its core logic.
+/// <b>Phase B3/B4 change:</b> prior versions exposed only the segment count via non-generic
+/// methods; the strategy therefore could not tell Level from Level or segment size from segment
+/// size, and "leveled" vs "size-tiered" degenerated into renamed full compactions. The Phase B
+/// spec promotes per-segment <see cref="SegmentMetadata{TKey}"/> into the contract so each
+/// strategy can honour the algorithm its XML doc claims (DDIA 2e pp. 120–125).
 /// </para>
+/// <para>
+/// <b>Contract:</b>
+/// </para>
+/// <list type="bullet">
+/// <item><see cref="ShouldCompact"/> must be a pure function of the supplied list — no hidden
+/// state, no side effects. The engine may call it many times per write loop.</item>
+/// <item><see cref="SelectSegments"/> MUST return a subset of the input list (same
+/// <see cref="SegmentMetadata{TKey}"/> values, not remapped clones). Returning an unrelated
+/// metadata value would point the engine at non-existent segments.</item>
+/// <item>The returned subset MUST be ordered oldest → newest so the engine's k-way merge keeps
+/// last-writer-wins precedence stable.</item>
+/// </list>
 /// <para>
 /// <b>Common strategies:</b>
-/// - <b>Full compaction:</b> Merges all segments into one. Simple, high write amplification.
-/// - <b>Size-tiered compaction:</b> Groups similarly-sized segments and merges each group.
-///   Better write amplification than full compaction for write-heavy workloads.
-/// - <b>Leveled compaction:</b> Organizes segments into levels with size limits. Best read
-///   performance but highest write amplification (not implemented in this reference implementation).
 /// </para>
+/// <list type="bullet">
+/// <item><b>Full compaction</b> — merges every segment into one. Simple, high write
+/// amplification (<c>FullCompactionStrategy&lt;TKey&gt;</c>).</item>
+/// <item><b>Size-tiered</b> — groups segments by size tier, merges a tier once it fills up.
+/// Lower write amplification for write-heavy workloads
+/// (<c>SizeTieredCompactionStrategy&lt;TKey&gt;</c>).</item>
+/// <item><b>Leveled</b> — organises segments into level-size-capped strata with non-overlapping
+/// key ranges per level ≥ 1. Best read performance; higher write amplification
+/// (<c>LeveledCompactionStrategy&lt;TKey&gt;</c>).</item>
+/// </list>
 /// <para>
-/// <b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 —
-/// "Compaction strategies" section discusses size-tiered vs. leveled compaction trade-offs.
+/// <b>Reference:</b> Kleppmann &amp; Riccomini, <i>Designing Data-Intensive Applications</i>,
+/// 2nd ed. (O'Reilly, 2026), Ch. 4 — "Compaction strategies" pp. 122–125.
 /// </para>
 /// </remarks>
-public interface ICompactionStrategy
+public interface ICompactionStrategy<TKey>
 {
     /// <summary>
-    /// Determines whether compaction should be triggered based on the current segment count.
+    /// Returns <see langword="true"/> if the supplied segment set has crossed the strategy's
+    /// compaction threshold.
     /// </summary>
-    /// <param name="segmentCount">The current number of on-disk segments.</param>
-    /// <returns>True if compaction should proceed; false otherwise.</returns>
-    bool ShouldCompact(int segmentCount);
+    /// <param name="segments">Oldest → newest. Must not be null.</param>
+    bool ShouldCompact(IReadOnlyList<SegmentMetadata<TKey>> segments);
 
     /// <summary>
-    /// Selects which segment indices should be included in the compaction.
+    /// Picks the subset of <paramref name="segments"/> to merge. Returns the segments in
+    /// oldest → newest order, using the same <see cref="SegmentMetadata{TKey}"/> instances the
+    /// caller supplied so the engine can locate them in its own index.
     /// </summary>
-    /// <param name="segmentCount">The current number of on-disk segments.</param>
-    /// <returns>The indices of segments to compact, in order.</returns>
-    IReadOnlyList<int> SelectSegments(int segmentCount);
+    IReadOnlyList<SegmentMetadata<TKey>> SelectSegments(
+        IReadOnlyList<SegmentMetadata<TKey>> segments);
 }

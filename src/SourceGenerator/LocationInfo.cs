@@ -15,9 +15,15 @@
 //
 namespace Boutquin.Storage.SourceGenerator;
 
-// Custom record struct to hold location data without retaining a reference to
-// Microsoft.CodeAnalysis.Location, which is not equatable across compilations and
-// would defeat incremental caching if stored in pipeline output types.
+// Custom record struct to hold location data without retaining a Roslyn
+// Microsoft.CodeAnalysis.Location reference.  Roslyn's ISymbol, Location, and
+// related types implement only reference equality — two syntactically identical
+// compilation passes produce distinct instances that compare unequal.  A pipeline
+// model type holding one would therefore never produce a Cached step during
+// incremental generation, silently forcing full regeneration on every keystroke.
+// By extracting only the three plain-value fields here (FilePath, Span,
+// LinePositionSpan), the incremental caching layer can compare instances by value
+// and skip re-emission when nothing has actually changed.
 internal readonly record struct LocationInfo(
     string FilePath,
     TextSpan Span,

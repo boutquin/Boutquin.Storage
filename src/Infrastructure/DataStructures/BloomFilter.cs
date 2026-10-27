@@ -53,6 +53,19 @@ namespace Boutquin.Storage.Infrastructure.DataStructures;
 /// </para>
 ///
 /// <para>
+/// <b>Byte identity is the filter's identity.</b> The filter hashes the bytes the serializer produces,
+/// not the item, so it answers "was an item with these bytes added". The no-false-negative guarantee
+/// therefore holds only when the serializer agrees with the equality relation the caller queries by:
+/// equal items must produce equal bytes (and, to keep the false-positive rate, distinct items distinct
+/// bytes). A storage engine finds keys through <see cref="IComparable{T}.CompareTo"/>, so a key type
+/// whose <c>CompareTo</c> identifies values that <c>Serialize</c> writes differently — <c>-0.0</c> and
+/// <c>+0.0</c>, NaNs with different payloads, a case-insensitive name — would make a decorated store
+/// report a stored key absent. The filter cannot canonicalise an arbitrary type, so that obligation
+/// rests on the key type: canonicalise inside <c>Serialize</c> (as <c>SerializableWrapper&lt;T&gt;</c> and
+/// the <c>[Key]</c> ordered-wire encoding do) or supply an explicit serializer that does.
+/// </para>
+///
+/// <para>
 /// <b>Thread safety:</b> This class is not thread-safe. Concurrent calls to <see cref="Add"/> and
 /// <see cref="Contains"/> may produce incorrect results due to unsynchronized access to the underlying
 /// <see cref="BitArray"/>. External synchronization is required for concurrent use.
@@ -67,11 +80,16 @@ namespace Boutquin.Storage.Infrastructure.DataStructures;
 /// <code>
 /// var expectedElements = 1000;
 /// var falsePositiveProbability = 0.01; // 1% false positive rate
-/// var bloomFilter = new BloomFilter&lt;string&gt;(expectedElements, falsePositiveProbability);
-/// 
-/// bloomFilter.Add("exampleKey");
-/// bool exists = bloomFilter.Contains("exampleKey"); // True
-/// bloomFilter.Clear();
+///
+/// // Required: explicit byte serializer. For ISerializable&lt;T&gt; keys, use the factory:
+/// var keyFilter = BloomFilter.ForSerializable&lt;Key&gt;(expectedElements, falsePositiveProbability);
+///
+/// // For ad-hoc keys, pass an explicit serializer:
+/// var stringFilter = new BloomFilter&lt;string&gt;(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
+///
+/// stringFilter.Add("exampleKey");
+/// bool exists = stringFilter.Contains("exampleKey"); // True
+/// stringFilter.Clear();
 /// </code>
 /// </summary>
 /// <typeparam name="T">The type of elements to be stored in the Bloom filter.</typeparam>
@@ -80,18 +98,60 @@ public sealed class BloomFilter<T> : IBloomFilter<T>
     private readonly BitArray _bitArray;
     private readonly int _hashFunctionCount;
     private readonly int _bitArraySize;
-    private readonly Func<T, byte[]> _itemToBytes;
+
+    // Test-only observability: the derived double-hashing parameter, exposed so tests can pin
+    // that BloomFilter and CountingBloomFilter derive IDENTICAL parameters from identical
+    // inputs (the counting filter documents "the same double-hashing approach").
+    internal int HashFunctionCount => _hashFunctionCount;
+    private readonly Func<T, byte[]>? _itemToBytes;
+    private readonly BloomFilterStreamSerializer<T>? _streamSerializer;
     private readonly IHashAlgorithm _hashAlgorithm1;
     private readonly IHashAlgorithm _hashAlgorithm2;
 
+    // Per-instance scratch buffer reused across Add/Contains calls when the streaming-serializer
+    // path is in use. The class is documented as not thread-safe, so a single instance buffer
+    // suffices — every call sets length to 0, writes the item bytes, and reads back via
+    // GetBuffer().AsSpan(0, length) without allocating a new byte[] per call. The legacy
+    // Func<T, byte[]> path bypasses this field.
+    private MemoryStream? _scratch;
+    private int _disposed;
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="BloomFilter{T}" /> class with expected elements and false positive probability.
-    /// This constructor uses Murmur3 and xxHash32 as default hash algorithms.
+    /// Initializes a new instance of the <see cref="BloomFilter{T}" /> class with the default
+    /// Murmur3 + xxHash32 algorithms and a required item-to-bytes serializer.
     /// </summary>
     /// <param name="expectedElements">The expected number of elements to store in the Bloom filter.</param>
     /// <param name="falsePositiveProbability">The desired false positive probability.</param>
-    public BloomFilter(int expectedElements, double falsePositiveProbability)
-        : this(expectedElements, falsePositiveProbability, new Murmur3(), new XxHash32(), DefaultItemToBytes)
+    /// <param name="itemToBytes">
+    /// Required serializer that maps an item to a stable byte representation. The serializer is
+    /// load-bearing — equal items must produce equal bytes (otherwise a stored item is reported
+    /// absent) and distinct items must produce distinct bytes (otherwise the filter degenerates
+    /// to always-true). For <see cref="ISerializable{T}"/> keys, prefer
+    /// <see cref="BloomFilter.ForSerializable{T}(int, double)"/>, which uses the
+    /// allocation-free streaming-serializer path.
+    /// </param>
+    public BloomFilter(int expectedElements, double falsePositiveProbability, Func<T, byte[]> itemToBytes)
+        : this(expectedElements, falsePositiveProbability, new Murmur3(), new XxHash32(), itemToBytes)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BloomFilter{T}" /> class with the default
+    /// Murmur3 + xxHash32 algorithms and a streaming serializer that writes item bytes into a
+    /// reusable, per-instance scratch buffer instead of allocating a fresh <c>byte[]</c> per
+    /// Add/Contains call.
+    /// </summary>
+    /// <param name="expectedElements">The expected number of elements to store in the Bloom filter.</param>
+    /// <param name="falsePositiveProbability">The desired false positive probability.</param>
+    /// <param name="streamSerializer">
+    /// Required serializer that writes the item's stable byte representation into the supplied
+    /// <see cref="Stream"/>. The bloom filter rewinds the stream on every call (so the
+    /// serializer always sees an empty target) and reads back via <c>GetBuffer()</c> without
+    /// allocating. Equal items must produce equal byte sequences (otherwise a stored item is reported
+    /// absent) and distinct items distinct byte sequences.
+    /// </param>
+    public BloomFilter(int expectedElements, double falsePositiveProbability, BloomFilterStreamSerializer<T> streamSerializer)
+        : this(expectedElements, falsePositiveProbability, new Murmur3(), new XxHash32(), streamSerializer)
     {
     }
 
@@ -104,11 +164,34 @@ public sealed class BloomFilter<T> : IBloomFilter<T>
     /// <param name="hashAlgorithm2">The second hash algorithm.</param>
     /// <param name="itemToBytes">A function to convert items to byte arrays.</param>
     public BloomFilter(int expectedElements, double falsePositiveProbability, IHashAlgorithm hashAlgorithm1, IHashAlgorithm hashAlgorithm2, Func<T, byte[]> itemToBytes)
+        : this(expectedElements, falsePositiveProbability, hashAlgorithm1, hashAlgorithm2)
     {
-        _bitArraySize = CalculateOptimalBitArraySize(expectedElements, falsePositiveProbability);
-        _hashFunctionCount = CalculateOptimalHashFunctionCount(expectedElements, _bitArraySize);
-        _bitArray = new BitArray(_bitArraySize);
         _itemToBytes = itemToBytes ?? throw new ArgumentNullException(nameof(itemToBytes));
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BloomFilter{T}" /> class with custom hash
+    /// functions and the streaming-serializer path.
+    /// </summary>
+    public BloomFilter(int expectedElements, double falsePositiveProbability, IHashAlgorithm hashAlgorithm1, IHashAlgorithm hashAlgorithm2, BloomFilterStreamSerializer<T> streamSerializer)
+        : this(expectedElements, falsePositiveProbability, hashAlgorithm1, hashAlgorithm2)
+    {
+        _streamSerializer = streamSerializer ?? throw new ArgumentNullException(nameof(streamSerializer));
+    }
+
+    private BloomFilter(int expectedElements, double falsePositiveProbability, IHashAlgorithm hashAlgorithm1, IHashAlgorithm hashAlgorithm2)
+    {
+        if (expectedElements <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(expectedElements), "Expected elements must be positive.");
+        }
+        if (!(falsePositiveProbability > 0 && falsePositiveProbability < 1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(falsePositiveProbability), "Must be in (0, 1).");
+        }
+        _bitArraySize = BloomFilterSizing.OptimalArraySize(expectedElements, falsePositiveProbability);
+        _hashFunctionCount = BloomFilterSizing.OptimalHashFunctionCount(expectedElements, _bitArraySize);
+        _bitArray = new BitArray(_bitArraySize);
         _hashAlgorithm1 = hashAlgorithm1 ?? throw new ArgumentNullException(nameof(hashAlgorithm1));
         _hashAlgorithm2 = hashAlgorithm2 ?? throw new ArgumentNullException(nameof(hashAlgorithm2));
     }
@@ -119,16 +202,19 @@ public sealed class BloomFilter<T> : IBloomFilter<T>
     /// <param name="item">The item to add to the Bloom filter.</param>
     public void Add(T item)
     {
-        // Check if the item is null and throw ArgumentNullException
-        if (item == null)
-        {
-            throw new ArgumentNullException(nameof(item), "Cannot add null item to the Bloom filter.");
-        }
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        ArgumentNullException.ThrowIfNull(item);
 
-        var itemBytes = _itemToBytes(item);
-        foreach (var position in GetHashPositions(itemBytes))
+        if (_streamSerializer is not null)
         {
-            _bitArray[position] = true;
+            var ms = _scratch ??= new MemoryStream(64);
+            ms.SetLength(0);
+            _streamSerializer(item, ms);
+            AddCore(ms.GetBuffer().AsSpan(0, (int)ms.Length));
+        }
+        else
+        {
+            AddCore(_itemToBytes!(item));
         }
     }
 
@@ -139,15 +225,18 @@ public sealed class BloomFilter<T> : IBloomFilter<T>
     /// <returns>True if the item might be in the set, false if the item is definitely not in the set.</returns>
     public bool Contains(T item)
     {
-        var itemBytes = _itemToBytes(item);
-        foreach (var position in GetHashPositions(itemBytes))
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (_streamSerializer is not null)
         {
-            if (!_bitArray[position])
-            {
-                return false; // Definitely not present
-            }
+            var ms = _scratch ??= new MemoryStream(64);
+            ms.SetLength(0);
+            _streamSerializer(item, ms);
+            return ContainsCore(ms.GetBuffer().AsSpan(0, (int)ms.Length));
         }
-        return true; // Possibly present
+
+        return ContainsCore(_itemToBytes!(item));
     }
 
     /// <summary>
@@ -155,70 +244,125 @@ public sealed class BloomFilter<T> : IBloomFilter<T>
     /// </summary>
     public void Clear()
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
         _bitArray.SetAll(false);
     }
 
     /// <summary>
-    /// Calculates the optimal size of the bit array based on the expected number of elements and the desired false positive probability.
+    /// Releases the per-instance scratch <see cref="MemoryStream"/> used by the
+    /// streaming-serializer constructor path. Idempotent — concurrent disposers cannot
+    /// double-free (<see cref="Interlocked.Exchange(ref int, int)"/> gates the cleanup).
+    /// After dispose, every public method throws <see cref="ObjectDisposedException"/>.
     /// </summary>
-    /// <param name="n">The expected number of elements.</param>
-    /// <param name="p">The desired false positive probability.</param>
-    /// <returns>The optimal size of the bit array.</returns>
-    private static int CalculateOptimalBitArraySize(int n, double p)
-    {
-        // Why this formula? Derived from the Bloom filter false positive probability formula:
-        // p = (1 - e^(-kn/m))^k. Solving for m (bit array size) given n (expected elements) and
-        // p (desired false positive rate) yields m = -(n * ln(p)) / (ln(2))^2. This gives the
-        // minimum number of bits needed to achieve the target false positive rate.
-        return (int)Math.Ceiling((-n * Math.Log(p)) / (Math.Log(2) * Math.Log(2)));
-    }
-
-    /// <summary>
-    /// Calculates the optimal number of hash functions based on the size of the bit array and the expected number of elements.
-    /// </summary>
-    /// <param name="n">The expected number of elements.</param>
-    /// <param name="m">The size of the bit array.</param>
-    /// <returns>The optimal number of hash functions.</returns>
-    private static int CalculateOptimalHashFunctionCount(int n, int m)
-    {
-        // Why this formula? The optimal k (number of hash functions) that minimizes false positive
-        // probability for a given m and n is k = (m/n) * ln(2). More hash functions increase the
-        // chance of setting all bits for a non-member, while fewer functions leave too many bits
-        // unset. This formula finds the sweet spot.
-        return (int)Math.Max(1, Math.Round((double)m / n * Math.Log(2)));
-    }
-
-    /// <summary>
-    /// Generates the hash positions for the given item using double hashing. This method is crucial for distributing elements uniformly across the bit array.
-    /// </summary>
-    /// <param name="itemBytes">The byte array representation of the item.</param>
-    /// <returns>A list of positions in the bit array.</returns>
     /// <remarks>
-    /// This method combines two hash functions, Murmur3 and xxHash32, to generate multiple hash values for the item.
-    /// Double hashing helps to reduce the likelihood of hash collisions and improves the distribution of bits in the array.
+    /// The load-bearing benefit is releasing the scratch buffer — once a single oversize key
+    /// has grown the buffer to its peak, it stays at that size for the instance's lifetime;
+    /// long-lived processes that produce occasional large keys must dispose to release the
+    /// memory. (The <see cref="BitArray"/> itself is a readonly field and is reclaimed with
+    /// the instance, not by Dispose.)
     /// </remarks>
-    private IEnumerable<int> GetHashPositions(byte[] itemBytes)
+    public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+        _scratch?.Dispose();
+        _scratch = null;
+    }
+
+    private void AddCore(ReadOnlySpan<byte> itemBytes)
+    {
+        // Inlined hash loop — replaces a yield-return enumerator (one allocation per call) with
+        // a tight loop over hashFunctionCount. ComputeHash already accepts ReadOnlySpan<byte>
+        // (IHashAlgorithm), so the entire path runs without per-call heap allocations.
         var hash1 = _hashAlgorithm1.ComputeHash(itemBytes);
         var hash2 = _hashAlgorithm2.ComputeHash(itemBytes);
-
         for (var i = 0; i < _hashFunctionCount; i++)
         {
-            // Why unchecked uint arithmetic? The combined hash intentionally overflows (wrapping is
-            // desired for hash mixing). Using uint avoids negative values entirely, eliminating the
-            // need for Math.Abs and the int.MinValue edge case where Math.Abs throws.
-            var combinedHash = unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_bitArraySize;
-            yield return (int)combinedHash;
+            // Kirsch–Mitzenmacher double hashing: h1 + i·h2 in all-unsigned arithmetic
+            // (ComputeHash returns uint), wrapping at 2^32 by construction — `unchecked`
+            // documents that the wrap is intentional. The (uint) modulo keeps the position
+            // computation unsigned end-to-end.
+            var pos = (int)(unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_bitArraySize);
+            _bitArray[pos] = true;
         }
     }
 
-    /// <summary>
-    /// Default method to convert an item to a byte array. This method is used if no custom conversion function is provided.
-    /// </summary>
-    /// <param name="item">The item to convert.</param>
-    /// <returns>The byte array representation of the item.</returns>
-    private static byte[] DefaultItemToBytes(T item)
+    private bool ContainsCore(ReadOnlySpan<byte> itemBytes)
     {
-        return Encoding.UTF8.GetBytes(item?.ToString() ?? string.Empty);
+        var hash1 = _hashAlgorithm1.ComputeHash(itemBytes);
+        var hash2 = _hashAlgorithm2.ComputeHash(itemBytes);
+        for (var i = 0; i < _hashFunctionCount; i++)
+        {
+            // Kirsch–Mitzenmacher double hashing: h1 + i·h2 in all-unsigned arithmetic
+            // (ComputeHash returns uint), wrapping at 2^32 by construction — `unchecked`
+            // documents that the wrap is intentional. The (uint) modulo keeps the position
+            // computation unsigned end-to-end.
+            var pos = (int)(unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_bitArraySize);
+            if (!_bitArray[pos])
+            {
+                return false;
+            }
+        }
+        return true;
     }
+
+}
+
+/// <summary>
+/// Writes the stable byte representation of <paramref name="item"/> into <paramref name="destination"/>.
+/// Used by <see cref="BloomFilter{T}"/>'s allocation-free constructor to avoid the per-call
+/// <c>byte[]</c> allocation the legacy <see cref="Func{T, TResult}"/>-based path required.
+/// </summary>
+/// <typeparam name="T">The item type the bloom filter holds.</typeparam>
+/// <param name="item">The item to serialise (never <see langword="null"/> at the call site).</param>
+/// <param name="destination">
+/// A reusable scratch <see cref="Stream"/> owned by the bloom filter. The implementation may
+/// assume the stream's <see cref="Stream.Position"/> and <see cref="Stream.Length"/> are 0
+/// on entry and may write any number of bytes; the bloom filter reads the written span back
+/// via <c>GetBuffer()</c> without allocating.
+/// </param>
+public delegate void BloomFilterStreamSerializer<in T>(T item, Stream destination);
+
+/// <summary>
+/// Static convenience entry points for <see cref="BloomFilter{T}"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Why this static class exists.</b> The generic <see cref="BloomFilter{T}"/> cannot conditionally
+/// constrain its type parameter on <see cref="ISerializable{T}"/> at construction time — a class-level
+/// constraint would over-constrain non-engine consumers (test seams, ad-hoc <see cref="string"/> keys).
+/// This static helper offers an opt-in factory whose method-level <c>where T : ISerializable&lt;T&gt;</c>
+/// constraint binds the engine-friendly path automatically. Non-ISerializable consumers continue to
+/// use the explicit-serializer constructor on <see cref="BloomFilter{T}"/>.
+/// </para>
+/// </remarks>
+public static class BloomFilter
+{
+    /// <summary>
+    /// Creates a <see cref="BloomFilter{T}"/> for an <see cref="ISerializable{T}"/> key type, binding the
+    /// item-to-bytes serializer automatically via <see cref="ISerializable{T}.Serialize(Stream)"/>.
+    /// </summary>
+    /// <typeparam name="T">A type implementing <see cref="ISerializable{T}"/>.</typeparam>
+    /// <param name="expectedElements">The expected number of elements.</param>
+    /// <param name="falsePositiveProbability">The desired false positive probability.</param>
+    /// <returns>A configured <see cref="BloomFilter{T}"/>.</returns>
+    /// <remarks>
+    /// The filter hashes <c>Serialize</c>'s bytes, so <typeparamref name="T"/> must serialize equal
+    /// keys identically: equal items must produce equal bytes, where "equal" is the relation the
+    /// fronted store matches keys by (<see cref="IComparable{T}.CompareTo"/>). Keys that satisfy this
+    /// out of the box are <c>SerializableWrapper&lt;T&gt;</c> and <c>[Key]</c>-generated record structs.
+    /// </remarks>
+    public static BloomFilter<T> ForSerializable<T>(int expectedElements, double falsePositiveProbability)
+        where T : ISerializable<T>
+        => new(expectedElements, falsePositiveProbability, SerializeToStream<T>);
+
+    // Streaming serializer — writes directly into the bloom filter's reusable scratch
+    // MemoryStream. After the first call (which may grow the underlying buffer), every
+    // subsequent Add/Contains is allocation-free along this path. Compare to the previous
+    // implementation, which allocated a fresh MemoryStream + byte[] for every call.
+    private static void SerializeToStream<T>(T item, Stream destination)
+        where T : ISerializable<T>
+        => item.Serialize(destination);
 }

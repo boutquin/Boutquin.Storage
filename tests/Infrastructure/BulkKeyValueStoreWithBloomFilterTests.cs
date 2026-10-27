@@ -22,20 +22,31 @@ namespace Boutquin.Storage.Infrastructure.Tests;
 /// This class contains unit tests for the <see cref="BulkKeyValueStoreWithBloomFilter{TKey, TValue}"/> class.
 /// Each test follows the Arrange-Act-Assert pattern to ensure thorough and accurate testing.
 /// </summary>
-public sealed class BulkKeyValueStoreWithBloomFilterTests
+public sealed class BulkKeyValueStoreWithBloomFilterTests : IAsyncLifetime
 {
     private readonly Mock<ICompactableBulkStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>> _mockInnerStore;
     private readonly Mock<IBloomFilter<SerializableWrapper<int>>> _mockBloomFilter;
-    private readonly BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>> _store;
+    private BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>> _store;
 
     public BulkKeyValueStoreWithBloomFilterTests()
     {
         // Arrange: Initialize mocks for the inner store and Bloom filter.
         _mockInnerStore = new Mock<ICompactableBulkStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>>();
         _mockBloomFilter = new Mock<IBloomFilter<SerializableWrapper<int>>>();
+    }
 
-        // Arrange: Create an instance of BulkKeyValueStoreWithBloomFilter using the mocks.
-        _store = new BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>(_mockInnerStore.Object, _mockBloomFilter.Object);
+    /// <summary>
+    /// Creation is async because <c>CreateAsync</c> seeds the Bloom filter from the inner
+    /// store's existing keys (the loose mock returns an empty item set here).
+    /// </summary>
+    public async Task InitializeAsync() =>
+        _store = await BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>
+            .CreateAsync(_mockInnerStore.Object, _mockBloomFilter.Object);
+
+    public Task DisposeAsync()
+    {
+        _store?.Dispose();
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -163,6 +174,46 @@ public sealed class BulkKeyValueStoreWithBloomFilterTests
     }
 
     /// <summary>
+    /// SetBulkAsync must add every stored key to the Bloom filter even when the source
+    /// enumerable yields its items only once (a lazy/one-shot sequence). The decorator
+    /// enumerated <c>items</c> twice — once for the inner store, once for the filter — so a
+    /// one-shot sequence left keys durably stored but never bloom-added: a PERMANENT false
+    /// negative, the exact violation the bloom contract forbids ("if the filter says NOT
+    /// present, the key is guaranteed absent").
+    /// </summary>
+    [Fact]
+    public async Task SetBulkAsync_WithOneShotEnumerable_StillAddsEveryKeyToBloomFilter()
+    {
+        // The inner store consumes the sequence (as the real engines do).
+        _mockInnerStore
+            .Setup(store => store.SetBulkAsync(
+                It.IsAny<IEnumerable<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>, CancellationToken>(
+                (items, _) => items.ToList())
+            .Returns(Task.CompletedTask);
+
+        var yielded = 0;
+        IEnumerable<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>> OneShot()
+        {
+            // Yields the two items only on the first enumeration — the shape of a consumed
+            // reader / streaming source.
+            if (Interlocked.Exchange(ref yielded, 1) == 1)
+            {
+                yield break;
+            }
+            yield return new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("v1"));
+            yield return new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("v2"));
+        }
+
+        await _store.SetBulkAsync(OneShot());
+
+        _mockBloomFilter.Verify(f => f.Add(It.IsAny<SerializableWrapper<int>>()), Times.Exactly(2),
+            "every key the inner store durably persisted must be added to the Bloom filter, " +
+            "or membership checks return permanent false negatives");
+    }
+
+    /// <summary>
     /// Test to ensure that the SetBulkAsync method adds multiple key-value pairs to the store and the Bloom filter.
     /// </summary>
     [Fact]
@@ -200,23 +251,25 @@ public sealed class BulkKeyValueStoreWithBloomFilterTests
     }
 
     /// <summary>
-    /// Test to ensure that the constructor throws an ArgumentNullException if the inner store is null.
+    /// Test to ensure that CreateAsync throws an ArgumentNullException if the inner store is null.
     /// </summary>
     [Fact]
-    public void Constructor_ShouldThrowArgumentNullExceptionIfInnerStoreIsNull()
+    public async Task CreateAsync_ShouldThrowArgumentNullExceptionIfInnerStoreIsNull()
     {
         // Act & Assert: Expect an ArgumentNullException when the inner store is null.
-        Assert.Throws<ArgumentNullException>(() => new BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>(null, _mockBloomFilter.Object));
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>.CreateAsync(null, _mockBloomFilter.Object));
     }
 
     /// <summary>
-    /// Test to ensure that the constructor throws an ArgumentNullException if the Bloom filter is null.
+    /// Test to ensure that CreateAsync throws an ArgumentNullException if the Bloom filter is null.
     /// </summary>
     [Fact]
-    public void Constructor_ShouldThrowArgumentNullExceptionIfBloomFilterIsNull()
+    public async Task CreateAsync_ShouldThrowArgumentNullExceptionIfBloomFilterIsNull()
     {
         // Act & Assert: Expect an ArgumentNullException when the Bloom filter is null.
-        Assert.Throws<ArgumentNullException>(() => new BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>(_mockInnerStore.Object, null));
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>.CreateAsync(_mockInnerStore.Object, null));
     }
 
     /// <summary>
@@ -391,5 +444,147 @@ public sealed class BulkKeyValueStoreWithBloomFilterTests
         };
 
         act.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task GetAllItemsAsync_ShouldReturnAllItems_AfterSetAsync()
+    {
+        var k1 = new SerializableWrapper<int>(1);
+        var k2 = new SerializableWrapper<int>(2);
+        var k3 = new SerializableWrapper<int>(3);
+        var v1 = new SerializableWrapper<string>("a");
+        var v2 = new SerializableWrapper<string>("b");
+        var v3 = new SerializableWrapper<string>("c");
+
+        var expected = new List<(SerializableWrapper<int> Key, SerializableWrapper<string> Value)>
+        {
+            (k1, v1), (k2, v2), (k3, v3),
+        };
+        _mockInnerStore
+            .Setup(s => s.GetAllItemsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var items = (await _store.GetAllItemsAsync()).ToList();
+
+        items.Count.Should().Be(3);
+        items.Should().Contain((k1, v1));
+        items.Should().Contain((k2, v2));
+        items.Should().Contain((k3, v3));
+    }
+
+    [Fact]
+    public async Task GetAllItemsAsync_ShouldReturnEmpty_WhenStoreIsEmpty()
+    {
+        _mockInnerStore
+            .Setup(s => s.GetAllItemsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Empty<(SerializableWrapper<int>, SerializableWrapper<string>)>());
+
+        var items = (await _store.GetAllItemsAsync()).ToList();
+
+        items.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// Pins the thread-safe Dispose guard: the <c>_disposed</c> backing field must be <c>int</c>
+    /// (not <c>bool</c>) so that <c>Interlocked.Exchange(ref _disposed, 1)</c> can atomically
+    /// claim the dispose slot — the identical pattern used by all sibling disposables in this repo
+    /// (<c>BloomFilter</c>, <c>CountingBloomFilter</c>, <c>StorageFile</c>, <c>WriteAheadLog</c>).
+    /// A plain <c>bool</c> read-then-set is a TOCTOU: two concurrent callers can both read
+    /// <c>false</c> before either writes <c>true</c> and both enter the cleanup body, potentially
+    /// disposing <c>_lock</c> concurrently. An <c>int</c> field is a pre-condition for the
+    /// atomic-exchange guard; its absence proves the fix has not been applied.
+    /// Mutation check: temporarily changing the field back to <c>bool</c> makes this test RED.
+    /// </summary>
+    [Fact]
+    public void Dispose_DisposedField_MustBeInt_ForAtomicInterlockedGuard()
+    {
+        // The fix is: replace `bool _disposed` with `int _disposed` + Interlocked.Exchange guard.
+        // Verifying the field type pins that the atomic-claim guard can be applied and that
+        // concurrent callers cannot both read `false` and both enter the cleanup body.
+        var disposedField = typeof(BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>)
+            .GetField("_disposed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        disposedField.Should().NotBeNull("the _disposed backing field must exist");
+        disposedField!.FieldType.Should().Be(typeof(int),
+            "the _disposed field must be int (not bool) so Interlocked.Exchange can atomically claim the " +
+            "dispose slot — the repo-wide convention for thread-safe Dispose guards (BloomFilter, WriteAheadLog, etc.)");
+    }
+
+    /// <summary>
+    /// Concurrent Dispose stress: 64 threads all call Dispose concurrently; none must throw
+    /// and all subsequent method calls on the store must see it as disposed.
+    /// This complements <see cref="Dispose_DisposedField_MustBeInt_ForAtomicInterlockedGuard"/>:
+    /// the structural field-type test pins the guard mechanism; this test pins the observable
+    /// behaviour under high contention.
+    /// </summary>
+    [Fact]
+    public async Task Dispose_CalledConcurrently_IsIdempotentAndDoesNotThrow()
+    {
+        const int threads = 64;
+        using var barrier = new Barrier(threads);
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+        // Create a fresh store so the class-level _store isn't shared across threads.
+        var innerStore = new Mock<ICompactableBulkStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>>();
+        var bloomFilter = new Mock<IBloomFilter<SerializableWrapper<int>>>();
+        var store = await BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>
+            .CreateAsync(innerStore.Object, bloomFilter.Object);
+
+        var tasks = Enumerable.Range(0, threads).Select(_ => Task.Run(() =>
+        {
+            barrier.SignalAndWait(); // All threads start Dispose() at the same instant
+            try { store.Dispose(); }
+            catch (Exception ex) { exceptions.Add(ex); }
+        })).ToArray();
+
+        await Task.WhenAll(tasks);
+
+        exceptions.Should().BeEmpty("concurrent Dispose() calls must never throw");
+
+        // After all concurrent disposes complete, the store must be observed as disposed.
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => store.SetAsync(1, "v"));
+    }
+
+    /// <summary>
+    /// Wrapping an inner store that ALREADY contains data must not hide that data:
+    /// the Bloom filter's no-false-negative guarantee ("if the filter says absent, the key is
+    /// definitely absent" — DDIA 2e Ch. 4) only holds when the filter covers every key in the
+    /// store. A decorator built over a pre-populated store (process restart, recovery, engine
+    /// written before wrapping) must therefore seed the filter from the inner store's existing
+    /// keys, or the short-circuit read path returns "not found" for durably stored keys.
+    /// </summary>
+    [Fact]
+    public async Task PrePopulatedInnerStore_KeyIsRetrievableThroughDecorator()
+    {
+        // Arrange: an inner store that durably holds key 1 (simulating pre-existing on-disk data),
+        // and a REAL (empty) Bloom filter — exactly the state after a process restart.
+        var key = new SerializableWrapper<int>(1);
+        var value = new SerializableWrapper<string>("pre-existing");
+
+        var innerStore = new Mock<ICompactableBulkStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>>();
+        innerStore.Setup(s => s.GetAllItemsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([(key, value)]);
+        innerStore.Setup(s => s.TryGetValueAsync(key, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((value, true));
+        innerStore.Setup(s => s.ContainsKeyAsync(key, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        using var realBloomFilter = new BloomFilter<SerializableWrapper<int>>(
+            expectedElements: 100,
+            falsePositiveProbability: 0.01,
+            itemToBytes: k => BitConverter.GetBytes(k.Value));
+
+        using var store = await BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>
+            .CreateAsync(innerStore.Object, realBloomFilter);
+
+        // Act: read the pre-existing key through the decorator.
+        var result = await store.TryGetValueAsync(key);
+        var contains = await store.ContainsKeyAsync(key);
+
+        // Assert: the durably stored key must be visible — a false negative here would
+        // violate the one guarantee the Bloom-filter read path rests on.
+        result.Found.Should().BeTrue("a key present in the wrapped store must never be hidden by the filter");
+        result.Value.Should().Be(value);
+        contains.Should().BeTrue();
     }
 }

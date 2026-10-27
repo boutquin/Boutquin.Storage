@@ -23,70 +23,91 @@ namespace Boutquin.Storage.Infrastructure.Serialization;
 /// <remarks>
 /// <para>
 /// <b>Why binary serialization?</b> Binary format is the most compact representation, minimizing
-/// disk I/O and storage footprint. Each entry is written as raw bytes via <see cref="BinaryWriter"/>,
-/// with no delimiters, headers, or padding. The trade-off is that the format is not human-readable
-/// and is sensitive to changes in serialization order.
+/// disk I/O and storage footprint. Each entry is the key's wire bytes followed by the value's wire
+/// bytes, written directly to the caller's stream — no delimiters, headers, or padding. Framing is
+/// the responsibility of the key/value wire formats themselves (both are self-delimiting). The
+/// trade-off is that the format is not human-readable and is sensitive to changes in serialization
+/// order.
 /// </para>
 /// <para>
-/// <b>Why <c>leaveOpen: true</c> on BinaryWriter/BinaryReader?</b> The stream is owned by the
-/// caller (the storage engine), not by the serializer. Without <c>leaveOpen: true</c>, disposing
-/// the <see cref="BinaryWriter"/> would also close the underlying stream, preventing subsequent
-/// reads/writes. This is critical for sequential operations (e.g., writing multiple entries to the
-/// same stream).
+/// <b>Stream ownership.</b> The stream is owned by the caller (the storage engine), not by the
+/// serializer: the serializer never closes it, so sequential operations (writing multiple entries
+/// to the same stream) work without surprises.
 /// </para>
 /// </remarks>
 public sealed class BinaryEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue>
-    where TKey : IComparable<TKey>, ISerializable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     /// <inheritdoc/>
     public void WriteEntry(Stream stream, TKey key, TValue value)
     {
-        Guard.AgainstNullOrDefault(() => stream);
-        Guard.AgainstNullOrDefault(() => key);
-        Guard.AgainstNullOrDefault(() => value);
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
 
-        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        key.Serialize(writer.BaseStream);
-        value.Serialize(writer.BaseStream);
-        writer.Flush();
+        key.Serialize(stream);
+        value.Serialize(stream);
     }
 
     /// <inheritdoc/>
-    public async Task WriteEntryAsync(Stream stream, TKey key, TValue value, CancellationToken cancellationToken = default)
+    public Task WriteEntryAsync(Stream stream, TKey key, TValue value, CancellationToken cancellationToken = default)
     {
-        Guard.AgainstNullOrDefault(() => stream);
-        Guard.AgainstNullOrDefault(() => key);
-        Guard.AgainstNullOrDefault(() => value);
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
-        key.Serialize(writer.BaseStream);
-        value.Serialize(writer.BaseStream);
-        writer.Flush();
-        await Task.CompletedTask.ConfigureAwait(false);
+        // The key/value wire formats expose synchronous Serialize only; the async surface here
+        // exists for interface symmetry.
+        key.Serialize(stream);
+        value.Serialize(stream);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
     public (TKey Key, TValue Value)? ReadEntry(Stream stream)
     {
-        Guard.AgainstNullOrDefault(() => stream);
+        ArgumentNullException.ThrowIfNull(stream);
 
-        using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
         if (!CanRead(stream))
         {
             return null;
         }
 
-        var key = TKey.Deserialize(reader.BaseStream);
-        var value = TValue.Deserialize(reader.BaseStream);
-        return (key, value);
+        // One exception contract across both IEntrySerializer implementations: the CSV sibling
+        // wraps every parse fault as DeserializationException, so callers switching serializers
+        // never need format-specific corruption handling. A torn entry (crash mid-append) or a
+        // corrupt field otherwise leaks whatever the key/value Deserialize happens to throw
+        // (EndOfStreamException, InvalidDataException, …).
+        try
+        {
+            var key = TKey.Deserialize(stream);
+            var value = TValue.Deserialize(stream);
+            return (key, value);
+        }
+        catch (Exception ex) when (ex is not DeserializationException)
+        {
+            throw new DeserializationException(
+                "Failed to deserialize binary entry — torn or corrupt record.", ex);
+        }
     }
 
     /// <inheritdoc/>
     public bool CanRead(Stream stream)
     {
-        Guard.AgainstNullOrDefault(() => stream);
+        ArgumentNullException.ThrowIfNull(stream);
+
+        // The binary wire is not self-delimiting, so end-of-log detection genuinely needs
+        // Position/Length. Surface the contract by name rather than leaking the BCL's opaque
+        // "Specified method is not supported" from the Position getter.
+        if (!stream.CanSeek)
+        {
+            throw new NotSupportedException(
+                "BinaryEntrySerializer requires a seekable stream: the binary wire is not " +
+                "self-delimiting, so end-of-log detection compares Position against Length. " +
+                "Buffer non-seekable input into a seekable stream first, or use CsvEntrySerializer.");
+        }
 
         return stream.Position < stream.Length;
     }

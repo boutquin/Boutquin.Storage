@@ -39,11 +39,14 @@ public sealed class BinaryEntrySerializerTests
         // Act: Write the key-value pair to the stream.
         await serializer.WriteEntryAsync(memoryStream, key, value);
 
-        // Assert: Verify that the stream contains the expected serialized key-value pair.
+        // Assert: round-trip the written bytes through the same serializer and compare values.
+        // Raw-byte assertions would couple this test to the wrapper's internal wire format
+        // (tagged wire in 2.0.0); the serializer contract we care about is "read-your-writes".
         memoryStream.Position = 0;
-        var reader = new BinaryReader(memoryStream, Encoding.UTF8, leaveOpen: true);
-        Assert.Equal(1, reader.ReadInt32());
-        Assert.Equal("value1", reader.ReadString());
+        var entry = serializer.ReadEntry(memoryStream);
+        Assert.NotNull(entry);
+        Assert.Equal(key.Value, entry.Value.Key.Value);
+        Assert.Equal(value.Value, entry.Value.Value.Value);
     }
 
     /// <summary>
@@ -97,17 +100,16 @@ public sealed class BinaryEntrySerializerTests
     /// Test to ensure that ReadEntry correctly reads a key-value pair from the stream.
     /// </summary>
     [Fact]
-    public void ReadEntry_ShouldReadKeyValuePair()
+    public async Task ReadEntry_ShouldReadKeyValuePair()
     {
-        // Arrange: Create a memory stream with a serialized key-value pair.
+        // Arrange: write the entry via the same serializer's write path, then re-read. Using
+        // the wrapper's 2.0.0 tagged-wire Serialize directly (or a raw BinaryWriter pre-seed)
+        // would couple this test to the wrapper's internal wire format; round-tripping via
+        // WriteEntryAsync exercises the serializer's published contract.
         using var memoryStream = new MemoryStream();
-        var writer = new BinaryWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
-        writer.Write(1);
-        writer.Write("value1");
-        writer.Flush();
-        memoryStream.Position = 0;
-
         var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        await serializer.WriteEntryAsync(memoryStream, new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1"));
+        memoryStream.Position = 0;
 
         // Act: Read the key-value pair from the stream.
         var entry = serializer.ReadEntry(memoryStream);
@@ -221,7 +223,7 @@ public sealed class BinaryEntrySerializerTests
     /// <summary>
     /// Custom mock class that implements ISerializable and throws an exception during serialization.
     /// </summary>
-    private sealed class ExceptionSerializableWrapper<T> : ISerializable<ExceptionSerializableWrapper<T>>, IComparable<ExceptionSerializableWrapper<T>>
+    private sealed class ExceptionSerializableWrapper<T> : IStorageKey<ExceptionSerializableWrapper<T>>
     {
         public T Value { get; set; }
 
@@ -246,6 +248,15 @@ public sealed class BinaryEntrySerializerTests
         {
             return Comparer<T>.Default.Compare(Value, other.Value);
         }
+
+        public bool Equals(ExceptionSerializableWrapper<T> other)
+            => other is not null && EqualityComparer<T>.Default.Equals(Value, other.Value);
+
+        public override bool Equals(object obj)
+            => obj is ExceptionSerializableWrapper<T> other && Equals(other);
+
+        public override int GetHashCode()
+            => Value is null ? 0 : EqualityComparer<T>.Default.GetHashCode(Value);
     }
 
     /// <summary>
@@ -262,5 +273,122 @@ public sealed class BinaryEntrySerializerTests
 
         // Act & Assert: Check that the exception is propagated.
         await Assert.ThrowsAsync<InvalidOperationException>(() => serializer.WriteEntryAsync(memoryStream, key, value));
+    }
+
+    [Fact]
+    public void WriteEntry_ShouldWriteKeyValuePair_RoundTrippable()
+    {
+        using var ms = new MemoryStream();
+        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        var key = new SerializableWrapper<int>(42);
+        var value = new SerializableWrapper<string>("hello");
+
+        serializer.WriteEntry(ms, key, value);
+        ms.Position = 0;
+        var entry = serializer.ReadEntry(ms);
+
+        Assert.NotNull(entry);
+        Assert.Equal(key.Value, entry.Value.Key.Value);
+        Assert.Equal(value.Value, entry.Value.Value.Value);
+    }
+
+    [Fact]
+    public void WriteEntry_NullStream_ThrowsArgumentNullException()
+    {
+        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        var key = new SerializableWrapper<int>(1);
+        var value = new SerializableWrapper<string>("v");
+
+        Assert.Throws<ArgumentNullException>(() => serializer.WriteEntry(null!, key, value));
+    }
+
+    [Fact]
+    public void WriteEntry_NullKey_ThrowsArgumentNullException()
+    {
+        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        using var ms = new MemoryStream();
+        var value = new SerializableWrapper<string>("v");
+
+        Assert.Throws<ArgumentNullException>(() => serializer.WriteEntry(ms, null!, value));
+    }
+
+    [Fact]
+    public void WriteEntry_NullValue_ThrowsArgumentNullException()
+    {
+        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        using var ms = new MemoryStream();
+        var key = new SerializableWrapper<int>(1);
+
+        Assert.Throws<ArgumentNullException>(() => serializer.WriteEntry(ms, key, null!));
+    }
+
+    /// <summary>
+    /// The two <c>IEntrySerializer</c> implementations must share one exception contract: the
+    /// CSV sibling wraps every parse fault as <see cref="DeserializationException"/>, so a torn
+    /// entry (crash mid-append) read through the binary serializer must surface the same domain
+    /// type, not a raw <see cref="EndOfStreamException"/> — callers switching serializers must
+    /// not need format-specific corruption handling.
+    /// </summary>
+    [Fact]
+    public void ReadEntry_TornEntry_ThrowsDeserializationException()
+    {
+        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        using var full = new MemoryStream();
+        serializer.WriteEntry(full, new SerializableWrapper<int>(1), new SerializableWrapper<string>("hello"));
+        var bytes = full.ToArray();
+
+        // Truncate mid-entry — a crash-torn final record.
+        using var torn = new MemoryStream(bytes.AsSpan(0, bytes.Length - 2).ToArray());
+
+        var act = () => serializer.ReadEntry(torn);
+        act.Should().Throw<DeserializationException>(
+            "a torn entry is a parse fault and both entry serializers advertise the same domain exception contract");
+    }
+
+    /// <summary>
+    /// The binary wire is not self-delimiting, so <c>CanRead</c> genuinely requires a seekable
+    /// stream — but the limitation must surface as a CLEAR contract statement naming the type,
+    /// not as the BCL's opaque "Stream does not support seeking" from the Position getter.
+    /// </summary>
+    [Fact]
+    public void CanRead_NonSeekableStream_ThrowsWithClearContractMessage()
+    {
+        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        using var nonSeekable = new NonSeekableReadStream(new byte[4]);
+
+        var act = () => serializer.CanRead(nonSeekable);
+        act.Should().Throw<NotSupportedException>()
+            .WithMessage("*BinaryEntrySerializer*seekable*");
+    }
+
+    private sealed class NonSeekableReadStream(byte[] data) : Stream
+    {
+        private readonly MemoryStream _inner = new(data, writable: false);
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

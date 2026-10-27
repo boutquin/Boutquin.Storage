@@ -37,19 +37,27 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <b>RemoveAsync:</b> O(1) amortized — hash-based lookup and set removal.</para>
 /// <para>- <b>ClearAsync:</b> O(n) — clears the entire index.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
-/// section on secondary indexes in storage engines; Ch. 6 — "Partitioning and Secondary Indexes".</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
+/// section on secondary indexes in storage engines; Ch. 7 — "Sharding and Secondary Indexes".</para>
 /// </summary>
 /// <typeparam name="TKey">The type of the primary key.</typeparam>
 /// <typeparam name="TValue">The type of the value being indexed.</typeparam>
 /// <typeparam name="TIndexKey">The type of the derived index key.</typeparam>
-public interface ISecondaryIndex<TKey, TValue, TIndexKey>
-    where TKey : IComparable<TKey>
+public interface ISecondaryIndex<TKey, TValue, TIndexKey> : IDisposable
+    where TKey : IComparable<TKey>, IEquatable<TKey>
     where TIndexKey : IComparable<TIndexKey>
 {
     /// <summary>
     /// Indexes a value by extracting its index key and associating it with the primary key.
     /// </summary>
+    /// <remarks>
+    /// <b>Update protocol (caller-maintained).</b> The index does not track which value a
+    /// primary key was previously indexed under. When a record's value changes such that its
+    /// extracted index key changes, the caller must issue <c>RemoveAsync(primaryKey, oldValue)</c>
+    /// followed by <c>IndexAsync(primaryKey, newValue)</c>; calling <c>IndexAsync</c> alone
+    /// leaves a stale posting under the old index key, and lookups on that key keep returning
+    /// the primary key.
+    /// </remarks>
     /// <param name="primaryKey">The primary key of the record.</param>
     /// <param name="value">The value to extract the index key from.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>

@@ -16,9 +16,6 @@
 #nullable disable
 
 namespace Boutquin.Storage.Infrastructure.Tests;
-
-using System.Security.Cryptography;
-
 /// <summary>
 /// This class contains unit tests for the MerkleTree class.
 /// Each test follows the Arrange-Act-Assert pattern.
@@ -30,7 +27,7 @@ public sealed class MerkleTreeTests
     /// </summary>
     private static List<byte[]> CreateBlocks(params string[] values)
     {
-        return values.Select(Encoding.UTF8.GetBytes).ToList();
+        return [.. values.Select(Encoding.UTF8.GetBytes)];
     }
 
     /// <summary>
@@ -38,7 +35,7 @@ public sealed class MerkleTreeTests
     /// </summary>
     private static byte[] Hash(byte[] data)
     {
-        return SHA256.HashData(data);
+        return MerkleTree.HashLeaf(data);
     }
 
     /// <summary>
@@ -361,5 +358,106 @@ public sealed class MerkleTreeTests
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// Equal root must imply equal data (the invariant anti-entropy relies on). Without
+    /// leaf/internal domain separation (RFC 6962 s2.1), a single 64-byte "leaf" whose bytes
+    /// are exactly leftChildHash || rightChildHash collides with the internal node above two
+    /// real leaves — two structurally different block sets share a root.
+    /// </summary>
+    [Fact]
+    public void Build_LeafCannotImpersonateInternalNode()
+    {
+        var x = "block-x"u8.ToArray();
+        var y = "block-y"u8.ToArray();
+
+        var twoLeafTree = new MerkleTree();
+        twoLeafTree.Build([x, y]);
+
+        // Forge a single block whose bytes equal the concatenation of the two LEAF hashes,
+        // obtained through the public proof API (each leaf's hash is its sibling's proof).
+        var leafHashX = twoLeafTree.GetProof(1)[0];
+        var leafHashY = twoLeafTree.GetProof(0)[0];
+        var forged = leafHashX.Concat(leafHashY).ToArray();
+        var oneLeafTree = new MerkleTree();
+        oneLeafTree.Build([forged]);
+
+        oneLeafTree.RootHash.Should().NotEqual(twoLeafTree.RootHash,
+            "a leaf hash must live in a different hash domain than an internal-node hash");
+    }
+
+    /// <summary>
+    /// Padding leaves must be distinguishable from real data: a 3-block tree padded to 4
+    /// must not share its root with a 4-block tree whose 4th block is explicitly empty.
+    /// </summary>
+    [Fact]
+    public void Build_PaddingIsDistinctFromExplicitEmptyBlock()
+    {
+        var a = "a"u8.ToArray();
+        var b = "b"u8.ToArray();
+        var c = "c"u8.ToArray();
+
+        var padded = new MerkleTree();
+        padded.Build([a, b, c]);
+
+        var explicitEmpty = new MerkleTree();
+        explicitEmpty.Build([a, b, c, []]);
+
+        padded.RootHash.Should().NotEqual(explicitEmpty.RootHash,
+            "the padding hash must live in a different domain than a real (empty) data block");
+    }
+
+    /// <summary>
+    /// Proofs must be defensive copies (the same convention RootHash pins): returning aliased
+    /// internal hash arrays lets a caller's mutation corrupt the tree in place — and because
+    /// the padding hash is one shared array across all padded leaves, a single mutation would
+    /// corrupt every padded position at once, silently breaking "equal root ⇒ equal data".
+    /// </summary>
+    [Fact]
+    public void GetProof_ReturnsDefensiveCopies_CallerMutationCannotCorruptTree()
+    {
+        var tree = new MerkleTree();
+        tree.Build(["a"u8.ToArray(), "b"u8.ToArray(), "c"u8.ToArray()]);
+
+        var rootBefore = tree.RootHash;
+        var proof = tree.GetProof(0);
+        var proofCopy = proof.Select(h => h.ToArray()).ToList();
+
+        // Hostile caller mutates every returned hash.
+        foreach (var hash in proof)
+        {
+            hash[0] ^= 0xFF;
+        }
+
+        tree.RootHash.Should().Equal(rootBefore, "mutating a returned proof must not corrupt the tree");
+        var fresh = tree.GetProof(0);
+        for (var i = 0; i < fresh.Count; i++)
+        {
+            fresh[i].Should().Equal(proofCopy[i], "a fresh proof must be unaffected by the caller's mutation");
+        }
+    }
+
+    /// <summary>
+    /// Documents the position-binding contract: verification uses the leaf index only for
+    /// left/right parity (RFC 6962-style audit paths additionally bind the tree size; this
+    /// reference implementation does not), so a same-parity wrong index validates the same
+    /// proof. Data integrity holds via domain separation; POSITION is the caller's claim.
+    /// </summary>
+    [Fact]
+    public void VerifyProof_PositionIsUnauthenticated_SameParityIndexValidates()
+    {
+        var tree = new MerkleTree();
+        var a = "a"u8.ToArray();
+        tree.Build([a, "b"u8.ToArray()]);
+
+        var proof = tree.GetProof(0);
+        var leafHash = Hash(a);
+
+        MerkleTree.VerifyProof(leafHash, proof, tree.RootHash, 0).Should().BeTrue("the true position verifies");
+        MerkleTree.VerifyProof(leafHash, proof, tree.RootHash, 2).Should().BeTrue(
+            "index 2 shares index 0's parity chain — the documented caller-must-supply-true-index contract");
+        MerkleTree.VerifyProof(leafHash, proof, tree.RootHash, 1).Should().BeFalse(
+            "an odd index flips the hash order and fails");
     }
 }

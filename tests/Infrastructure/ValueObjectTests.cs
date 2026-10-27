@@ -180,8 +180,8 @@ public sealed class ValueObjectTests
         // Assert: Verify that default values match type defaults.
         metadata.EntryCount.Should().Be(0);
         metadata.FileSize.Should().Be(0L);
-        metadata.CreationTime.Should().Be(default(DateTime));
-        metadata.LastModificationTime.Should().Be(default(DateTime));
+        metadata.CreationTime.Should().Be(default);
+        metadata.LastModificationTime.Should().Be(default);
         metadata.FileName.Should().BeNull();
         metadata.FileLocation.Should().BeNull();
     }

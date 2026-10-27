@@ -16,4 +16,4 @@
 namespace Boutquin.Storage.Samples;
 
 [Key]
-public partial record struct Key(long Value);
+public partial record struct Key([property: Tag(1)] long Value);

@@ -46,7 +46,7 @@ public sealed class ComparisonHelperTests
     {
         // Arrange: First is null, second is a valid string.
         string? first = null;
-        string? second = "hello";
+        var second = "hello";
 
         // Act: Compare null against a non-null value.
         var result = ComparisonHelper.SafeCompareTo(first, second);
@@ -62,7 +62,7 @@ public sealed class ComparisonHelperTests
     public void SafeCompareTo_SecondNull_ShouldReturnPositive()
     {
         // Arrange: First is a valid string, second is null.
-        string? first = "hello";
+        var first = "hello";
         string? second = null;
 
         // Act: Compare a non-null value against null.
@@ -79,8 +79,8 @@ public sealed class ComparisonHelperTests
     public void SafeCompareTo_BothEqual_ShouldReturnZero()
     {
         // Arrange: Two equal string values.
-        string? first = "hello";
-        string? second = "hello";
+        var first = "hello";
+        var second = "hello";
 
         // Act: Compare the two equal values.
         var result = ComparisonHelper.SafeCompareTo(first, second);
@@ -96,8 +96,8 @@ public sealed class ComparisonHelperTests
     public void SafeCompareTo_FirstLessThanSecond_ShouldReturnNegative()
     {
         // Arrange: First is lexicographically less than second.
-        string? first = "apple";
-        string? second = "banana";
+        var first = "apple";
+        var second = "banana";
 
         // Act: Compare the two values.
         var result = ComparisonHelper.SafeCompareTo(first, second);
@@ -113,8 +113,8 @@ public sealed class ComparisonHelperTests
     public void SafeCompareTo_FirstGreaterThanSecond_ShouldReturnPositive()
     {
         // Arrange: First is lexicographically greater than second.
-        string? first = "banana";
-        string? second = "apple";
+        var first = "banana";
+        var second = "apple";
 
         // Act: Compare the two values.
         var result = ComparisonHelper.SafeCompareTo(first, second);
@@ -130,8 +130,8 @@ public sealed class ComparisonHelperTests
     public void SafeCompareTo_WorksWithStringType()
     {
         // Arrange: Two different string values.
-        string? first = "abc";
-        string? second = "xyz";
+        var first = "abc";
+        var second = "xyz";
 
         // Act: Compare the two string values.
         var result = ComparisonHelper.SafeCompareTo(first, second);

@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.Enums;
 /// <summary>
 /// The type of change captured in a CDC record.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing" and Ch. 12 — "The Future of Data Systems":
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing" and Ch. 13 — "A Philosophy of Streaming Systems":
 /// change data capture operations for derived data systems.</para>
 /// </summary>
 public enum ChangeOperation

@@ -73,7 +73,7 @@ public sealed class VectorClockTests
         clock2.Increment("nodeB");
 
         // Act & Assert
-        Assert.Equal(VectorClockComparison.Equal, clock1.CompareTo(clock2));
+        Assert.Equal(VectorClockComparison.Equal, clock1.CompareCausally(clock2));
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ public sealed class VectorClockTests
         clock2.Increment("nodeB");
 
         // Act & Assert
-        Assert.Equal(VectorClockComparison.Before, clock1.CompareTo(clock2));
+        Assert.Equal(VectorClockComparison.Before, clock1.CompareCausally(clock2));
     }
 
     /// <summary>
@@ -111,7 +111,7 @@ public sealed class VectorClockTests
         clock2.Increment("nodeA");
 
         // Act & Assert
-        Assert.Equal(VectorClockComparison.After, clock1.CompareTo(clock2));
+        Assert.Equal(VectorClockComparison.After, clock1.CompareCausally(clock2));
     }
 
     /// <summary>
@@ -130,7 +130,7 @@ public sealed class VectorClockTests
         clock2.Increment("nodeB");
 
         // Act & Assert
-        Assert.Equal(VectorClockComparison.Concurrent, clock1.CompareTo(clock2));
+        Assert.Equal(VectorClockComparison.Concurrent, clock1.CompareCausally(clock2));
     }
 
     /// <summary>
@@ -197,5 +197,15 @@ public sealed class VectorClockTests
         // Assert — snapshot should still show old value
         Assert.Equal(1, snapshot["nodeA"]);
         Assert.Equal(2, clock.GetClock()["nodeA"]);
+    }
+    [Fact]
+    public void Increment_AtMaxValue_FailsLoudlyWithoutRegressingTheComponent()
+    {
+        var clock = new VectorClock(new Dictionary<string, long> { ["nodeA"] = long.MaxValue });
+
+        var act = () => clock.Increment("nodeA");
+
+        act.Should().Throw<OverflowException>("a wrapped component would make this clock causally precede its own past");
+        clock.GetClock()["nodeA"].Should().Be(long.MaxValue, "a rejected increment must leave the component unchanged");
     }
 }

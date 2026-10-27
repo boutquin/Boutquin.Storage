@@ -1,0 +1,238 @@
+// Copyright (c) 2024-2026 Pierre G. Boutquin. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+using Boutquin.Storage.Domain.Attributes;
+using Boutquin.Storage.Domain.Interfaces.TimeSeries;
+using Boutquin.Storage.Domain.ValueObjects.TimeSeries.Columnar;
+using Boutquin.Storage.Infrastructure.DataStructures;
+using Boutquin.Storage.Infrastructure.TimeSeries.Columnar;
+using Boutquin.Storage.Domain.Interfaces;
+using Boutquin.Storage.Domain.ValueObjects.SortedStringTable;
+using Boutquin.Storage.Infrastructure.LsmTree;
+using Boutquin.Storage.Infrastructure.SortedStringTable;
+
+[StorageSerializable]
+public partial record struct ConsumerRow(
+    [property: Tag(1)] string Name,
+    [property: Tag(2)] int Count);
+
+[Key]
+public partial record struct ConsumerKey([property: Tag(1)] long Value);
+
+[ColumnarStorable]
+public partial record ConsumerBar : IHasDate
+{
+    public DateOnly Date { get; init; }
+    public string Symbol { get; init; } = string.Empty;
+    public decimal Close { get; init; }
+    public long Volume { get; init; }
+
+    public ConsumerBar()
+    {
+    }
+}
+
+public static class Program
+{
+    public static async Task Main()
+    {
+        VerifyGeneratedRowRoundTrip();
+        VerifyGeneratedOrderedKey();
+        VerifyGeneratedColumnarRehydrateAndProjection();
+        await VerifyInfrastructureStorageAsync();
+        await VerifyInfrastructureColumnarRoundTripAsync();
+        await VerifyPersistedBloomAsync();
+        Console.WriteLine("PACKAGE_CONSUMER_OK row key columnar infrastructure persisted-bloom");
+    }
+
+    private static void VerifyGeneratedRowRoundTrip()
+    {
+        var expected = new ConsumerRow("release", 20);
+        using var stream = new MemoryStream();
+        expected.Serialize(stream);
+        stream.Position = 0;
+        var actual = ConsumerRow.Deserialize(stream);
+        Ensure(actual == expected, "generated tagged-wire row round-trip failed");
+    }
+
+    private static void VerifyGeneratedOrderedKey()
+    {
+        var lower = new ConsumerKey(-1);
+        var upper = new ConsumerKey(1);
+        using var lowerStream = new MemoryStream();
+        using var upperStream = new MemoryStream();
+        lower.Serialize(lowerStream);
+        upper.Serialize(upperStream);
+        Ensure(lower.CompareTo(upper) < 0, "generated key comparison is not ordered");
+        Ensure(
+            lowerStream.ToArray().AsSpan().SequenceCompareTo(upperStream.ToArray()) < 0,
+            "generated key bytes do not preserve comparison order");
+        lowerStream.Position = 0;
+        Ensure(
+            ConsumerKey.Deserialize(lowerStream) == lower,
+            "generated ordered-key round-trip failed");
+    }
+
+    private static void VerifyGeneratedColumnarRehydrateAndProjection()
+    {
+        IReadOnlyDictionary<string, Array> columns = new Dictionary<string, Array>
+        {
+            ["Date"] = new[] { new DateOnly(2026, 9, 17) },
+            ["Symbol"] = new[] { "BQS" },
+            ["Close"] = new[] { 42.50m },
+            ["Volume"] = new[] { 1_000L },
+        };
+        var rehydrated = ConsumerBar.Rehydrate(columns, 0);
+        Ensure(
+            rehydrated.Symbol == "BQS" && rehydrated.Close == 42.50m,
+            "generated columnar rehydrate failed");
+        var projected = rehydrated.ProjectTo(new ColumnProjection(["Date", "Close"]));
+        Ensure(
+            projected.Date == rehydrated.Date
+                && projected.Close == rehydrated.Close
+                && projected.Symbol == string.Empty
+                && projected.Volume == 0,
+            "generated column projection failed");
+    }
+
+    private static async Task VerifyInfrastructureStorageAsync()
+    {
+        var tree = new RedBlackTree<ConsumerKey, ConsumerRow>(4);
+        var key = new ConsumerKey(7);
+        var value = new ConsumerRow("stored", 1);
+        await tree.SetAsync(key, value);
+        var (actual, found) = await tree.TryGetValueAsync(key);
+        Ensure(found && actual == value, "Infrastructure RedBlackTree storage lookup failed");
+    }
+
+    private static async Task VerifyInfrastructureColumnarRoundTripAsync()
+    {
+        var records = new[]
+        {
+            new ConsumerBar
+            {
+                Date = new DateOnly(2026, 9, 16),
+                Symbol = "BQS",
+                Close = 41.25m,
+                Volume = 900,
+            },
+            new ConsumerBar
+            {
+                Date = new DateOnly(2026, 9, 17),
+                Symbol = "BQS",
+                Close = 42.50m,
+                Volume = 1_000,
+            },
+        };
+        var format = new CompressedColumnarSegmentFormat<ConsumerBar>(rowGroupMaxRows: 1);
+        using var stream = new MemoryStream();
+        await format.WriteAsync(stream, records);
+        stream.Position = 0;
+        var recovered = new List<ConsumerBar>();
+        await foreach (var record in format.ReadAsync(
+            stream,
+            records[0].Date,
+            records[^1].Date,
+            new ColumnProjection(["Date", "Close", "Volume"])))
+        {
+            recovered.Add(record);
+        }
+        Ensure(
+            recovered.Count == 2
+                && recovered[1].Close == records[1].Close
+                && recovered[1].Volume == records[1].Volume
+                && recovered[1].Symbol == string.Empty,
+            "Infrastructure columnar projected round-trip failed");
+    }
+
+    private static async Task VerifyPersistedBloomAsync()
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "bloom-consumer-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            var entries = new[]
+            {
+                SegmentWriteEntry<ConsumerKey, ConsumerRow>.Inline(new ConsumerKey(10), new ConsumerRow("ten", 1), 1),
+                SegmentWriteEntry<ConsumerKey, ConsumerRow>.Inline(new ConsumerKey(30), new ConsumerRow("thirty", 2), 2)
+            };
+            var native = new SstSegmentFormat<ConsumerKey, ConsumerRow>(
+                new SegmentBloomFilterOptions<ConsumerKey>(expectedItems: 1000, falsePositiveProbability: 0.001));
+            var nativeReader = await native.WriteAsync(folder, "native.sst", entries);
+            Ensure(SsTableFooter.TryReadFromEnd(File.ReadAllBytes(Path.Combine(folder, "native.sst")), out var footer), "native footer missing");
+            Ensure(footer!.BloomBitsCount == (int)Math.Ceiling(-1000 * Math.Log(0.001) / Math.Pow(Math.Log(2), 2)), "native Bloom sizing ignored");
+            ((IDisposable)nativeReader).Dispose();
+
+            var codec = new ConsumerBloomCodec();
+            var creates = 0;
+            var custom = new SstSegmentFormat<ConsumerKey, ConsumerRow>(new SegmentBloomFilterOptions<ConsumerKey>(
+                factory: (_, _) => { creates++; return new ConsumerBloomFilter(); }, stateCodec: codec));
+            var reader = await custom.WriteAsync(folder, "custom.sst", entries);
+            ((IDisposable)reader).Dispose();
+            var readsAtSeal = codec.Reads;
+            var decoding = new SstSegmentFormat<ConsumerKey, ConsumerRow>(
+                new SegmentBloomFilterOptions<ConsumerKey>(enabled: false, stateCodec: codec));
+            var reopened = decoding.Open(folder, "custom.sst");
+            Ensure((await reopened.TryGetBlockEntryAsync(new ConsumerKey(10))).Found, "persisted Bloom lost a present key");
+            Ensure(!(await reopened.TryGetBlockEntryAsync(new ConsumerKey(20))).Found, "absent key appeared");
+            Ensure(creates == 1 && codec.Reads == readsAtSeal + 1, "Bloom reopen rebuilt state");
+            ((IDisposable)reopened).Dispose();
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    private sealed class ConsumerBloomFilter : IBloomFilter<ConsumerKey>
+    {
+        public HashSet<long> Keys { get; } = [];
+        public void Add(ConsumerKey key) => Keys.Add(key.Value);
+        public bool Contains(ConsumerKey key) => Keys.Contains(key.Value);
+        public void Clear() => Keys.Clear();
+        public void Dispose() { }
+    }
+
+    private sealed class ConsumerBloomCodec : IBloomFilterStateCodec<ConsumerKey>
+    {
+        public string CodecId => "package-consumer.exact-membership";
+        public int Version => 1;
+        public int Reads { get; private set; }
+        public byte[] Serialize(IBloomFilter<ConsumerKey> filter)
+        {
+            var values = ((ConsumerBloomFilter)filter).Keys.Order().ToArray();
+            var bytes = new byte[values.Length * 8];
+            for (var i = 0; i < values.Length; i++)
+                System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(bytes.AsSpan(i * 8, 8), values[i]);
+            return bytes;
+        }
+        public IBloomFilter<ConsumerKey> Deserialize(ReadOnlyMemory<byte> state)
+        {
+            if (state.Length % 8 != 0) throw new InvalidDataException("Invalid consumer filter state");
+            Reads++;
+            var filter = new ConsumerBloomFilter();
+            for (var i = 0; i < state.Length; i += 8)
+                filter.Keys.Add(System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(state.Span.Slice(i, 8)));
+            return filter;
+        }
+    }
+
+    private static void Ensure(bool condition, string message)
+    {
+        if (!condition)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+}

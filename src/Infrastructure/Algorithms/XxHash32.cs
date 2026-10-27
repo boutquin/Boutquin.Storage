@@ -53,7 +53,7 @@ namespace Boutquin.Storage.Infrastructure.Algorithms;
 ///
 /// <para>
 /// <b>Reference:</b> Yann Collet, xxHash specification (2012). See also Kleppmann, <i>Designing Data-Intensive
-/// Applications</i> (O'Reilly, 2017), Ch. 3 — hash functions are used in Bloom filters and hash indexes
+/// Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — hash functions are used in Bloom filters and hash indexes
 /// to map keys to positions.
 /// </para>
 ///
@@ -102,16 +102,16 @@ public sealed class XxHash32 : IHashAlgorithm
             for (var i = 0; i < blocksCount; i++)
             {
                 var offset = i * 16;
-                v1 = Round(v1, BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset)));
-                v2 = Round(v2, BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset + 4)));
-                v3 = Round(v3, BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset + 8)));
-                v4 = Round(v4, BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(offset + 12)));
+                v1 = Round(v1, BinaryPrimitives.ReadUInt32LittleEndian(data[offset..]));
+                v2 = Round(v2, BinaryPrimitives.ReadUInt32LittleEndian(data[(offset + 4)..]));
+                v3 = Round(v3, BinaryPrimitives.ReadUInt32LittleEndian(data[(offset + 8)..]));
+                v4 = Round(v4, BinaryPrimitives.ReadUInt32LittleEndian(data[(offset + 12)..]));
             }
 
             // Combine the processed variables to form the basis of the hash.
-            hash = unchecked(RotateLeft(v1, 1) + RotateLeft(v2, 7) + RotateLeft(v3, 12) + RotateLeft(v4, 18));
+            hash = unchecked(System.Numerics.BitOperations.RotateLeft(v1, 1) + System.Numerics.BitOperations.RotateLeft(v2, 7) + System.Numerics.BitOperations.RotateLeft(v3, 12) + System.Numerics.BitOperations.RotateLeft(v4, 18));
             // Slice the processed data off, leaving any remaining bytes.
-            data = data.Slice(blocksCount * 16);
+            data = data[(blocksCount * 16)..];
         }
         else
         {
@@ -129,15 +129,15 @@ public sealed class XxHash32 : IHashAlgorithm
         {
             // Read 4 bytes at a time, apply the algorithm's operations.
             hash = unchecked(hash + BinaryPrimitives.ReadUInt32LittleEndian(data) * Prime3);
-            hash = RotateLeft(hash, 17) * Prime4;
-            data = data.Slice(4); // Move to the next 4 bytes.
+            hash = System.Numerics.BitOperations.RotateLeft(hash, 17) * Prime4;
+            data = data[4..]; // Move to the next 4 bytes.
         }
 
         // Process any bytes that are left after processing 4-byte blocks.
         foreach (var b in data)
         {
             hash = unchecked(hash + b * Prime5);
-            hash = RotateLeft(hash, 11) * Prime1;
+            hash = System.Numerics.BitOperations.RotateLeft(hash, 11) * Prime1;
         }
 
         // Final mix of the hash to ensure the avalanche effect, making sure that a small change
@@ -158,22 +158,9 @@ public sealed class XxHash32 : IHashAlgorithm
     private static uint Round(uint hash, uint input)
     {
         hash = unchecked(hash + input * Prime2);
-        hash = RotateLeft(hash, 13);
+        hash = System.Numerics.BitOperations.RotateLeft(hash, 13);
         hash = unchecked(hash * Prime1);
         return hash;
-    }
-
-    /// <summary>
-    /// Performs a left rotation on the given value.
-    /// Bitwise rotation ensures that every bit can influence every other bit.
-    /// </summary>
-    /// <param name="value">The value to rotate.</param>
-    /// <param name="count">The number of bits to rotate by.</param>
-    /// <returns>The rotated value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint RotateLeft(uint value, int count)
-    {
-        return System.Numerics.BitOperations.RotateLeft(value, count);
     }
 
     /// <summary>

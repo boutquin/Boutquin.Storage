@@ -233,4 +233,44 @@ public sealed class SkipListMemTableTests
         Assert.True(found);
         Assert.Equal("ten", value);
     }
+
+    /// <summary>
+    /// AC-7.7: MaxLevel property must return the derived value when 0 is supplied (auto-derive).
+    /// </summary>
+    [Fact]
+    public void Constructor_DefaultMaxLevel_DerivedFromMaxSize()
+    {
+        // maxLevel=0 → auto-derive from maxSize
+        var skipList = new SkipListMemTable<int, string>(maxSize: 100);
+
+        // Auto-derived MaxLevel must be positive
+        Assert.True(skipList.MaxLevel > 0, "MaxLevel must be derived from maxSize when maxLevel=0.");
+    }
+
+    /// <summary>
+    /// AC-7.7: When maxLevel is explicitly provided it must be honoured.
+    /// </summary>
+    [Fact]
+    public void Constructor_ExplicitMaxLevel_IsPreserved()
+    {
+        var skipList = new SkipListMemTable<int, string>(maxSize: 1000, maxLevel: 8, probability: 0.5);
+
+        Assert.Equal(8, skipList.MaxLevel);
+    }
+
+    /// <summary>
+    /// AC-7.7: Non-default constructor with custom probability still inserts and retrieves correctly.
+    /// </summary>
+    [Fact]
+    public async Task Constructor_CustomProbability_WorksCorrectly()
+    {
+        var skipList = new SkipListMemTable<int, string>(maxSize: 100, maxLevel: 4, probability: 0.25);
+
+        await skipList.SetAsync(5, "five");
+        await skipList.SetAsync(10, "ten");
+
+        var (v, found) = await skipList.TryGetValueAsync(5);
+        Assert.True(found);
+        Assert.Equal("five", v);
+    }
 }

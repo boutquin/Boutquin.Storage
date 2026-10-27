@@ -21,7 +21,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <typeparam name="TKey">The type of the key.</typeparam>
 /// <typeparam name="TValue">The type of the value.</typeparam>
 public interface IEntrySerializer<TKey, TValue>
-    where TKey : IComparable<TKey>, ISerializable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     /// <summary>

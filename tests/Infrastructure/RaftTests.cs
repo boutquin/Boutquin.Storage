@@ -13,8 +13,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using Boutquin.Storage.Infrastructure.Consensus;
-
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 /// <summary>
@@ -174,10 +172,12 @@ public sealed class RaftTests
         await cluster.TriggerElectionAsync("node-1").ConfigureAwait(true);
         await RunTicksAsync(cluster, 3).ConfigureAwait(true);
 
-        // Assert — node-2 and node-3 voted for node-1, so they can't vote for anyone else in the same term
-        // After the election, the non-leader nodes should have voted
-        // The leader's VotedFor is set to its own NodeId during election (then cleared on heartbeat receipt)
+        // Assert — node-2 and node-3 voted for node-1, and VotedFor PERSISTS for the term (it is
+        // NOT cleared on receiving the leader's heartbeat — clearing it would permit double-voting
+        // if another candidate's RequestVote arrived in the same term; see RaftNode.HandleAppendEntries).
         Assert.Equal(RaftNodeState.Leader, node1.State);
+        Assert.Equal("node-1", node2.VotedFor);
+        Assert.Equal("node-1", node3.VotedFor);
     }
 
     /// <summary>
@@ -342,11 +342,13 @@ public sealed class RaftTests
     // ========== Tier 1 correctness tests ==========
 
     /// <summary>
-    /// Test that matchIndex is initialized to 0 (not -1) when a node becomes leader,
-    /// per Raft paper Figure 2.
+    /// A newly elected leader initializes matchIndex to the -1 sentinel (this 0-indexed log's
+    /// equivalent of Raft Figure 2's "0" in a 1-indexed log) — meaning "no entry known replicated
+    /// yet" — so a proposed command still replicates and commits once a majority acknowledges it.
+    /// A matchIndex of 0 would wrongly claim log[0] is already replicated and commit it prematurely.
     /// </summary>
     [Fact]
-    public async Task BecomeLeader_InitializesMatchIndexToZero()
+    public async Task BecomeLeader_ReplicatesAndCommits_FromMinusOneMatchIndexSentinel()
     {
         // Arrange
         var cluster = new RaftCluster<string>();
@@ -469,37 +471,233 @@ public sealed class RaftTests
     }
 
     /// <summary>
-    /// Test that the leader correctly handles the decrement-retry path
-    /// when a follower's log is behind.
+    /// Pins the decrement-retry path: a follower partitioned away while the leader commits
+    /// entries (2-of-3 majority) rejoins with an empty log. On re-election the leader's
+    /// nextIndex for that follower resets to the log tail, so its first AppendEntries carries a
+    /// PrevLogIndex the follower cannot match — the conflict-retry loop must walk nextIndex
+    /// back entry by entry and backfill until the follower's committed log converges with the
+    /// leader's. All nodes are added before the first election (AddNode is pre-election-only);
+    /// the partition is simulated by dropping messages to/from the follower at delivery time.
     /// </summary>
     [Fact]
     public async Task Leader_DecrementRetry_ConvergesFollowerLog()
     {
-        // Arrange — single-node leader with some committed entries
+        // Arrange — build full cluster BEFORE any election (AddNode is pre-election-only).
         var cluster = new RaftCluster<string>();
         var node1 = new RaftNode<string>("node-1");
-        cluster.AddNode(node1);
-
-        await cluster.TriggerElectionAsync("node-1").ConfigureAwait(true);
-        await node1.ProposeAsync("cmd-1").ConfigureAwait(true);
-        await node1.ProposeAsync("cmd-2").ConfigureAwait(true);
-
-        // Now add followers — they have empty logs but leader has entries
         var node2 = new RaftNode<string>("node-2");
         var node3 = new RaftNode<string>("node-3");
+        cluster.AddNode(node1);
         cluster.AddNode(node2);
         cluster.AddNode(node3);
 
-        // Re-elect node-1 so it sends entries to the new followers
+        // Elect node-1 as leader with all nodes reachable.
+        await cluster.TriggerElectionAsync("node-1").ConfigureAwait(true);
+        await RunTicksAsync(cluster, 3).ConfigureAwait(true);
+        Assert.Equal(RaftNodeState.Leader, node1.State);
+
+        // Partition node-3 and commit two entries via the node-1/node-2 majority.
+        // Ticks during the partition drop every message to or from node-3.
+        await node1.ProposeAsync("cmd-1").ConfigureAwait(true);
+        TickWithPartition([node1, node2, node3], partitionedId: "node-3");
+        await node1.ProposeAsync("cmd-2").ConfigureAwait(true);
+        for (var i = 0; i < 5; i++)
+        {
+            TickWithPartition([node1, node2, node3], partitionedId: "node-3");
+        }
+
+        Assert.Equal(2, node1.GetCommittedLog().Count);
+        Assert.Empty(node3.GetCommittedLog()); // partitioned follower saw nothing
+
+        // Heal the partition and re-elect node-1: BecomeLeader resets nextIndex[node-3] to the
+        // log tail, so the first AppendEntries to node-3 is rejected and the decrement-retry
+        // loop must walk back and backfill the whole log.
         await cluster.TriggerElectionAsync("node-1").ConfigureAwait(true);
         await RunTicksAsync(cluster, 10).ConfigureAwait(true);
 
-        // Propose new command to drive replication
-        await node1.ProposeAsync("cmd-3").ConfigureAwait(true);
+        // Assert — every node's committed log converges to the leader's exact sequence.
+        var leaderCommands = node1.GetCommittedLog().Select(e => e.Command).ToList();
+        Assert.Equal(["cmd-1", "cmd-2"], leaderCommands);
+        Assert.Equal(leaderCommands, node2.GetCommittedLog().Select(e => e.Command).ToList());
+        Assert.Equal(leaderCommands, node3.GetCommittedLog().Select(e => e.Command).ToList());
+    }
+
+    /// <summary>
+    /// One cluster tick (deliver outboxes, then process inboxes) that simulates a network
+    /// partition by dropping every message sent to or by <paramref name="partitionedId"/>.
+    /// Mirrors <see cref="RaftCluster{TCommand}.TickAsync"/>'s delivery order.
+    /// </summary>
+    private static void TickWithPartition(RaftNode<string>[] nodes, string partitionedId)
+    {
+        var byId = nodes.ToDictionary(n => n.NodeId);
+        foreach (var node in nodes)
+        {
+            while (node.Outbox.TryDequeue(out var outgoing))
+            {
+                if (node.NodeId == partitionedId || outgoing.TargetNodeId == partitionedId)
+                {
+                    continue; // dropped by the partition
+                }
+
+                if (byId.TryGetValue(outgoing.TargetNodeId, out var target))
+                {
+                    target.Inbox.Enqueue(outgoing.Message);
+                }
+            }
+        }
+
+        foreach (var node in nodes)
+        {
+            node.ProcessMessages();
+        }
+    }
+
+    /// <summary>
+    /// AddNode is pre-election-only. Once any node has left the Follower state (i.e. an
+    /// election is underway or a leader has been elected), AddNode must throw to prevent
+    /// silent quorum-math corruption.
+    /// </summary>
+    [Fact]
+    public async Task AddNode_AfterElectionStarted_ThrowsInvalidOperationException()
+    {
+        // Arrange — build a 3-node cluster and drive it to elect a leader.
+        var cluster = new RaftCluster<string>();
+        cluster.AddNode(new RaftNode<string>("node-1"));
+        cluster.AddNode(new RaftNode<string>("node-2"));
+        cluster.AddNode(new RaftNode<string>("node-3"));
+
+        await cluster.TriggerElectionAsync("node-1").ConfigureAwait(true);
+        await RunTicksAsync(cluster, 5).ConfigureAwait(true);
+
+        // Sanity: at least one node must be non-Follower (leader or was candidate).
+        var leaders = cluster.GetNodes().Where(n => n.State == RaftNodeState.Leader).ToList();
+        Assert.Single(leaders);
+
+        // Act — attempt to add a new node while the cluster is electing / has a leader.
+        var newNode = new RaftNode<string>("node-4");
+
+        var act = () => cluster.AddNode(newNode);
+
+        // Assert
+        Assert.Throws<InvalidOperationException>(act);
+    }
+
+    // C4: CancellationToken must be observed by ProposeAsync, TriggerElectionAsync, and TickAsync.
+
+    [Fact]
+    public async Task ProposeAsync_CancelledToken_ThrowsOperationCanceledException()
+    {
+        var node = new RaftNode<string>("leader");
+        var cluster = new RaftCluster<string>();
+        cluster.AddNode(node);
+        await cluster.TriggerElectionAsync("leader").ConfigureAwait(true);
+        // Single-node cluster — node is already leader after TriggerElection.
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => node.ProposeAsync("cmd", cts.Token)).ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task TriggerElectionAsync_CancelledToken_ThrowsOperationCanceledException()
+    {
+        var cluster = new RaftCluster<string>();
+        cluster.AddNode(new RaftNode<string>("n1"));
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => cluster.TriggerElectionAsync("n1", cts.Token)).ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task TickAsync_CancelledToken_ThrowsOperationCanceledException()
+    {
+        var cluster = new RaftCluster<string>();
+        cluster.AddNode(new RaftNode<string>("n1"));
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => cluster.TickAsync(cts.Token)).ConfigureAwait(true);
+    }
+
+    // C5: _nextIndex and _matchIndex must be cleared when a leader steps down.
+
+    [Fact]
+    public async Task StepDown_ClearsNextIndexAndMatchIndex_SoStaleReplicationStateDoesNotCarryOver()
+    {
+        // Build a 3-node cluster, elect a leader, propose a command so matchIndex/nextIndex
+        // are populated, then force the leader to step down by presenting a higher term via
+        // TriggerElection on a different node. The ex-leader's per-follower state must be
+        // empty after the step-down so it cannot miscount quorum if re-elected.
+        var cluster = new RaftCluster<string>();
+        var n1 = new RaftNode<string>("n1");
+        var n2 = new RaftNode<string>("n2");
+        var n3 = new RaftNode<string>("n3");
+        cluster.AddNode(n1);
+        cluster.AddNode(n2);
+        cluster.AddNode(n3);
+
+        await cluster.TriggerElectionAsync("n1").ConfigureAwait(true);
+        await RunTicksAsync(cluster, 5).ConfigureAwait(true);
+
+        var leader = (RaftNode<string>?)cluster.GetLeader();
+        Assert.NotNull(leader);
+
+        // Propose a command to populate _nextIndex and _matchIndex on the leader.
+        await leader.ProposeAsync("data").ConfigureAwait(true);
+        await RunTicksAsync(cluster, 5).ConfigureAwait(true);
+
+        // Force a step-down: trigger election on a peer with a higher term.
+        var peer = leader.NodeId == "n1" ? "n2" : "n1";
+        await cluster.TriggerElectionAsync(peer).ConfigureAwait(true);
         await RunTicksAsync(cluster, 10).ConfigureAwait(true);
 
-        // Assert — followers should have caught up
-        var leaderLog = node1.GetCommittedLog();
-        Assert.True(leaderLog.Count >= 1, "Leader should have committed entries");
+        // The old leader must now be a follower with empty per-follower state.
+        leader.State.Should().NotBe(RaftNodeState.Leader);
+        // Verify via reflection that the dictionaries are empty.
+        var nextIndexField = typeof(RaftNode<string>).GetField("_nextIndex",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var matchIndexField = typeof(RaftNode<string>).GetField("_matchIndex",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var nextIndex = nextIndexField!.GetValue(leader) as System.Collections.IDictionary;
+        var matchIndex = matchIndexField!.GetValue(leader) as System.Collections.IDictionary;
+        nextIndex!.Count.Should().Be(0, "stale nextIndex survives step-down and can corrupt quorum math on re-election");
+        matchIndex!.Count.Should().Be(0, "stale matchIndex survives step-down and can cause premature commits on re-election");
+    }
+
+    /// <summary>
+    /// Regression guard: _nextIndex and _matchIndex must be Dictionary&lt;string, long&gt;,
+    /// not Dictionary&lt;string, int&gt;. An int dictionary truncates any MatchIndex &gt;
+    /// int.MaxValue (2 147 483 647) at the (int) cast, causing the leader to credit a
+    /// follower for log entries it never received and potentially committing un-replicated
+    /// entries — a Leader Completeness / State Machine Safety violation.
+    /// </summary>
+    [Fact]
+    public void MatchIndex_StoredAsLong_NotTruncatedAtIntMaxValue()
+    {
+        // Verify the dictionary value type is long via reflection.
+        // (Instantiation not required — the field type is a compile-time property of the class.)
+        var nextIndexField = typeof(RaftNode<string>).GetField("_nextIndex",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var matchIndexField = typeof(RaftNode<string>).GetField("_matchIndex",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        Assert.NotNull(nextIndexField);
+        Assert.NotNull(matchIndexField);
+
+        // The generic argument of Dictionary<string, T> must be long, not int.
+        var nextIndexValueType = nextIndexField!.FieldType.GetGenericArguments()[1];
+        var matchIndexValueType = matchIndexField!.FieldType.GetGenericArguments()[1];
+
+        nextIndexValueType.Should().Be(typeof(long),
+            because: "_nextIndex must store long indices to avoid truncation of values > int.MaxValue");
+        matchIndexValueType.Should().Be(typeof(long),
+            because: "_matchIndex must store long indices to avoid truncation of values > int.MaxValue");
     }
 }

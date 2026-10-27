@@ -24,12 +24,12 @@ public sealed class StorageDiagnosticSuppressor : DiagnosticSuppressor
 {
     private const string KeyAttributeFqn = "Boutquin.Storage.Domain.Attributes.KeyAttribute";
 
-    private static readonly SuppressionDescriptor s_suppressCA1036 = new SuppressionDescriptor(
+    private static readonly SuppressionDescriptor s_suppressCA1036 = new(
         id: "BSSGS001",
         suppressedDiagnosticId: "CA1036",
         justification: "The Boutquin.Storage source generator produces the required comparison operators for [Key] types.");
 
-    private static readonly SuppressionDescriptor s_suppressS1210 = new SuppressionDescriptor(
+    private static readonly SuppressionDescriptor s_suppressS1210 = new(
         id: "BSSGS002",
         suppressedDiagnosticId: "S1210",
         justification: "The Boutquin.Storage source generator produces the required comparison operators for [Key] types.");
@@ -73,7 +73,7 @@ public sealed class StorageDiagnosticSuppressor : DiagnosticSuppressor
                 continue;
             }
 
-            bool hasKeyAttribute = typeSymbol.GetAttributes().Any(a =>
+            var hasKeyAttribute = typeSymbol.GetAttributes().Any(a =>
                 a.AttributeClass != null &&
                 a.AttributeClass.Equals(keyAttributeSymbol, SymbolEqualityComparer.Default));
 

@@ -3,45 +3,95 @@ name: PR Verify
 on:
   pull_request:
     branches: ["main"]
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: PR Verify
-    runs-on: ubuntu-latest
-
+    name: PR Verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      DOTNET_PROCESSOR_COUNT: 2
+      PACKAGE_VERSION: 2.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Enable Windows long paths
+        if: runner.os == 'Windows'
+        run: git config --global core.longpaths true
+
+      - uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # Full history needed for MinVer
+          fetch-depth: 0
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.401
+
+      - name: Check release tooling and public export
+        run: |
+          python3 -m unittest discover -s scripts/tests -v
+          python3 scripts/check-public-export.py --revision HEAD
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          key: ${{ runner.os }}-nuget-10.0.401-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props', 'nuget.config') }}
 
-      - name: dotnet restore
-        run: dotnet restore
+      - name: Restore public dependencies
+        run: dotnet restore Boutquin.Storage.slnx --configfile nuget.config
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release --no-restore
+      - name: Build
+        run: dotnet build Boutquin.Storage.slnx --configuration Release -m:1 --no-restore --no-incremental -p:MinVerVersionOverride="$PACKAGE_VERSION"
 
-      - name: dotnet test with coverage
-        run: dotnet test --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory ./coverage
+      - name: Test with coverage
+        # Instrumented graph workloads can exceed two minutes on shared runners.
+        # Keep hang diagnostics without treating that runtime variance as a deadlock.
+        run: >-
+          dotnet test Boutquin.Storage.slnx --configuration Release -m:1 --no-build
+          --collect:"XPlat Code Coverage"
+          --logger "console;verbosity=normal"
+          --logger trx
+          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type mini
+          --results-directory ./coverage
 
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/
+      - name: Verify process-termination recovery
+        run: python3 scripts/verify-io-process-crash.py --output coverage/process-crash
+
+      - name: Upload test diagnostics and coverage
         if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report-${{ matrix.os }}
+          path: coverage/
 
-      - name: dotnet format
-        run: dotnet format -v detailed --verify-no-changes
+      - name: Verify formatting
+        run: |
+          dotnet format Boutquin.Storage.slnx --no-restore --verify-no-changes
+          dotnet format tests/IoCrashProbe/Boutquin.Storage.IoCrashProbe.csproj --no-restore --verify-no-changes
+
+      - name: Pack all public packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for project in Domain Infrastructure SourceGenerator; do
+            dotnet pack "src/$project/Boutquin.Storage.$project.csproj" \
+              --configuration Release --no-build --no-restore \
+              -p:MinVerVersionOverride="$PACKAGE_VERSION" --output artifacts/packages
+          done
+
+      - name: Verify package identities and fresh consumer
+        run: python3 scripts/verify-packages.py --packages artifacts/packages --version "$PACKAGE_VERSION" --commit "$GITHUB_SHA"

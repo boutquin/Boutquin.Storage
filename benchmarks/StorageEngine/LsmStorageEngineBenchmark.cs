@@ -40,12 +40,9 @@ public class LsmStorageEngineBenchmark : StorageEngineBenchmark<SerializableWrap
         _tempDir = Path.Combine(Path.GetTempPath(), $"LsmBench_{Guid.NewGuid():N}");
         Directory.CreateDirectory(_tempDir);
 
-        var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        _lsmEngine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 100,
+        _lsmEngine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 100,
             segmentFolder: _tempDir,
-            segmentPrefix: "lsm_seg",
-            entrySerializer: entrySerializer);
+            segmentPrefix: "lsm_seg");
 
         // LsmStorageEngine now implements IStorageEngine via IBulkStorageEngine,
         // so it can be passed directly to the base class.
@@ -102,7 +99,10 @@ public class LsmStorageEngineBenchmark : StorageEngineBenchmark<SerializableWrap
     {
         var startKey = new SerializableWrapper<int>(0);
         var endKey = new SerializableWrapper<int>(ItemCount / 2);
-        await _lsmEngine.GetRangeAsync(startKey, endKey).ConfigureAwait(false);
+        await foreach (var _ in _lsmEngine.GetRangeAsync(startKey, endKey).ConfigureAwait(false))
+        {
+            // drain — benchmarks the full enumeration cost
+        }
     }
 
     /// <summary>

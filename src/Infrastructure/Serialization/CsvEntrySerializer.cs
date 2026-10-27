@@ -22,17 +22,20 @@ namespace Boutquin.Storage.Infrastructure.Serialization;
 /// <typeparam name="TValue">The type of the value.</typeparam>
 /// <remarks>
 /// <para>
-/// <b>Why CSV alongside binary?</b> CSV provides a human-readable serialization format for
+/// <b>Why CSV alongside binary?</b> CSV provides a line-per-entry serialization format for
 /// debugging, data export, and interoperability with external tools (Excel, scripts, etc.). It is
 /// slower and larger than binary, but invaluable during development and for scenarios where data
 /// must be inspected without specialized tooling.
 /// </para>
 /// <para>
-/// <b>Why custom CSV parsing (SplitCsvLine) instead of a library?</b> The parser handles the
-/// minimal CSV subset needed for key-value pairs: comma-separated fields with quoted strings
-/// supporting escaped quotes and embedded commas/newlines. A full CSV library (e.g., CsvHelper)
-/// would add a dependency for functionality that's mostly unused. The custom parser is ~25 lines
-/// and handles exactly the cases this serializer produces.
+/// <b>Why Base64 fields?</b> The key and value wire formats are arbitrary binary (varints,
+/// length prefixes, IEEE 754 bit patterns) — byte sequences that are almost never valid UTF-8
+/// text. Textual formats cannot carry raw binary directly; the standard remedy (DDIA 2e Ch. 5,
+/// "JSON, XML, and Binary Variants") is to encode binary payloads as Base64 text. Each CSV line
+/// is therefore <c>base64(keyBytes),base64(valueBytes)</c>: the Base64 alphabet
+/// (<c>A–Z a–z 0–9 + / =</c>) contains no CSV-significant characters, so no quoting or escaping
+/// layer is needed at all, and the encoded payload survives the line-based framing byte-exactly.
+/// The ~33% size overhead is the documented Base64 cost — acceptable for a debug/export format.
 /// </para>
 /// <para>
 /// <b>Why catch-and-rethrow as SerializationException/DeserializationException?</b> Wrapping
@@ -42,7 +45,7 @@ namespace Boutquin.Storage.Infrastructure.Serialization;
 /// </para>
 /// </remarks>
 public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TValue>
-    where TKey : IComparable<TKey>, ISerializable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     // BOM-less UTF-8 encoding. Encoding.UTF8 emits a 3-byte BOM (0xEF 0xBB 0xBF) preamble on
@@ -51,19 +54,36 @@ public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TV
     // avoids this: entries are written as pure UTF-8 without preamble bytes between them.
     private static readonly Encoding s_utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
+    // Per-stream stash for a peeked byte on a non-seekable stream. When \r is followed by a byte
+    // that is not \n and the stream cannot seek backward, we must preserve that peeked byte for
+    // the next ReadEntry call on the SAME stream. The stash is keyed by stream instance so that
+    // reusing one serializer across different streams never causes cross-stream contamination:
+    // a stash left from stream A is invisible when ReadEntry is later called with stream B.
+    // ConditionalWeakTable holds entries weakly — when a stream is GC'd its stash is released
+    // automatically with no manual cleanup required.
+    private readonly ConditionalWeakTable<Stream, PeekedByteHolder> _peekedBytes = new();
+
+    // Mutable reference-type box for the per-stream peeked-byte stash.
+    // -1 means "no stashed byte"; any other value is a valid 0–255 byte.
+    private sealed class PeekedByteHolder
+    {
+        public int Value = -1;
+    }
+
     /// <inheritdoc/>
     public void WriteEntry(Stream stream, TKey key, TValue value)
     {
-        Guard.AgainstNullOrDefault(() => stream);
-        Guard.AgainstNullOrDefault(() => key);
-        Guard.AgainstNullOrDefault(() => value);
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
 
         try
         {
             using var writer = new StreamWriter(stream, s_utf8NoBom, 1024, leaveOpen: true);
-            var keyString = SerializeToCsvFormat(key);
-            var valueString = SerializeToCsvFormat(value);
-            var csvLine = $"{keyString},{valueString}";
+            // AC-8.6 (F-19): reuse a single MemoryStream for both the key and value
+            // serializations within one WriteEntry call to avoid two heap allocations.
+            using var buf = new MemoryStream();
+            var csvLine = $"{SerializeToBase64Field(key, buf)},{SerializeToBase64Field(value, buf)}";
             writer.WriteLine(csvLine);
             writer.Flush();
         }
@@ -76,18 +96,18 @@ public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TV
     /// <inheritdoc/>
     public async Task WriteEntryAsync(Stream stream, TKey key, TValue value, CancellationToken cancellationToken = default)
     {
-        Guard.AgainstNullOrDefault(() => stream);
-        Guard.AgainstNullOrDefault(() => key);
-        Guard.AgainstNullOrDefault(() => value);
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(key);
+        ArgumentNullException.ThrowIfNull(value);
         cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
             var writer = new StreamWriter(stream, s_utf8NoBom, 1024, leaveOpen: true);
             await using var _ = writer.ConfigureAwait(false);
-            var keyString = SerializeToCsvFormat(key);
-            var valueString = SerializeToCsvFormat(value);
-            var csvLine = $"{keyString},{valueString}";
+            // AC-8.6 (F-19): reuse a single MemoryStream for both serializations.
+            using var buf = new MemoryStream();
+            var csvLine = $"{SerializeToBase64Field(key, buf)},{SerializeToBase64Field(value, buf)}";
             await writer.WriteLineAsync(csvLine).ConfigureAwait(false);
             await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -104,12 +124,12 @@ public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TV
     /// underlying stream beyond the current entry. On dispose, those buffered-but-unconsumed bytes
     /// are lost — the stream position has already advanced past them, corrupting subsequent reads.
     /// Byte-level reading avoids this: the stream position advances exactly to the end of the
-    /// parsed entry. CSV's special characters (comma, quote, newline, CR) are all single-byte in
-    /// UTF-8, so byte-level parsing is safe for detecting record boundaries.
+    /// parsed entry. Base64 fields and the line/field delimiters are all single-byte ASCII, so
+    /// byte-level parsing is trivially safe.
     /// </remarks>
     public (TKey Key, TValue Value)? ReadEntry(Stream stream)
     {
-        Guard.AgainstNullOrDefault(() => stream);
+        ArgumentNullException.ThrowIfNull(stream);
 
         try
         {
@@ -119,18 +139,21 @@ public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TV
                 return null;
             }
 
-            var parts = SplitCsvLine(line);
+            var parts = line.Split(',');
             if (parts.Length != 2)
             {
                 throw new DeserializationException("CSV line does not contain a valid key-value pair.");
             }
 
-            var key = DeserializeFromCsvFormat<TKey>(parts[0]);
-            var value = DeserializeFromCsvFormat<TValue>(parts[1]);
+            var key = DeserializeFromBase64Field<TKey>(parts[0]);
+            var value = DeserializeFromBase64Field<TValue>(parts[1]);
             return (key, value);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not DeserializationException)
         {
+            // AC-8.2 (F-42): do NOT re-wrap a DeserializationException — the original
+            // diagnostic (message, inner exception chain) must be preserved. Only low-level
+            // I/O, Base64, and format exceptions need the domain wrapping.
             throw new DeserializationException("Error occurred while reading entry from CSV.", ex);
         }
     }
@@ -138,50 +161,28 @@ public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TV
     /// <inheritdoc/>
     public bool CanRead(Stream stream)
     {
-        Guard.AgainstNullOrDefault(() => stream);
+        ArgumentNullException.ThrowIfNull(stream);
         return stream.Position < stream.Length;
     }
 
-    private static string SerializeToCsvFormat<T>(T obj) where T : ISerializable<T>, new()
+    // Serializes the object's binary wire to a Base64 CSV field. The wire bytes are arbitrary
+    // binary; decoding them as UTF-8 text would silently replace every invalid sequence with
+    // U+FFFD — corrupting virtually every varint, float, and length prefix. Base64 is the
+    // standard binary-in-text carrier (DDIA 2e Ch. 5) and its alphabet needs no CSV escaping.
+    //
+    // AC-8.6 (F-19): accepts a reusable MemoryStream (reset to position 0 before use) so
+    // the caller can share one allocation across multiple field serializations per entry.
+    private static string SerializeToBase64Field<T>(T obj, MemoryStream buf) where T : ISerializable<T>, new()
     {
-        if (obj is string str)
-        {
-            // Handle escaping of quotes and commas in strings
-            str = str.Replace("\"", "\"\"");
-            if (str.Contains(',') || str.Contains('"') || str.Contains('\n'))
-            {
-                str = $"\"{str}\"";
-            }
-            return str;
-        }
-        else
-        {
-            using var memoryStream = new MemoryStream();
-            using var writer = new StreamWriter(memoryStream);
-            obj.Serialize(writer.BaseStream);
-            writer.Flush();
-            memoryStream.Position = 0;
-            using var reader = new StreamReader(memoryStream);
-            return reader.ReadToEnd();
-        }
+        buf.SetLength(0); // reset without deallocating the backing array
+        obj.Serialize(buf);
+        return Convert.ToBase64String(buf.GetBuffer().AsSpan(0, (int)buf.Length));
     }
 
-    private static T DeserializeFromCsvFormat<T>(string csv) where T : ISerializable<T>, new()
+    private static T DeserializeFromBase64Field<T>(string field) where T : ISerializable<T>, new()
     {
-        if (typeof(T) == typeof(string))
-        {
-            // Handle unescaping of quotes in strings
-            if (csv.StartsWith("\"") && csv.EndsWith("\""))
-            {
-                csv = csv.Substring(1, csv.Length - 2).Replace("\"\"", "\"");
-            }
-            return (T)(object)csv;
-        }
-        else
-        {
-            using var memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
-            return T.Deserialize(memoryStream);
-        }
+        using var memoryStream = new MemoryStream(Convert.FromBase64String(field), writable: false);
+        return T.Deserialize(memoryStream);
     }
 
     /// <summary>
@@ -193,116 +194,81 @@ public sealed class CsvEntrySerializer<TKey, TValue> : IEntrySerializer<TKey, TV
     /// entry we need. On dispose, those extra bytes are lost. Reading bytes directly keeps the
     /// stream position exactly at the end of the parsed entry.
     ///
-    /// Why is byte-level parsing safe for CSV? The record delimiters (comma 0x2C, quote 0x22,
-    /// LF 0x0A, CR 0x0D) are all single-byte ASCII values. In UTF-8, multi-byte sequences never
-    /// contain bytes in the 0x00–0x7F range, so these delimiters cannot appear as part of a
-    /// multi-byte character. We accumulate raw bytes and decode the complete line to string once
-    /// at the end.
+    /// Fields are Base64 (pure ASCII, no quotes, no embedded delimiters), so line parsing is a
+    /// plain scan to LF / CR-LF with no quote-state tracking.
+    ///
+    /// AC-8.6 (F-19): per-byte syscall cost is mitigated by the callers — <see cref="ReadEntry"/>
+    /// is invoked through <see cref="IEntrySerializer{TKey,TValue}"/> whose typical caller-side
+    /// stream is already a <c>FileStream</c> (file-backed, with OS page-cache reads), or a
+    /// <c>MemoryStream</c> (no syscall at all). Wrapping in <c>BufferedStream</c> per call
+    /// would break multi-entry sequential reads because the wrapper's look-ahead advances the
+    /// underlying stream beyond the first entry's bytes; the wrapper is discarded at return
+    /// and the underlying stream is left at the wrong position for the next call. The buffering
+    /// responsibility therefore belongs to the caller — callers that pay per-byte OS cost should
+    /// wrap the stream in a <c>BufferedStream</c> before the first <see cref="ReadEntry"/> call
+    /// and retain it across all reads on that stream.
     /// </remarks>
-    private static string? ReadCsvLineFromStream(Stream stream)
+    private string? ReadCsvLineFromStream(Stream stream)
     {
+        // Retrieve (or lazily create) the per-stream stash so the stash follows the stream,
+        // not the serializer instance. This prevents a peeked byte from stream A from leaking
+        // into a subsequent ReadEntry call that uses a different stream B.
+        var stash = _peekedBytes.GetOrCreateValue(stream);
         var bytes = new List<byte>();
-        var inQuotes = false;
-
-        // Skip UTF-8 BOM (0xEF 0xBB 0xBF) if present. Old versions of this serializer used
-        // Encoding.UTF8 (with BOM) in StreamWriter, which prepended a BOM to each entry.
-        // New writes use s_utf8NoBom, but we still need to read old data gracefully.
-        if (stream.Position < stream.Length)
-        {
-            var first = stream.ReadByte();
-            if (first == 0xEF && stream.Length - stream.Position >= 2)
-            {
-                var second = stream.ReadByte();
-                var third = stream.ReadByte();
-                if (second != 0xBB || third != 0xBF)
-                {
-                    // Not a BOM — rewind all three bytes.
-                    stream.Seek(-3, SeekOrigin.Current);
-                }
-
-                // BOM consumed — continue to read the actual data.
-            }
-            else if (first == -1)
-            {
-                return null;
-            }
-            else
-            {
-                // Not a BOM — rewind the one byte.
-                stream.Seek(-1, SeekOrigin.Current);
-            }
-        }
 
         while (true)
         {
-            var b = stream.ReadByte();
+            // Consume a previously-stashed peeked byte first. This arises when the previous
+            // call on THIS stream saw \r followed by a non-\n byte on a non-seekable stream:
+            // we could not seek backward, so we stashed that byte here for the next call to
+            // consume.
+            int b;
+            if (stash.Value != -1)
+            {
+                b = stash.Value;
+                stash.Value = -1;
+            }
+            else
+            {
+                b = stream.ReadByte();
+            }
+
             if (b == -1)
             {
-                return bytes.Count > 0 ? Encoding.UTF8.GetString(bytes.ToArray()) : null;
+                return bytes.Count > 0 ? Encoding.UTF8.GetString([.. bytes]) : null;
             }
 
-            if (b == '"')
+            if (b == '\n')
             {
-                inQuotes = !inQuotes;
-                bytes.Add((byte)b);
+                return Encoding.UTF8.GetString([.. bytes]);
             }
-            else if (b == '\n' && !inQuotes)
+
+            if (b == '\r')
             {
-                return Encoding.UTF8.GetString(bytes.ToArray());
-            }
-            else if (b == '\r' && !inQuotes)
-            {
-                // Consume \r\n as a single newline.
-                if (stream.ReadByte() != '\n')
+                // Consume \r\n as a single newline. For a lone \r at EOF (ReadByte returns -1),
+                // do not seek backward — there is nothing to rewind, and calling Seek on a
+                // non-seekable stream throws NotSupportedException.
+                var next = stream.ReadByte();
+                if (next != -1 && next != '\n')
                 {
-                    // Not \n — rewind the one byte we consumed.
-                    stream.Seek(-1, SeekOrigin.Current);
+                    if (stream.CanSeek)
+                    {
+                        // Seekable: rewind the one byte we peeked.
+                        stream.Seek(-1, SeekOrigin.Current);
+                    }
+                    else
+                    {
+                        // Non-seekable: stash the peeked byte in the per-stream stash so the
+                        // next call on this same stream picks it up at the top of the loop
+                        // rather than losing it silently.
+                        stash.Value = next;
+                    }
                 }
 
-                return Encoding.UTF8.GetString(bytes.ToArray());
+                return Encoding.UTF8.GetString([.. bytes]);
             }
-            else
-            {
-                bytes.Add((byte)b);
-            }
+
+            bytes.Add((byte)b);
         }
-    }
-
-    private static string[] SplitCsvLine(string line)
-    {
-        var parts = new List<string>();
-        var sb = new StringBuilder();
-        var inQuotes = false;
-
-        for (var i = 0; i < line.Length; i++)
-        {
-            var ch = line[i];
-            if (ch == '"')
-            {
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
-                {
-                    // Escaped quote (doubled): consume both, emit one quote
-                    sb.Append('"');
-                    i++;
-                }
-                else
-                {
-                    // Toggle quote state
-                    inQuotes = !inQuotes;
-                }
-            }
-            else if (ch == ',' && !inQuotes)
-            {
-                parts.Add(sb.ToString());
-                sb.Clear();
-            }
-            else
-            {
-                sb.Append(ch);
-            }
-        }
-
-        parts.Add(sb.ToString());
-        return parts.ToArray();
     }
 }

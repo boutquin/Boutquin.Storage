@@ -40,8 +40,8 @@ namespace Boutquin.Storage.Domain.Interfaces;
 ///
 /// <para><b>Methods:</b></para>
 /// <para>- <see cref="IKeyValueStore{TKey, TValue}.SetAsync(TKey, TValue, CancellationToken)"/>: Sets or updates the value for a specified key.</para>
-/// <para>- <see cref="IKeyValueStore{TKey, TValue}.TryGetValueAsync(TKey, CancellationToken)"/>: Attempts to retrieve the value associated with a specified key.</para>
-/// <para>- <see cref="IKeyValueStore{TKey, TValue}.ContainsKeyAsync(TKey, CancellationToken)"/>: Checks whether the index contains the specified key.</para>
+/// <para>- <see cref="IReadOnlyKeyValueStore{TKey, TValue}.TryGetValueAsync(TKey, CancellationToken)"/>: Attempts to retrieve the value associated with a specified key.</para>
+/// <para>- <see cref="IReadOnlyKeyValueStore{TKey, TValue}.ContainsKeyAsync(TKey, CancellationToken)"/>: Checks whether the index contains the specified key.</para>
 /// <para>- <see cref="IKeyValueStore{TKey, TValue}.RemoveAsync(TKey, CancellationToken)"/>: Removes the value associated with the specified key.</para>
 /// <para>- <see cref="IKeyValueStore{TKey, TValue}.ClearAsync(CancellationToken)"/>: Removes all key-value pairs from the index.</para>
 /// </remarks>

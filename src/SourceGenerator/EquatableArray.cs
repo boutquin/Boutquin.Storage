@@ -19,21 +19,21 @@ namespace Boutquin.Storage.SourceGenerator;
 // A readonly struct wrapping T[] that implements IEquatable via SequenceEqual.
 // Pipeline intermediate types must never hold Roslyn types — this ensures caching works
 // correctly: two EquatableArray<T> with the same elements compare equal across compilations.
-internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
+internal readonly struct EquatableArray<T>(T[] array) : IEquatable<EquatableArray<T>>, IEnumerable<T>
     where T : IEquatable<T>
 {
-    private readonly T[]? _array;
+    private readonly T[]? _array = array;
 
-    public static readonly EquatableArray<T> Empty = new EquatableArray<T>(Array.Empty<T>());
-
-    public EquatableArray(T[] array)
-    {
-        _array = array;
-    }
+    public static readonly EquatableArray<T> Empty = new([]);
 
     public int Length => _array?.Length ?? 0;
 
-    public T this[int index] => _array![index];
+    // Null-forgiving `!` on a null _array throws NullReferenceException from a default-constructed
+    // instance. Explicit null-check converts it to IndexOutOfRangeException — the same exception
+    // type a real array access throws, so callers get a recognizable, debuggable exception.
+    public T this[int index] => _array is null
+        ? throw new IndexOutOfRangeException(nameof(index))
+        : _array[index];
 
     public bool Equals(EquatableArray<T> other)
     {
@@ -52,7 +52,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
             return false;
         }
 
-        for (int i = 0; i < _array.Length; i++)
+        for (var i = 0; i < _array.Length; i++)
         {
             if (!_array[i].Equals(other._array[i]))
             {
@@ -75,7 +75,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
 
         unchecked
         {
-            int hash = 17;
+            var hash = 17;
             foreach (T item in _array)
             {
                 hash = hash * 31 ^ item.GetHashCode();
@@ -85,7 +85,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     }
 
     public IEnumerator<T> GetEnumerator() =>
-        ((IEnumerable<T>)(_array ?? Array.Empty<T>())).GetEnumerator();
+        ((IEnumerable<T>)(_array ?? [])).GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 

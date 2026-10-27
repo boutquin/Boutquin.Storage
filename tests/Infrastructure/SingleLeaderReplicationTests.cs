@@ -13,8 +13,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using Boutquin.Storage.Infrastructure.Replication;
-
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 /// <summary>
@@ -194,6 +192,32 @@ public sealed class SingleLeaderReplicationTests
 
         // Assert
         Assert.Equal(2, hwm);
+    }
+
+    /// <summary>
+    /// Sibling contract with <c>IQuorumReplication&lt;TKey, TValue&gt;</c>: implementations
+    /// own a <see cref="SemaphoreSlim"/> whose kernel waitable handle must be released
+    /// deterministically, so the replicator is disposable, dispose is idempotent, and every
+    /// public method throws <see cref="ObjectDisposedException"/> afterwards.
+    /// </summary>
+    [Fact]
+    public async Task Dispose_IsIdempotent_AndPostDisposeMethodsThrow()
+    {
+        var replication = new SingleLeaderReplication<string, int>();
+        await replication.WriteAsync("k", 1).ConfigureAwait(true);
+
+        var disposable = (object)replication as IDisposable;
+        Assert.NotNull(disposable);
+
+        disposable.Dispose();
+        disposable.Dispose(); // second dispose is a no-op
+
+        Assert.Throws<ObjectDisposedException>(() => replication.AddFollower("f"));
+        Assert.Throws<ObjectDisposedException>(() => replication.RemoveFollower("f"));
+        Assert.Throws<ObjectDisposedException>(replication.GetReplicationLag);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => replication.WriteAsync("k", 2));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => replication.ReadAsync("k"));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => replication.SyncFollowerAsync("f"));
     }
 
     /// <summary>

@@ -1,8 +1,16 @@
-# Benchmark Results
+# Historical Benchmark Results
 
 > **Environment:** Apple M4, .NET 10.0.3 (Arm64 RyuJIT), macOS Tahoe 26.3
 > **Date:** 2026-03-15
 > **BenchmarkDotNet:** v0.15.8 (3 iterations, 1 warmup)
+
+> **Historical snapshot.** These numbers were measured 2026-03-15 on the hardware listed
+> above and are retained as a record of that run. They do not characterize the 2.0.0 code:
+> the CSV reader failure was fixed, the WAL now uses bounded group commit by default, and
+> the storage paths have changed substantially through block SSTables, background flushing,
+> WiscKey and columnar formats. Re-run the current benchmark harness on your own hardware
+> before making a performance decision. Comparisons and interpretations below apply only to
+> this recorded run.
 
 This document presents benchmark results for the storage engine implementations in Boutquin.Storage.
 Rather than just reporting numbers, each section explains *what the results mean* in terms of the
@@ -20,7 +28,7 @@ data structure theory from Kleppmann's *Designing Data-Intensive Applications*.
 - [Storage Engine Comparison](#storage-engine-comparison)
 - [LSM Storage Engine](#lsm-storage-engine)
 - [Compaction Strategies](#compaction-strategies)
-- [Known Issues](#known-issues)
+- [Historical Run Limitations](#historical-run-limitations)
 
 ---
 
@@ -66,10 +74,9 @@ and distribution quality.
 | BloomFilter Add              | 677 μs | 1,020 KB  |
 | CountingBloomFilter Add      | 719 μs | 1,382 KB  |
 
-**What this tells us:** Bloom filters deliver their theoretical promise — `Contains` checks for
-*existing* items are faster than checks for *missing* items. This is because a positive match
-can short-circuit once all hash positions are set, while a negative result must evaluate enough
-hash functions to find a zero bit.
+**Interpretation limit:** These timings include the historical fixture's costs and do not
+establish a general advantage for positive probes. A negative Bloom probe can stop at the
+first zero bit; a positive probe must check every required position.
 
 **Slightly surprising:** CountingBloomFilter `Contains` is marginally *faster* than standard
 BloomFilter, despite the counting variant using wider counters. This is likely a measurement
@@ -99,9 +106,10 @@ sense — deserialization skips the encoding step and reads fixed-width fields d
 writing is comparable in speed to binary but allocates **2x the memory** due to string
 conversions and intermediate buffers.
 
-**Why CsvRead failed:** The benchmark threw an exception during execution. This indicates a bug
-in the CSV deserialization path — likely a parsing edge case with the test data format. This
-needs investigation.
+**Why CsvRead failed in this run:** The old CSV reader created a buffered `StreamReader` per
+entry and lost bytes that the reader had consumed ahead of the current record. The implementation
+now reads record bytes directly and has multi-entry sequential-read coverage. The failed cell is
+retained because replacing it would mix a later result into this historical snapshot.
 
 **Design implication:** Binary serialization is the right default for on-disk storage (SSTable,
 WAL). CSV serialization is useful for debugging and interoperability but should not be used in
@@ -119,8 +127,8 @@ hot paths. The 2x memory overhead becomes significant when flushing large memtab
 | Recover | 1,000 | 4,080 ms  | 1,192 KB  |
 
 **What this tells us:** WAL operations are **dominated by fsync**. Each append calls
-`Flush(flushToDisk: true)` to guarantee durability, which forces the OS to write data through
-to the physical storage device. At ~4ms per entry (4,051ms ÷ 1,000), the per-entry cost is
+`Flush(flushToDisk: true)` to request an OS flush barrier. These timings do not establish
+physical power-loss survival; see [durability boundaries](TRADEOFFS.md). At ~4ms per entry (4,051ms ÷ 1,000), the per-entry cost is
 almost entirely fsync latency.
 
 **Perfectly linear scaling** (10x items → 10x time) confirms that each entry pays a fixed fsync
@@ -131,9 +139,10 @@ reads) to be faster than writes (sequential writes + fsync). The near-identical 
 that recovery is also doing per-entry deserialization with validation, or that the read path
 is hitting uncached I/O.
 
-**This is the critical bottleneck** in the LSM write path. A production WAL would batch entries
-and fsync once per batch (group commit), reducing the per-entry cost by 100-1000x. Our
-implementation prioritizes correctness (every entry is durable) over throughput.
+**Historical implication:** This run motivated batching durable appends. The current WAL uses a
+bounded group-commit queue by default and fsyncs once per batch; every `AppendAsync` still waits
+for the batch containing its frame to become durable. These per-append figures must not be used
+as current WAL throughput numbers.
 
 ---
 
@@ -154,9 +163,8 @@ than writes.
 then scan forward through the data block. Each read deserializes entries, builds key comparisons,
 and allocates intermediate objects. The write path simply serializes sorted data sequentially.
 
-**Superlinear read scaling** (10x items: 22ms → 219ms = 10x) is expected given the sparse index
-design. With a fixed sparse index interval, more items mean longer scans within each index
-region.
+**Approximately linear measured scaling** (10x items: 22ms → 219ms ≈ 10x). These aggregate
+timings alone do not identify the cost of an individual lookup or its algorithmic complexity.
 
 **Memory concern:** At 1,000 items, a single SSTable read allocates 40 MB. In an LSM engine
 that searches multiple SSTables per read, this compounds. This is an area where streaming
@@ -305,26 +313,27 @@ The LSM benchmark's `Compact` method (141-353ms) gives a better picture of real 
 
 ---
 
-## Known Issues
+## Historical Run Limitations
 
-The following benchmarks produced no results and need investigation:
+The following rows were missing or non-representative in the 2026-03-15 run. The current-status
+column prevents an old benchmark failure from being mistaken for a current product defect.
 
-| Benchmark | Issue | Likely Cause |
-|-----------|-------|--------------|
-| DataStructureBenchmark (all 24 cases) | All results NA | BDN could not measure — methods likely too fast or throwing exceptions. The async `SetAsync`/`TryGetValueAsync` overhead on in-memory data structures may confuse BDN's measurement infrastructure |
-| CsvRead (EntrySerializer) | Failed | Exception during deserialization — likely a parsing bug with the test data format |
-| CompactionStrategy (all 9 cases) | Trivial results (~24ns) | Not measuring real compaction — engines have no segments to compact |
+| Benchmark | Recorded issue | Current status |
+|-----------|----------------|----------------|
+| DataStructureBenchmark (all 24 cases) | All results NA | Historical result only; the harness has since been repaired (keys now start at 1 because the stores reject the default key) — rerun it before drawing a conclusion |
+| CsvRead (EntrySerializer) | Failed during deserialization | Fixed by direct byte-level record reads with multi-entry regression coverage |
+| CompactionStrategy (all 9 cases) | Trivial results (~24ns) | Still not a compaction-throughput measurement; use a workload that creates multiple segments and measures merge I/O |
 
 ---
 
-## Key Takeaways
+## Historical Observations
 
 1. **Indexes are the most impactful optimization.** A simple hash index turns 21-second reads
    into 148ms reads — a 145x improvement. This is the foundational lesson of Chapter 3.
 
-2. **fsync dominates write latency.** All file-backed engines converge to similar write
-   performance (~140-195ms for 1,000 entries) because per-entry fsync is the bottleneck.
-   Batching writes (group commit) would be the single highest-impact optimization.
+2. **Per-append fsync dominated write latency in this run.** All file-backed engines converged
+   to similar write performance (~140-195ms for 1,000 entries). The WAL now implements the
+   group-commit change this result motivated, so the current path needs a fresh measurement.
 
 3. **Bloom filters are asymmetric.** They dramatically accelerate negative lookups (84x for
    BulkKV) but cannot help with positive lookups. This makes them ideal for LSM trees where

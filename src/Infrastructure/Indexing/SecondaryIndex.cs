@@ -18,6 +18,10 @@ namespace Boutquin.Storage.Infrastructure.Indexing;
 /// <summary>
 /// An in-memory secondary index that maps derived index keys to sets of primary keys.
 /// </summary>
+/// <typeparam name="TKey">The type of the primary key.</typeparam>
+/// <typeparam name="TValue">The type of the value being indexed.</typeparam>
+/// <typeparam name="TIndexKey">The type of the derived index key.</typeparam>
+/// <param name="keyExtractor">A function that extracts the index key from a value.</param>
 /// <remarks>
 /// <para>
 /// <b>Why SemaphoreSlim for thread safety?</b> The secondary index may be updated concurrently
@@ -32,29 +36,21 @@ namespace Boutquin.Storage.Infrastructure.Indexing;
 /// because secondary index lookups don't need ordering — they just need the set of matching primary keys.
 /// </para>
 /// </remarks>
-/// <typeparam name="TKey">The type of the primary key.</typeparam>
-/// <typeparam name="TValue">The type of the value being indexed.</typeparam>
-/// <typeparam name="TIndexKey">The type of the derived index key.</typeparam>
-public sealed class SecondaryIndex<TKey, TValue, TIndexKey> : ISecondaryIndex<TKey, TValue, TIndexKey>
-    where TKey : IComparable<TKey>
+public sealed class SecondaryIndex<TKey, TValue, TIndexKey>(Func<TValue, TIndexKey> keyExtractor) : ISecondaryIndex<TKey, TValue, TIndexKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
     where TIndexKey : IComparable<TIndexKey>
 {
-    private readonly Dictionary<TIndexKey, HashSet<TKey>> _index = new();
-    private readonly Func<TValue, TIndexKey> _keyExtractor;
+    private readonly Dictionary<TIndexKey, HashSet<TKey>> _index = [];
+    private readonly Func<TValue, TIndexKey> _keyExtractor = keyExtractor ?? throw new ArgumentNullException(nameof(keyExtractor));
     private readonly SemaphoreSlim _semaphore = new(1, 1);
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SecondaryIndex{TKey, TValue, TIndexKey}"/> class.
-    /// </summary>
-    /// <param name="keyExtractor">A function that extracts the index key from a value.</param>
-    public SecondaryIndex(Func<TValue, TIndexKey> keyExtractor)
-    {
-        _keyExtractor = keyExtractor ?? throw new ArgumentNullException(nameof(keyExtractor));
-    }
+    // int (not bool) so Interlocked.Exchange can provide atomic check-and-set.
+    // 0 = not disposed, 1 = disposed.
+    private int _disposed;
 
     /// <inheritdoc/>
     public async Task IndexAsync(TKey primaryKey, TValue value, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
         ArgumentNullException.ThrowIfNull(primaryKey);
         ArgumentNullException.ThrowIfNull(value);
 
@@ -63,9 +59,10 @@ public sealed class SecondaryIndex<TKey, TValue, TIndexKey> : ISecondaryIndex<TK
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(_disposed != 0, this);
             if (!_index.TryGetValue(indexKey, out var primaryKeys))
             {
-                primaryKeys = new HashSet<TKey>();
+                primaryKeys = [];
                 _index[indexKey] = primaryKeys;
             }
             primaryKeys.Add(primaryKey);
@@ -79,11 +76,13 @@ public sealed class SecondaryIndex<TKey, TValue, TIndexKey> : ISecondaryIndex<TK
     /// <inheritdoc/>
     public async Task<IEnumerable<TKey>> LookupAsync(TIndexKey indexKey, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
         ArgumentNullException.ThrowIfNull(indexKey);
 
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(_disposed != 0, this);
             if (_index.TryGetValue(indexKey, out var primaryKeys))
             {
                 return primaryKeys.ToList();
@@ -99,6 +98,7 @@ public sealed class SecondaryIndex<TKey, TValue, TIndexKey> : ISecondaryIndex<TK
     /// <inheritdoc/>
     public async Task RemoveAsync(TKey primaryKey, TValue value, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
         ArgumentNullException.ThrowIfNull(primaryKey);
         ArgumentNullException.ThrowIfNull(value);
 
@@ -107,6 +107,7 @@ public sealed class SecondaryIndex<TKey, TValue, TIndexKey> : ISecondaryIndex<TK
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(_disposed != 0, this);
             if (_index.TryGetValue(indexKey, out var primaryKeys))
             {
                 primaryKeys.Remove(primaryKey);
@@ -125,9 +126,11 @@ public sealed class SecondaryIndex<TKey, TValue, TIndexKey> : ISecondaryIndex<TK
     /// <inheritdoc/>
     public async Task ClearAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(_disposed != 0, this);
             _index.Clear();
         }
         finally
@@ -135,4 +138,17 @@ public sealed class SecondaryIndex<TKey, TValue, TIndexKey> : ISecondaryIndex<TK
             _semaphore.Release();
         }
     }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Marks the index disposed; safe to call multiple times and concurrently. After dispose, every
+    /// public method throws <see cref="ObjectDisposedException"/>, including a call already queued on
+    /// the semaphore: it wakes when the current holder releases, observes the disposal and throws. An
+    /// operation that held the semaphore when Dispose ran completes normally. The
+    /// <see cref="SemaphoreSlim"/> is deliberately never disposed: it allocates no kernel handle unless
+    /// <see cref="SemaphoreSlim.AvailableWaitHandle"/> is read, which this type never does, and disposing
+    /// it under a holder would make the holder's release throw after its update ran and strand every
+    /// queued caller forever.
+    /// </remarks>
+    public void Dispose() => Interlocked.Exchange(ref _disposed, 1);
 }

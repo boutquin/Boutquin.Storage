@@ -17,9 +17,59 @@ namespace Boutquin.Storage.SourceGenerator.Tests;
 
 public sealed class DiagnosticTests
 {
-    [Fact]
-    public void BSSG001_Unsupported_Property_Type()
+    [Theory]
+    [InlineData("IEnumerable<int>?")]
+    [InlineData("IEnumerable<Child>?")]
+    [InlineData("IEnumerable<string?>")]
+    [InlineData("IEnumerable<Child?>")]
+    public void BSSG001_NullableCollectionShapes_AreRejectedBeforeEmission(string propertyType)
     {
+        var source = $$"""
+            #nullable enable
+            using System.Collections.Generic;
+            using Boutquin.Storage.Domain.Attributes;
+            namespace TestNamespace;
+            [StorageSerializable]
+            public partial record class Child([property: Tag(1)] int Value);
+            [StorageSerializable]
+            public partial record struct BadType([property: Tag(1)] {{propertyType}} Values);
+            """;
+
+        var (_, result) = TestHelpers.RunGenerator(source);
+
+        result.Diagnostics.Should().ContainSingle(d => d.Id == "BSSG001");
+        result.Diagnostics.Should().NotContain(d => d.Id == "CS8785");
+        result.GeneratedTrees.Should().NotContain(tree => tree.FilePath.Contains("BadType.g.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void BSSG001_NullableCollectionElement_IsRejected_NotGeneratorCrash()
+    {
+        // #6 (class E): IEnumerable<Nullable<T>> on a [StorageSerializable] record classified as a
+        // PrimitiveCollection with ElementKind=Nullable and reached the emitter, which threw — Roslyn
+        // surfaces that as a CS8785 generator-crash warning (silent under default settings), with no
+        // BSSG diagnostic and zero code emitted. The nullable collection element must be rejected
+        // loudly at transform time so the record is skipped with a real diagnostic. (Same class as
+        // the already-fixed Nullable<enum> scalar bug.)
+        const string source = """
+            using System.Collections.Generic;
+            using Boutquin.Storage.Domain.Attributes;
+            namespace TestNamespace;
+            [StorageSerializable]
+            public partial record struct BadType([property: Tag(1)] IEnumerable<int?> Values);
+            """;
+
+        var (_, runResult) = TestHelpers.RunGenerator(source);
+
+        runResult.Diagnostics.Should().Contain(d => d.Id == "BSSG001",
+            "a nullable collection element must produce a clean BSSG001, not a generator crash");
+    }
+
+    [Fact]
+    public void BSSG008_Excluded_Property_Type_DateTime()
+    {
+        // Phase 1 moves DateTime / nint / nuint from the generic BSSG001 to
+        // the targeted BSSG008 with a "use DateTimeOffset / DateOnly" remediation message.
         const string source = """
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
@@ -30,7 +80,28 @@ public sealed class DiagnosticTests
         var (_, runResult) = TestHelpers.RunGenerator(source);
         var diagnostics = runResult.Diagnostics;
 
-        diagnostics.Should().ContainSingle(d => d.Id == "BSSG001");
+        diagnostics.Should().ContainSingle(d => d.Id == "BSSG008");
+        diagnostics.Single(d => d.Id == "BSSG008").GetMessage(System.Globalization.CultureInfo.InvariantCulture).Should()
+            .Contain("DateTimeOffset").And.Contain("DateOnly");
+    }
+
+    [Theory]
+    [InlineData("nint", "int or long")]
+    [InlineData("nuint", "uint or ulong")]
+    public void BSSG008_Excluded_Native_Integer_Types(string typeSyntax, string expectedRemediationFragment)
+    {
+        var source = $$"""
+            using Boutquin.Storage.Domain.Attributes;
+            namespace TestNamespace;
+            [StorageSerializable]
+            public partial record struct BadType({{typeSyntax}} Handle);
+            """;
+
+        var (_, runResult) = TestHelpers.RunGenerator(source);
+        var diagnostics = runResult.Diagnostics;
+
+        diagnostics.Should().ContainSingle(d => d.Id == "BSSG008");
+        diagnostics.Single(d => d.Id == "BSSG008").GetMessage(System.Globalization.CultureInfo.InvariantCulture).Should().Contain(expectedRemediationFragment);
     }
 
     [Fact]
@@ -91,16 +162,31 @@ public sealed class DiagnosticTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [StorageSerializable]
-            public partial class NotARecordStruct
+            public partial struct NotARecordStruct
             {
+                public NotARecordStruct(string name) { Name = name; }
+
+                [Tag(1)]
                 public string Name { get; set; }
             }
             """;
 
-        var (_, runResult) = TestHelpers.RunGenerator(source);
+        var (outputCompilation, runResult) = TestHelpers.RunGenerator(source);
 
-        // Code should still be generated despite the advisory warning
+        // Code should still be generated despite the advisory warning. Every
+        // property carries a [Tag(N)] so BSSG010 (MissingTag) does not block emission, and
+        // the constructor takes the properties positionally so BSSG025 does not either
+        // (the generated Deserialize calls it; ProjectTo's `with` is valid on a struct).
+        runResult.Diagnostics.Should().Contain(d => d.Id == "BSSG003" && d.Severity == DiagnosticSeverity.Warning);
         runResult.GeneratedTrees.Should().NotBeEmpty();
+
+        // Advisory means the emitted code is usable, not merely present.
+        var generatedErrors = outputCompilation.GetDiagnostics()
+            .Where(d => d.Severity == DiagnosticSeverity.Error &&
+                        d.Location.SourceTree is { } tree &&
+                        runResult.GeneratedTrees.Contains(tree))
+            .ToList();
+        generatedErrors.Should().BeEmpty(string.Join("\n", generatedErrors));
     }
 
     [Fact]
@@ -159,14 +245,35 @@ public sealed class DiagnosticTests
     }
 
     [Fact]
-    public void BSSG001_Unsupported_Collection_Element_Type()
+    public void BSSG008_Excluded_Collection_Element_Type()
     {
+        // IEnumerable<DateTime> used to emit BSSG001; Phase 1 routes DateTime through
+        // BSSG008 inside collections too so the remediation message still surfaces.
         const string source = """
             using Boutquin.Storage.Domain.Attributes;
             using System.Collections.Generic;
             namespace TestNamespace;
             [StorageSerializable]
             public partial record struct BadCollection(IEnumerable<System.DateTime> Dates);
+            """;
+
+        var (_, runResult) = TestHelpers.RunGenerator(source);
+        var diagnostics = runResult.Diagnostics;
+
+        diagnostics.Should().ContainSingle(d => d.Id == "BSSG008");
+    }
+
+    [Fact]
+    public void BSSG001_Unsupported_Collection_Element_Type_Reference()
+    {
+        // Reference types (other than string) still fall through to BSSG001; confirm the
+        // generic unsupported-type pathway survives the classifier refactor.
+        const string source = """
+            using Boutquin.Storage.Domain.Attributes;
+            using System.Collections.Generic;
+            namespace TestNamespace;
+            [StorageSerializable]
+            public partial record struct BadCollection(IEnumerable<object> Items);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -182,7 +289,7 @@ public sealed class DiagnosticTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [Key]
-            public partial record struct ValidKey(long Value);
+            public partial record struct ValidKey([property: Tag(1)] long Value);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -197,7 +304,9 @@ public sealed class DiagnosticTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [StorageSerializable]
-            public partial record struct ValidValue(string Name, int Count);
+            public partial record struct ValidValue(
+                [property: Tag(1)] string Name,
+                [property: Tag(2)] int Count);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);

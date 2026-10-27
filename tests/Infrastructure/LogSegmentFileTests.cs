@@ -100,6 +100,28 @@ public sealed class LogSegmentFileTests
     }
 
     /// <summary>
+    /// SetBulkAsync must enforce the same full-segment rejection as SetAsync: on a segment whose
+    /// size has reached the limit, the bulk write is refused before any item reaches the
+    /// underlying engine.
+    /// </summary>
+    [Fact]
+    public async Task SetBulkAsync_ShouldThrowExceptionIfSegmentSizeExceeded()
+    {
+        var storageEngineMock = new Mock<IFileBasedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>>();
+        storageEngineMock.SetupGet(se => se.FileSize).Returns(1024); // exactly at the limit
+        var segmentFile = new LogSegmentFile<SerializableWrapper<int>, SerializableWrapper<string>>(storageEngineMock.Object, 1024);
+        var items = new[]
+        {
+            new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1")),
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => segmentFile.SetBulkAsync(items));
+        storageEngineMock.Verify(
+            se => se.SetBulkAsync(It.IsAny<IEnumerable<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    /// <summary>
     /// Test to ensure that the SetAsync method appends a key-value pair
     /// to the segment file when called concurrently.
     /// </summary>

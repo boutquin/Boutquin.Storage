@@ -53,11 +53,77 @@ public sealed class SortedStringTableTests : IDisposable
         };
 
         // Act
-        sst.Write(items);
+        sst.Write(items.WithZeroSeqno());
 
         // Assert
         sst.GetEntryCount().Should().Be(5);
         sst.FileSize.Should().BeGreaterThan(0);
+    }
+
+    /// <summary>
+    /// The footer — bloom bits, block index, key range, tombstones — is on-disk state that
+    /// drives "we can be sure the key is absent" decisions (DDIA 2e Ch. 4 on Bloom filters).
+    /// A bit flip in the persisted bloom bits must fail the reopen loudly via the footer
+    /// CRC; without it, the flip silently produces bloom false negatives — present keys
+    /// reading as absent.
+    /// </summary>
+    [Fact]
+    public void Reopen_WithBitFlippedFooterBloomBits_Throws()
+    {
+        var fileName = "footer_crc_test.dat";
+        var sst = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
+            _testDirectory, fileName);
+        sst.Write(new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
+        {
+            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("alpha")),
+            new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("bravo")),
+            new(new SerializableWrapper<int>(3), new SerializableWrapper<string>("charlie")),
+        }.WithZeroSeqno());
+
+        // Locate the persisted bloom bits inside the file and flip one bit mid-span.
+        var path = Path.Combine(_testDirectory, fileName);
+        var fileBytes = File.ReadAllBytes(path);
+        SsTableFooter.TryReadFromEnd(fileBytes, out var footer).Should().BeTrue();
+        var bloomBits = footer!.BloomBits.ToArray();
+        bloomBits.Length.Should().BeGreaterThan(2, "the bloom span must be locatable");
+        var bloomOffset = fileBytes.AsSpan().IndexOf(bloomBits);
+        bloomOffset.Should().BeGreaterThan(0, "the bloom bits must appear verbatim in the file");
+
+        fileBytes[bloomOffset + bloomBits.Length / 2] ^= 0x10;
+        File.WriteAllBytes(path, fileBytes);
+
+        var act = () => new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
+            _testDirectory, fileName);
+        act.Should().Throw<InvalidDataException>(
+            "footer corruption must be detected by the footer CRC, not silently served as bloom false negatives");
+    }
+
+    /// <summary>
+    /// A transient I/O failure on an EXISTING SSTable file must propagate, not silently
+    /// degrade the table to "unwritten empty": swallowing the exception makes every read
+    /// report not-found and lets a subsequent Write atomically replace the real file's
+    /// contents. (An unparseable footer already throws; an unreadable file deserves the
+    /// same loud path.)
+    /// </summary>
+    [Fact]
+    public void Constructor_ExistingFileUnreadable_Throws()
+    {
+        var fileName = "locked_test.dat";
+        var sst = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
+            _testDirectory, fileName);
+        sst.Write(new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
+        {
+            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("alpha")),
+        }.WithZeroSeqno());
+
+        // Hold the file with no sharing so the next constructor's read fails.
+        using var exclusive = new FileStream(
+            Path.Combine(_testDirectory, fileName), FileMode.Open, FileAccess.Read, FileShare.None);
+
+        var act = () => new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
+            _testDirectory, fileName);
+        act.Should().Throw<IOException>(
+            "an existing file that cannot be read is a fault, not an empty table");
     }
 
     /// <summary>
@@ -77,7 +143,7 @@ public sealed class SortedStringTableTests : IDisposable
             new(new SerializableWrapper<int>(30), new SerializableWrapper<string>("thirty"))
         };
 
-        sst.Write(items);
+        sst.Write(items.WithZeroSeqno());
 
         // Act
         var found = sst.TryGetValue(new SerializableWrapper<int>(20), out var value);
@@ -103,7 +169,7 @@ public sealed class SortedStringTableTests : IDisposable
             new(new SerializableWrapper<int>(3), new SerializableWrapper<string>("three"))
         };
 
-        sst.Write(items);
+        sst.Write(items.WithZeroSeqno());
 
         // Act
         var found = sst.TryGetValue(new SerializableWrapper<int>(2), out _);
@@ -122,7 +188,7 @@ public sealed class SortedStringTableTests : IDisposable
         var sst = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
             _testDirectory, "get_empty_test.dat");
 
-        sst.Write(Array.Empty<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>());
+        sst.Write(Array.Empty<(SerializableWrapper<int>, SerializableWrapper<string>, ulong)>());
 
         // Act
         var found = sst.TryGetValue(new SerializableWrapper<int>(1), out _);
@@ -148,7 +214,7 @@ public sealed class SortedStringTableTests : IDisposable
             new(new SerializableWrapper<int>(3), new SerializableWrapper<string>("third"))
         };
 
-        sst.Write(items);
+        sst.Write(items.WithZeroSeqno());
 
         // Act
         var found = sst.TryGetValue(new SerializableWrapper<int>(1), out var value);
@@ -175,7 +241,7 @@ public sealed class SortedStringTableTests : IDisposable
             new(new SerializableWrapper<int>(300), new SerializableWrapper<string>("three-hundred"))
         };
 
-        sst.Write(items);
+        sst.Write(items.WithZeroSeqno());
 
         // Act
         var found = sst.TryGetValue(new SerializableWrapper<int>(300), out var value);
@@ -185,80 +251,10 @@ public sealed class SortedStringTableTests : IDisposable
         value.Value.Should().Be("three-hundred");
     }
 
-    /// <summary>
-    /// Test that Merge combines two SSTables correctly with sorted order and deduplication.
-    /// </summary>
-    [Fact]
-    public void Merge_ShouldCombineTwoTablesInSortedOrder()
-    {
-        // Arrange
-        var sst1 = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, "merge_target.dat");
-        var sst2 = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, "merge_source.dat");
-
-        sst1.Write(new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
-        {
-            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("one")),
-            new(new SerializableWrapper<int>(3), new SerializableWrapper<string>("three")),
-            new(new SerializableWrapper<int>(5), new SerializableWrapper<string>("five"))
-        });
-
-        sst2.Write(new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
-        {
-            new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("two")),
-            new(new SerializableWrapper<int>(4), new SerializableWrapper<string>("four")),
-            new(new SerializableWrapper<int>(6), new SerializableWrapper<string>("six"))
-        });
-
-        // Act
-        sst1.Merge(sst2);
-
-        // Assert: merged table should have all 6 entries, retrievable by key.
-        sst1.GetEntryCount().Should().Be(6);
-        sst1.TryGetValue(new SerializableWrapper<int>(1), out var v1).Should().BeTrue();
-        v1.Value.Should().Be("one");
-        sst1.TryGetValue(new SerializableWrapper<int>(2), out var v2).Should().BeTrue();
-        v2.Value.Should().Be("two");
-        sst1.TryGetValue(new SerializableWrapper<int>(4), out var v4).Should().BeTrue();
-        v4.Value.Should().Be("four");
-        sst1.TryGetValue(new SerializableWrapper<int>(6), out var v6).Should().BeTrue();
-        v6.Value.Should().Be("six");
-    }
-
-    /// <summary>
-    /// Test that Merge handles duplicate keys with last-writer-wins semantics.
-    /// </summary>
-    [Fact]
-    public void Merge_ShouldUseOtherTableValueForDuplicateKeys()
-    {
-        // Arrange
-        var sst1 = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, "merge_dup_target.dat");
-        var sst2 = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, "merge_dup_source.dat");
-
-        sst1.Write(new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
-        {
-            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("old_value")),
-            new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("keep_this"))
-        });
-
-        sst2.Write(new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
-        {
-            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("new_value"))
-        });
-
-        // Act
-        sst1.Merge(sst2);
-
-        // Assert: key 1 should have the value from the other table.
-        sst1.GetEntryCount().Should().Be(2);
-        sst1.TryGetValue(new SerializableWrapper<int>(1), out var v1).Should().BeTrue();
-        v1.Value.Should().Be("new_value");
-        sst1.TryGetValue(new SerializableWrapper<int>(2), out var v2).Should().BeTrue();
-        v2.Value.Should().Be("keep_this");
-    }
+    // The merge-of-two-SSTables behaviour tested earlier as SortedStringTable.Merge is now
+    // the engine's compaction path (LsmStorageEngine.CompactAsync threads SegmentWriteEntry
+    // end-to-end). The per-table Merge API was removed at v2.0.0 because it silently
+    // dropped pointer entries; LSM compaction is the correct and only merge vehicle.
 
     /// <summary>
     /// Test that GetCreationTime returns a reasonable timestamp.
@@ -295,7 +291,7 @@ public sealed class SortedStringTableTests : IDisposable
         sst.Write(new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
         {
             new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value"))
-        });
+        }.WithZeroSeqno());
 
         var modTime = sst.GetLastModificationTime();
 
@@ -322,7 +318,7 @@ public sealed class SortedStringTableTests : IDisposable
                 new SerializableWrapper<string>($"value_{i}")));
         }
 
-        sst.Write(items);
+        sst.Write(items.WithZeroSeqno());
 
         // Act & Assert: verify several keys across different sparse index segments.
         sst.GetEntryCount().Should().Be(100);
@@ -358,7 +354,7 @@ public sealed class SortedStringTableTests : IDisposable
         };
 
         // Act & Assert
-        var act = () => sst.Write(unsortedItems);
+        var act = () => sst.Write(unsortedItems.WithZeroSeqno());
         act.Should().Throw<ArgumentException>()
             .WithMessage("*sorted*");
     }
@@ -381,7 +377,7 @@ public sealed class SortedStringTableTests : IDisposable
         };
 
         // Act & Assert
-        var act = () => sst.Write(duplicateItems);
+        var act = () => sst.Write(duplicateItems.WithZeroSeqno());
         act.Should().Throw<ArgumentException>()
             .WithMessage("*sorted*");
     }
@@ -405,7 +401,7 @@ public sealed class SortedStringTableTests : IDisposable
             new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("original_b"))
         };
 
-        sst.Write(originalItems);
+        sst.Write(originalItems.WithZeroSeqno());
         sst.TryGetValue(new SerializableWrapper<int>(1), out var v1).Should().BeTrue();
         v1.Value.Should().Be("original_a");
 
@@ -417,7 +413,7 @@ public sealed class SortedStringTableTests : IDisposable
             new(new SerializableWrapper<int>(30), new SerializableWrapper<string>("new_c"))
         };
 
-        sst.Write(newItems);
+        sst.Write(newItems.WithZeroSeqno());
 
         // Assert: new data should be present
         sst.GetEntryCount().Should().Be(3);
@@ -433,14 +429,15 @@ public sealed class SortedStringTableTests : IDisposable
     }
 
     /// <summary>
-    /// Test that Write persists the sparse index to a companion .idx file.
+    /// Phase C4: v2 SSTable writes the block index into the on-disk footer; no companion
+    /// .idx file is produced (the index lives in the trailing footer instead).
     /// </summary>
     [Fact]
-    public void Write_ShouldPersistSparseIndex()
+    public void Write_ShouldEmbedBlockIndexInFooter_NoCompanionIdx()
     {
         // Arrange
         var sst = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, "idx_persist_test.dat", sparseIndexInterval: 2);
+            _testDirectory, "footer_index_test.dat");
 
         var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
         {
@@ -451,25 +448,25 @@ public sealed class SortedStringTableTests : IDisposable
         };
 
         // Act
-        sst.Write(items);
+        sst.Write(items.WithZeroSeqno());
 
-        // Assert: a companion .idx file should exist
-        var idxPath = Path.Combine(_testDirectory, "idx_persist_test.idx");
-        File.Exists(idxPath).Should().BeTrue("a companion .idx file should be written with the sparse index");
-        new FileInfo(idxPath).Length.Should().BeGreaterThan(0, ".idx file should contain sparse index data");
+        // Assert: no companion .idx file — v2 footer carries the index.
+        var idxPath = Path.Combine(_testDirectory, "footer_index_test.idx");
+        File.Exists(idxPath).Should().BeFalse("v2 SSTables embed the block index in the footer, not in a companion file");
     }
 
     /// <summary>
-    /// Test that Write with compression enabled produces a compressed file and reads work correctly.
+    /// Phase C1/C5: using a real compression codec produces a smaller on-disk file than
+    /// the passthrough codec for repetitive data, and reads work correctly either way.
     /// </summary>
     [Fact]
-    public void Write_WithCompression_ShouldProduceSmallerFileAndReadCorrectly()
+    public void Write_WithCompressionCodec_ShouldProduceSmallerFileAndReadCorrectly()
     {
         // Arrange
         var sstCompressed = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, "compressed.dat", enableCompression: true);
+            _testDirectory, "compressed.dat", codec: new Boutquin.Storage.Infrastructure.Compression.GZipCodec());
         var sstUncompressed = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, "uncompressed.dat", enableCompression: false);
+            _testDirectory, "uncompressed.dat", codec: new Boutquin.Storage.Infrastructure.Compression.NoCompressionCodec());
 
         var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>();
         for (var i = 0; i < 50; i++)
@@ -480,8 +477,8 @@ public sealed class SortedStringTableTests : IDisposable
         }
 
         // Act
-        sstCompressed.Write(items);
-        sstUncompressed.Write(items);
+        sstCompressed.Write(items.WithZeroSeqno());
+        sstUncompressed.Write(items.WithZeroSeqno());
 
         // Assert: compressed file should be smaller (for repetitive data)
         var compressedSize = new FileInfo(Path.Combine(_testDirectory, "compressed.dat")).Length;
@@ -499,17 +496,18 @@ public sealed class SortedStringTableTests : IDisposable
     }
 
     /// <summary>
-    /// Test that a new SSTable instance can load a previously persisted sparse index and
-    /// perform lookups without re-scanning the data file.
+    /// Phase C4: reopening a v2 SSTable on the same file path loads the footer (block
+    /// index + bloom bits) and performs lookups against disk without any separate .idx
+    /// companion.
     /// </summary>
     [Fact]
-    public void Constructor_ShouldLoadPersistedSparseIndex()
+    public void Constructor_ShouldLoadPersistedFooter()
     {
         // Arrange: write data and dispose to release file handles
-        var fileName = "idx_load_test.dat";
+        var fileName = "footer_reload_test.dat";
         {
             var sst = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-                _testDirectory, fileName, sparseIndexInterval: 2);
+                _testDirectory, fileName);
 
             var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
             {
@@ -519,14 +517,14 @@ public sealed class SortedStringTableTests : IDisposable
                 new(new SerializableWrapper<int>(40), new SerializableWrapper<string>("forty"))
             };
 
-            sst.Write(items);
+            sst.Write(items.WithZeroSeqno());
         }
 
-        // Act: create a new SSTable instance pointing to the same file — it should load the .idx
+        // Act: create a new SSTable instance pointing to the same file — it should load the footer
         var sst2 = new SortedStringTable<SerializableWrapper<int>, SerializableWrapper<string>>(
-            _testDirectory, fileName, sparseIndexInterval: 2);
+            _testDirectory, fileName);
 
-        // Assert: lookups should work using the loaded sparse index
+        // Assert: lookups should work using the loaded footer + bloom bits
         sst2.TryGetValue(new SerializableWrapper<int>(10), out var v10).Should().BeTrue();
         v10.Value.Should().Be("ten");
 

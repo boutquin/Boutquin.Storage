@@ -24,8 +24,8 @@ namespace Boutquin.Storage.Infrastructure.ObjectStore;
 /// Each <see cref="ReadAsync"/> call returns an independent <see cref="MemoryStream"/> copy,
 /// so concurrent readers do not share stream positions.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 10 — "Batch Processing": object storage as the interchange format for batch outputs.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 11 — "Batch Processing": object storage as the interchange format for batch outputs.</para>
 /// </summary>
 public sealed class InMemoryObjectStore : IObjectStore
 {
@@ -51,7 +51,7 @@ public sealed class InMemoryObjectStore : IObjectStore
         }
 
         // Return independent copy so readers don't share position
-        Stream stream = new MemoryStream(data.ToArray(), writable: false);
+        Stream stream = new MemoryStream([.. data], writable: false);
         return new ValueTask<Stream?>(stream);
     }
 
@@ -60,6 +60,16 @@ public sealed class InMemoryObjectStore : IObjectStore
     {
         ValidateKey(key);
         ArgumentNullException.ThrowIfNull(content);
+
+        // Contract parity with FileSystemObjectStore: reject a non-readable stream upfront
+        // with the contract-typed exception rather than leaking NotSupportedException from
+        // CopyToAsync mid-call.
+        if (!content.CanRead)
+        {
+            throw new ArgumentException(
+                "The content stream must be readable. Pass a stream with CanRead == true.", nameof(content));
+        }
+
         ct.ThrowIfCancellationRequested();
 
         using var ms = new MemoryStream();
@@ -76,6 +86,9 @@ public sealed class InMemoryObjectStore : IObjectStore
         return default;
     }
 
+    // Sibling contract parity: delegate to the file-backed store's validator so the
+    // IObjectStore key contract is implementation-independent — a key that fails in
+    // production (charset, traversal, absolute) fails identically against this sibling.
     private static void ValidateKey(string key) =>
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        FileSystemObjectStore.ValidateKey(key);
 }

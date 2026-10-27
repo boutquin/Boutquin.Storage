@@ -39,25 +39,18 @@ namespace Boutquin.Storage.Infrastructure.DataStructures;
 /// <typeparam name="TKey">The type of the keys.</typeparam>
 /// <typeparam name="TValue">The type of the values.</typeparam>
 public sealed class SkipListMemTable<TKey, TValue> : ISkipListMemTable<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
-    private sealed class SkipListNode
+    private sealed class SkipListNode(TKey key, TValue value, int level)
     {
-        public TKey Key { get; }
-        public TValue Value { get; set; }
-        public SkipListNode[] Forward { get; }
-
-        public SkipListNode(TKey key, TValue value, int level)
-        {
-            Key = key;
-            Value = value;
-            Forward = new SkipListNode[level + 1];
-        }
+        public TKey Key { get; } = key;
+        public TValue Value { get; set; } = value;
+        public SkipListNode[] Forward { get; } = new SkipListNode[level + 1];
     }
 
     private readonly int _maxSize;
     private readonly double _probability;
-    private readonly Random _random = new();
+    private readonly Random _random;
     private SkipListNode _head;
     private int _count;
     private int _currentLevel;
@@ -72,22 +65,42 @@ public sealed class SkipListMemTable<TKey, TValue> : ISkipListMemTable<TKey, TVa
     /// Initializes a new instance of the <see cref="SkipListMemTable{TKey, TValue}"/> class.
     /// </summary>
     /// <param name="maxSize">The maximum number of elements the MemTable can hold.</param>
-    /// <param name="maxLevel">The maximum number of levels in the skip list.</param>
-    /// <param name="probability">The probability of promoting a node to the next level.</param>
-    public SkipListMemTable(int maxSize, int maxLevel = 16, double probability = 0.5)
+    /// <param name="maxLevel">The maximum number of levels in the skip list. Pass <c>0</c> (the
+    /// default) to derive a size-appropriate cap of <c>⌈log_{1/probability}(maxSize)⌉</c>, which
+    /// keeps search/insert at the expected O(log n) for the configured capacity (finding #17). A
+    /// fixed too-small cap throttles search toward O(n / 2^maxLevel) once n exceeds 2^maxLevel.</param>
+    /// <param name="probability">The probability of promoting a node to the next level. Must be in
+    /// the open interval (0, 1): a value ≥ 1 promotes every node to <see cref="MaxLevel"/> and a
+    /// value ≤ 0 never promotes, both collapsing the skip list to an O(n) linked list.</param>
+    public SkipListMemTable(int maxSize, int maxLevel = 0, double probability = 0.5, Random? random = null)
     {
         if (maxSize < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(maxSize), "Maximum size must be at least 1.");
         }
+        if (maxLevel < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxLevel), "Maximum level must be non-negative (0 derives it from maxSize).");
+        }
+        if (probability is <= 0.0 or >= 1.0 || double.IsNaN(probability))
+        {
+            throw new ArgumentOutOfRangeException(nameof(probability), probability,
+                "Promotion probability must be in the open interval (0, 1).");
+        }
 
         _maxSize = maxSize;
-        MaxLevel = maxLevel;
+        _random = random ?? Random.Shared;
+        // A cap of 0 means "derive from capacity": the expected number of levels for n elements at
+        // promotion probability p is log_{1/p}(n). Capping there keeps the structure O(log n) at
+        // its configured size without over-allocating sentinel forward-pointer arrays.
+        MaxLevel = maxLevel > 0
+            ? maxLevel
+            : Math.Max(1, (int)Math.Ceiling(Math.Log(maxSize) / Math.Log(1.0 / probability)));
         _probability = probability;
         // Why default(TKey)! for head? The head node is a sentinel that is never accessed for its key/value.
         // It serves only as the entry point for traversal. Using null-forgiving avoids nullable complications
         // for a node that has no semantic key.
-        _head = new SkipListNode(default!, default!, maxLevel);
+        _head = new SkipListNode(default!, default!, MaxLevel);
         _count = 0;
         _currentLevel = 0;
     }
@@ -95,7 +108,9 @@ public sealed class SkipListMemTable<TKey, TValue> : ISkipListMemTable<TKey, TVa
     /// <inheritdoc/>
     public Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.AgainstNullOrDefault(() => key);
+        Guard.AgainstNullOrDefault(() => value);
 
         if (_count >= _maxSize && !ContainsKey(key))
         {
@@ -109,7 +124,7 @@ public sealed class SkipListMemTable<TKey, TValue> : ISkipListMemTable<TKey, TVa
         // before the insertion point. These are the nodes whose forward pointers need updating.
         for (var i = _currentLevel; i >= 0; i--)
         {
-            while (current.Forward[i] != null && current.Forward[i].Key.CompareTo(key) < 0)
+            while (current.Forward[i] != null && KeyOrder<TKey>.Compare(current.Forward[i].Key, key) < 0)
             {
                 current = current.Forward[i];
             }
@@ -118,7 +133,7 @@ public sealed class SkipListMemTable<TKey, TValue> : ISkipListMemTable<TKey, TVa
 
         current = current.Forward[0];
 
-        if (current != null && current.Key.CompareTo(key) == 0)
+        if (current != null && KeyOrder<TKey>.Compare(current.Key, key) == 0)
         {
             // Key exists — update value in place
             current.Value = value;
@@ -156,14 +171,14 @@ public sealed class SkipListMemTable<TKey, TValue> : ISkipListMemTable<TKey, TVa
         var current = _head;
         for (var i = _currentLevel; i >= 0; i--)
         {
-            while (current.Forward[i] != null && current.Forward[i].Key.CompareTo(key) < 0)
+            while (current.Forward[i] != null && KeyOrder<TKey>.Compare(current.Forward[i].Key, key) < 0)
             {
                 current = current.Forward[i];
             }
         }
 
         current = current.Forward[0];
-        if (current != null && current.Key.CompareTo(key) == 0)
+        if (current != null && KeyOrder<TKey>.Compare(current.Key, key) == 0)
         {
             return Task.FromResult((current.Value, true));
         }
@@ -224,14 +239,14 @@ public sealed class SkipListMemTable<TKey, TValue> : ISkipListMemTable<TKey, TVa
         var current = _head;
         for (var i = _currentLevel; i >= 0; i--)
         {
-            while (current.Forward[i] != null && current.Forward[i].Key.CompareTo(key) < 0)
+            while (current.Forward[i] != null && KeyOrder<TKey>.Compare(current.Forward[i].Key, key) < 0)
             {
                 current = current.Forward[i];
             }
         }
 
         current = current.Forward[0];
-        return current != null && current.Key.CompareTo(key) == 0;
+        return current != null && KeyOrder<TKey>.Compare(current.Key, key) == 0;
     }
 
     private int RandomLevel()

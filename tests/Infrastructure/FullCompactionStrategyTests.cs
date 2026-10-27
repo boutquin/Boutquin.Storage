@@ -13,160 +13,72 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using Boutquin.Storage.Domain.ValueObjects.LsmTree;
+
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 /// <summary>
-/// Unit tests for the FullCompactionStrategy class.
-/// Each test follows the Arrange-Act-Assert pattern.
+/// Unit tests for <see cref="FullCompactionStrategy{TKey}"/> — Phase B3 metadata-driven interface.
 /// </summary>
 public sealed class FullCompactionStrategyTests
 {
-    /// <summary>
-    /// Test that ShouldCompact returns false when segment count is below threshold.
-    /// </summary>
-    [Fact]
-    public void ShouldCompact_ReturnsFalse_BelowThreshold()
-    {
-        // Arrange
-        var strategy = new FullCompactionStrategy(threshold: 4);
+    private static SegmentMetadata<int> Seg(int level = 0, long size = 1024, int min = 0, int max = 100) =>
+        new(level, MinKey: min, MaxKey: max, SizeBytes: size, Crc32C: 0u);
 
-        // Assert
-        Assert.False(strategy.ShouldCompact(3));
+    private static IReadOnlyList<SegmentMetadata<int>> Segments(int count) =>
+        Enumerable.Range(0, count).Select(i => Seg(min: i * 100, max: (i * 100) + 99)).ToList();
+
+    [Fact]
+    public void Constructor_ThresholdLessThan2_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new FullCompactionStrategy<int>(threshold: 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new FullCompactionStrategy<int>(threshold: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new FullCompactionStrategy<int>(threshold: -5));
     }
 
-    /// <summary>
-    /// Test that ShouldCompact returns true when segment count equals threshold.
-    /// </summary>
     [Fact]
-    public void ShouldCompact_ReturnsTrue_AtThreshold()
+    public void ShouldCompact_BelowThreshold_False()
     {
-        // Arrange
-        var strategy = new FullCompactionStrategy(threshold: 4);
-
-        // Assert
-        Assert.True(strategy.ShouldCompact(4));
+        var strategy = new FullCompactionStrategy<int>(threshold: 4);
+        strategy.ShouldCompact(Segments(3)).Should().BeFalse();
     }
 
-    /// <summary>
-    /// Test that ShouldCompact returns true when segment count exceeds threshold.
-    /// </summary>
     [Fact]
-    public void ShouldCompact_ReturnsTrue_AboveThreshold()
+    public void ShouldCompact_AtThreshold_True()
     {
-        // Arrange
-        var strategy = new FullCompactionStrategy(threshold: 3);
-
-        // Assert
-        Assert.True(strategy.ShouldCompact(10));
+        var strategy = new FullCompactionStrategy<int>(threshold: 4);
+        strategy.ShouldCompact(Segments(4)).Should().BeTrue();
     }
 
-    /// <summary>
-    /// Test that SelectSegments returns all segments (full compaction merges everything).
-    /// </summary>
     [Fact]
-    public void SelectSegments_ReturnsAllSegments()
+    public void ShouldCompact_AboveThreshold_True()
     {
-        // Arrange
-        var strategy = new FullCompactionStrategy(threshold: 3);
-
-        // Act
-        var segments = strategy.SelectSegments(5);
-
-        // Assert — full compaction always selects ALL segments
-        Assert.Equal(5, segments.Count);
-        Assert.Equal(new[] { 0, 1, 2, 3, 4 }, segments);
+        var strategy = new FullCompactionStrategy<int>(threshold: 3);
+        strategy.ShouldCompact(Segments(8)).Should().BeTrue();
     }
 
-    /// <summary>
-    /// Test that SelectSegments with 0 segments returns empty list.
-    /// </summary>
     [Fact]
-    public void SelectSegments_WithZeroSegments_ReturnsEmpty()
+    public void SelectSegments_ReturnsAllInputInOrder()
     {
-        // Arrange
-        var strategy = new FullCompactionStrategy(threshold: 2);
+        var strategy = new FullCompactionStrategy<int>(threshold: 2);
+        var segments = Segments(5);
 
-        // Act
-        var segments = strategy.SelectSegments(0);
+        var selected = strategy.SelectSegments(segments);
 
-        // Assert
-        Assert.Empty(segments);
+        selected.Should().Equal(segments);
     }
 
-    /// <summary>
-    /// Test that SelectSegments with 1 segment returns single segment.
-    /// </summary>
     [Fact]
-    public void SelectSegments_WithOneSegment_ReturnsSingleSegment()
+    public void ShouldCompact_NullInput_Throws()
     {
-        // Arrange
-        var strategy = new FullCompactionStrategy(threshold: 2);
-
-        // Act
-        var segments = strategy.SelectSegments(1);
-
-        // Assert
-        Assert.Single(segments);
-        Assert.Equal(0, segments[0]);
+        var strategy = new FullCompactionStrategy<int>(threshold: 2);
+        Assert.Throws<ArgumentNullException>(() => strategy.ShouldCompact(null!));
     }
 
-    /// <summary>
-    /// Test that constructor throws for threshold less than 2.
-    /// </summary>
     [Fact]
-    public void Constructor_ThresholdLessThan2_ThrowsArgumentOutOfRangeException()
+    public void SelectSegments_NullInput_Throws()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new FullCompactionStrategy(threshold: 1));
-    }
-
-    /// <summary>
-    /// Test that constructor throws for threshold of 0.
-    /// </summary>
-    [Fact]
-    public void Constructor_ThresholdZero_ThrowsArgumentOutOfRangeException()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new FullCompactionStrategy(threshold: 0));
-    }
-
-    /// <summary>
-    /// Test that constructor throws for negative threshold.
-    /// </summary>
-    [Fact]
-    public void Constructor_NegativeThreshold_ThrowsArgumentOutOfRangeException()
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new FullCompactionStrategy(threshold: -5));
-    }
-
-    /// <summary>
-    /// Test that threshold of 2 (minimum valid) works correctly.
-    /// </summary>
-    [Fact]
-    public void Constructor_MinimumValidThreshold_Works()
-    {
-        // Arrange & Act
-        var strategy = new FullCompactionStrategy(threshold: 2);
-
-        // Assert
-        Assert.False(strategy.ShouldCompact(1));
-        Assert.True(strategy.ShouldCompact(2));
-    }
-
-    /// <summary>
-    /// Test that SelectSegments returns contiguous zero-based indices.
-    /// </summary>
-    [Fact]
-    public void SelectSegments_ReturnsContiguousZeroBasedIndices()
-    {
-        // Arrange
-        var strategy = new FullCompactionStrategy(threshold: 2);
-
-        // Act
-        var segments = strategy.SelectSegments(100);
-
-        // Assert — indices should be 0, 1, 2, ..., 99
-        for (var i = 0; i < 100; i++)
-        {
-            Assert.Equal(i, segments[i]);
-        }
+        var strategy = new FullCompactionStrategy<int>(threshold: 2);
+        Assert.Throws<ArgumentNullException>(() => strategy.SelectSegments(null!));
     }
 }

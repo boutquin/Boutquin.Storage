@@ -1,0 +1,9 @@
+syntax = "proto3";
+package storage.examples.v3;
+option csharp_namespace = "Boutquin.Storage.Samples.Proto.V3";
+message Person {
+  string display_name = 1;
+  reserved 2;
+  reserved "score";
+  string email = 3;
+}

@@ -15,6 +15,8 @@
 //
 namespace Boutquin.Storage.Infrastructure.Indexing;
 
+using Boutquin.Storage.Infrastructure.DataStructures;
+
 /// <summary>
 /// Provides an in-memory implementation of the <see cref="IStorageIndex{TKey, TValue}"/> interface
 /// using a sorted dictionary for efficient lookups, insertions, and deletions.
@@ -40,9 +42,11 @@ namespace Boutquin.Storage.Infrastructure.Indexing;
 /// index implementations, this class remains unsealed.
 /// </para>
 /// </remarks>
-public class InMemoryStorageIndex<TKey, TValue> : IStorageIndex<TKey, TValue> where TKey : IComparable<TKey>
+public class InMemoryStorageIndex<TKey, TValue> : IStorageIndex<TKey, TValue> where TKey : IComparable<TKey>, IEquatable<TKey>
 {
-    private readonly SortedDictionary<TKey, TValue> _index = new();
+    // The shared key order, not SortedDictionary's default Comparer<TKey>.Default: for strings that
+    // default is the current-culture comparison, which merges ordinally distinct keys into one entry.
+    private readonly SortedDictionary<TKey, TValue> _index = new(KeyOrder<TKey>.Comparer);
 
     /// <inheritdoc/>
     /// <example>
@@ -77,7 +81,7 @@ public class InMemoryStorageIndex<TKey, TValue> : IStorageIndex<TKey, TValue> wh
         Guard.AgainstNullOrDefault(() => key);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Task.FromResult(_index.TryGetValue(key, out var value) ? (value, true) : (default(TValue)!, false));
+        return Task.FromResult(_index.TryGetValue(key, out var value) ? (value, true) : (default!, false));
     }
 
     /// <inheritdoc/>

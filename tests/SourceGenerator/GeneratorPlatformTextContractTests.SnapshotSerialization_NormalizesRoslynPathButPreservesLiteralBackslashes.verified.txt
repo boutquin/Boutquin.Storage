@@ -1,0 +1,15 @@
+{
+  Tree: {
+    FilePath: Generator/Namespace/Value.g.cs,
+    Encoding: utf-8,
+    Length: 1,
+    HasCompilationUnitRoot: true,
+    Options: {
+      LanguageVersion: CSharp14,
+      Language: C#,
+      DocumentationMode: Parse,
+      Errors: null
+    }
+  },
+  Literal: C:\records\value
+}

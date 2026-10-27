@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.ValueObjects;
 /// <summary>
 /// Describes a single field in a schema definition.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": field-level schema definitions.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": field-level schema definitions.</para>
 /// </summary>
 /// <param name="Name">The field name.</param>
 /// <param name="FieldType">The data type of the field.</param>

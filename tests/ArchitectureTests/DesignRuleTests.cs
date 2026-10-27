@@ -25,6 +25,11 @@ namespace Boutquin.Storage.ArchitectureTests;
 /// </summary>
 public sealed class DesignRuleTests : BaseArchitectureTest
 {
+    // Coverlet injects an instrumentation type into every assembly under test; exclude it
+    // from namespace-scoped checks to avoid false positives. All adjacent architecture-test
+    // files carry the same constant and filter pattern.
+    private const string CoverletInstrumentationNamespace = "Coverlet.Core.Instrumentation";
+
     [Fact]
     public void NonStaticClasses_ShouldBeSealed()
     {
@@ -41,9 +46,15 @@ public sealed class DesignRuleTests : BaseArchitectureTest
                 // Unsealed base classes with subclasses:
                 // - AppendOnlyFileStorageEngine → AppendOnlyFileStorageEngineWithIndex
                 // - InMemoryStorageIndex → InMemoryFileIndex
+                // - TimeSeriesStoreOptions → ColumnarTimeSeriesStoreOptions (Option A: the
+                //   row-safe base options is the parent of the columnar-constrained derived
+                //   options that carries the columnar format member; an inheriting base record
+                //   cannot be sealed). Both remain record types (ValueObjects_ShouldBeRecordTypes).
                 .DoNotHaveNameStartingWith("AppendOnlyFileStorageEngine")
                 .And()
                 .DoNotHaveNameStartingWith("InMemoryStorageIndex")
+                .And()
+                .DoNotHaveNameStartingWith("TimeSeriesStoreOptions")
                 .Should()
                 .BeSealed()
                 .GetResult();
@@ -99,8 +110,13 @@ public sealed class DesignRuleTests : BaseArchitectureTest
     [Fact]
     public void DomainAssembly_ShouldHaveNoExternalDependencies()
     {
-        // Domain must depend only on System.* and Boutquin.Domain (the DDD building blocks package)
+        // Domain must depend only on System.* and Boutquin.Domain (the DDD building blocks package).
+        // The Coverlet filter is required here for the same reason it is applied in all adjacent
+        // architecture tests: Coverlet injects an instrumentation type at coverage-collection time;
+        // without the filter the test falsely flags that injected type as an Infrastructure dependency.
         var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .DoNotResideInNamespace(CoverletInstrumentationNamespace)
             .Should()
             .NotHaveDependencyOnAny(
                 "Boutquin.Storage.Infrastructure")
@@ -113,9 +129,12 @@ public sealed class DesignRuleTests : BaseArchitectureTest
     [Fact]
     public void ValueObjects_ShouldBeRecordTypes()
     {
+        // Covers both the root ValueObjects namespace and any feature-specific sub-namespaces
+        // (e.g., Boutquin.Storage.Domain.ValueObjects.TimeSeries).
         var valueObjectTypes = DomainAssembly.GetTypes()
             .Where(t =>
-                t.Namespace == "Boutquin.Storage.Domain.ValueObjects"
+                t.Namespace != null
+                && t.Namespace.StartsWith("Boutquin.Storage.Domain.ValueObjects", StringComparison.Ordinal)
                 && t.IsPublic
                 && !t.IsInterface)
             .ToList();

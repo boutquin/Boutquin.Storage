@@ -68,7 +68,7 @@ public class WriteAheadLogBenchmark
 
         for (var i = 0; i < ItemCount; i++)
         {
-            await wal.AppendAsync(_keys[i], _values[i]).ConfigureAwait(false);
+            await wal.AppendAsync(_keys[i], _values[i], (ulong)(i + 1)).ConfigureAwait(false);
         }
     }
 
@@ -85,7 +85,7 @@ public class WriteAheadLogBenchmark
         {
             for (var i = 0; i < ItemCount; i++)
             {
-                await walWrite.AppendAsync(_keys[i], _values[i]).ConfigureAwait(false);
+                await walWrite.AppendAsync(_keys[i], _values[i], (ulong)(i + 1)).ConfigureAwait(false);
             }
         }
 

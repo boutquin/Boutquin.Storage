@@ -20,14 +20,17 @@ namespace Boutquin.Storage.Infrastructure.Schemas;
 /// <summary>
 /// Concurrent-safe in-memory schema registry with auto-incrementing versions per subject.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": schema registries for safe evolution.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": schema registries for safe evolution.</para>
 /// </summary>
 public sealed class InMemorySchemaRegistry : ISchemaRegistry
 {
-    private readonly ConcurrentDictionary<string, List<ISchema>> _subjects = new();
+    // A plain Dictionary suffices: every access — read and write — already runs under _lock
+    // (GetAsync takes it too, so torn-list reads are impossible). A ConcurrentDictionary here
+    // would be belt-and-suspenders confusion implying some path is lock-free when none is.
+    private readonly Dictionary<string, List<ISchema>> _subjects = [];
     private readonly ISchemaCompatibilityChecker _checker;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <summary>
     /// Initializes a new instance of <see cref="InMemorySchemaRegistry"/>.
@@ -44,6 +47,7 @@ public sealed class InMemorySchemaRegistry : ISchemaRegistry
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
         ArgumentNullException.ThrowIfNull(schema);
+        ct.ThrowIfCancellationRequested();
 
         lock (_lock)
         {
@@ -77,18 +81,26 @@ public sealed class InMemorySchemaRegistry : ISchemaRegistry
     public ValueTask<ISchema> GetAsync(string subject, SchemaVersion version, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+        ct.ThrowIfCancellationRequested();
 
-        if (!_subjects.TryGetValue(subject, out var versions))
+        // Read the per-subject version list under the SAME lock RegisterAsync holds while appending.
+        // The List<ISchema> value is not thread-safe: a lock-free Count/index read racing with
+        // RegisterAsync's Add can throw or return a torn (null) element while the backing array
+        // resizes, so every dictionary + list access goes through the single global lock.
+        lock (_lock)
         {
-            throw new KeyNotFoundException($"Subject '{subject}' not found.");
-        }
+            if (!_subjects.TryGetValue(subject, out var versions))
+            {
+                throw new KeyNotFoundException($"Subject '{subject}' not found.");
+            }
 
-        var index = version.Value - 1;
-        if (index < 0 || index >= versions.Count)
-        {
-            throw new KeyNotFoundException($"Version {version.Value} not found for subject '{subject}'.");
-        }
+            var index = version.Value - 1;
+            if (index < 0 || index >= versions.Count)
+            {
+                throw new KeyNotFoundException($"Version {version.Value} not found for subject '{subject}'.");
+            }
 
-        return new ValueTask<ISchema>(versions[index]);
+            return new ValueTask<ISchema>(versions[index]);
+        }
     }
 }

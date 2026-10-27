@@ -46,10 +46,13 @@ writes the page cache to disk loses the data silently.
 the WriteAheadLog provides no durability guarantee — it's just a regular file write.
 
 **Fix pattern**: Use `FileStream.Flush(flushToDisk: true)` which issues `fsync`/`FlushFileBuffers`.
-This is the .NET equivalent of POSIX `fsync()`.
+This is the .NET equivalent of POSIX `fsync()`. The current WAL flusher applies it once per
+group-commit batch; each `AppendAsync` completes only after the batch containing that frame is
+durable. Set `WriteAheadLogOptions.GroupCommitBatchSize` to `1` when every append must form its
+own durable batch.
 
-**Code**: `src/Infrastructure/WriteAheadLog/WriteAheadLog.cs:138` — `_appendStream.Flush(flushToDisk: true)`
-after every append. Also at line 266 for truncate.
+**Code**: `src/Infrastructure/WriteAheadLog/WriteAheadLog.cs` — the flusher writes a bounded batch,
+calls `Flush(flushToDisk: true)`, and only then completes the queued append requests.
 
 ### Trap: Opening a new FileStream per write operation
 
@@ -84,12 +87,9 @@ start of `RecoverAsync`.
 
 ### Trap: Using `BinaryWriter`/`BinaryReader` for on-disk formats
 
-**Bug**: The WriteAheadLog used `BinaryWriter.Write(int)` for length prefixes and checksums. `BinaryWriter`
-uses the host's native byte order, which means files written on a little-endian machine
-are unreadable on a big-endian machine (and vice versa).
-
-**Why it's wrong**: On-disk formats must have a defined byte order to be portable. Most modern
-formats use little-endian (x86/ARM default), but this must be explicit, not implicit.
+**Constraint**: Persistent formats need an explicit byte order. .NET `BinaryWriter` writes
+integer primitives little-endian; it does not use native host order. This repository uses
+`BinaryPrimitives` so each field's endianness and width are visible at the encode/decode site.
 
 **Fix pattern**: Use `System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian()` and
 `ReadInt32LittleEndian()` to explicitly specify byte order. Write into `Span<byte>` buffers
@@ -102,25 +102,101 @@ rather than using `BinaryWriter`.
 
 ## 4. Corruption Recovery Semantics
 
-### Trap: Stopping recovery at the first corrupt entry
+### Trap: Skipping a corrupt entry and continuing recovery
 
-**Bug**: When the WriteAheadLog encountered a checksum mismatch during recovery, it broke out of the
-recovery loop, discarding all subsequent entries — even if they were perfectly valid.
+**Bug**: When the log encountered a checksum mismatch during recovery, it `continue`d to the next
+entry — consuming the corrupt frame's *declared* payload length and resuming parsing after it —
+instead of stopping. An earlier version of this document actively prescribed this
+`continue`-don't-`break` pattern; it is wrong and is now forbidden.
 
-**Why it's wrong**: The length-prefix framing format (`[4-byte length][payload][4-byte CRC32]`)
-allows the reader to skip a corrupt entry by consuming its declared payload bytes and advancing
-to the next entry. Stopping at the first corruption loses valid data unnecessarily.
+**Why it's wrong**: Recovery must **fail closed** — stop reading at the first frame that fails
+validation. A corrupt frame's length prefix is itself untrustworthy: if the bytes that encode the
+payload length are flipped, "skip the declared payload and resume" lands the reader at an arbitrary
+offset *inside* a later frame. From there the parser reads corruption-controlled bytes as if they
+were a valid entry and silently fabricates entries from misaligned data. Skip-and-continue trades a
+known, bounded loss (one torn frame) for an unbounded one (every subsequent read desynchronised),
+and it does so invisibly — the recovered entries look structurally fine.
 
-**Fix pattern**: On checksum mismatch, `continue` to the next entry instead of `break`.
-Only `break` on structural corruption (truncated length prefix, impossibly large payload)
-where the framing itself is lost.
+This is the defect class behind the prior `FileRaftLog.Replay` mid-file-truncation bug: a corrupt
+frame in the middle of the log was skipped, and replay resumed against misaligned bytes.
 
-**Code**: `src/Infrastructure/WriteAheadLog/WriteAheadLog.cs` — `continue` for checksum mismatch,
-`break` for structural truncation.
+**Why it's hard to catch**: A single-corruption test that only checks "the valid entries before the
+corruption came back" passes under *both* the wrong and the right behaviour. The divergence only
+shows when a corrupt frame sits in the *middle* of the log with more bytes after it — skip-and-continue
+fabricates phantom entries from the misaligned tail; fail-closed stops and (for mid-file corruption)
+throws.
 
-**Test**: `tests/Infrastructure/WriteAheadLogTests.cs` —
-`RecoverAsync_ShouldSkipCorruptEntryAndRecoverSubsequentValidEntries` writes 3 entries,
-corrupts entry 2's payload, and verifies entries 1 and 3 are recovered.
+**Fix pattern**: Two steps, in order.
+
+1. **STOP at the first corrupt frame.** A frame is corrupt if it fails *any* of CRC validation,
+   payload-length sanity, entry-kind / value-kind dispatch, or deserialization. Authenticate the
+   framing fields, not just the payload — the CRC scope must cover the entry-kind, value-kind,
+   sequence number, and payload bytes together, so a bit-flip in any framing field is caught
+   *before* the length prefix is trusted. Surface every entry up to (but not including) the corrupt
+   frame.
+2. **THEN classify what stopped you** — not every stop is an error:
+   - **Torn tail** (no length prefix left, or a partial final frame at physical EOF): the legitimate
+     end-of-segment case from a crash mid-append. Truncate cleanly at the last good frame boundary
+     and recover the prior entries **without** a corruption warning. (The WAL goes further and
+     *repairs* the torn tail so the next append lands at a clean boundary — see the WAL design
+     doc-comment's "Standalone-append safety" paragraph.)
+   - **Mid-file corruption** (a complete-looking frame fails validation with more bytes — possibly
+     valid frames — after it): real data loss in the middle of the log. **Throw loud** (a typed
+     corruption exception); do not silently truncate, and never skip past it.
+
+**Code (reference-correct siblings)**:
+- `src/Infrastructure/WriteAheadLog/WriteAheadLog.cs:285` — `RecoverAsync` stops at the first frame
+  that fails validation, with CRC-authenticated framing and the single torn-tail-vs-corruption rule
+  of the threat model below. See the `<remarks>` "Recovery semantics" paragraph
+  (doc-comment lines 73–83).
+- `src/Infrastructure/ValueLog/ValueLogReader.cs:229-235` — `ReadFully` honours each short read's
+  returned count and throws `EndOfStreamException` only on a genuine 0-byte return before the
+  bounds-checked buffer is filled (real truncation), never returning a partially-filled buffer that
+  a caller could mistake for valid data.
+- `src/Distributed/Consensus/FileRaftLog.cs:214` — `Replay` stops at the first unreadable frame
+  rather than skipping past it.
+
+**Test**: `tests/Infrastructure/WriteAheadLog/Phase12HardeningTests.cs` —
+`RecoverAsync_CrcMismatchOnFirstFrame_StopsAtZeroEntries`, `RecoverAsync_UnknownEntryKind_StopsAtCorruption`,
+and `RecoverAsync_UnknownValueKind_StopsAtCorruption` verify the fail-closed stop at the first corrupt
+frame; `ReadFrameAsync_TruncatedAfterCrcBytes_StopsCleanly` and `tests/Infrastructure/WriteAheadLogTests.cs` —
+`RecoverAsync_ShouldSkipCorruptedEntries` verify the torn-tail case stops cleanly and recovers the
+prior valid entries.
+
+
+### Recovery threat model of the durable logs
+
+What the six durable logs (WAL, value log, value-log manifest, append-only engine, event log, Raft
+log) detect, and what they do not. The rules are the two steps above made deterministic: a frame
+header carries its own CRC32C, and the tear rule below decides what counts as an interrupted write.
+
+| Damage | Outcome |
+|---|---|
+| Interrupted final append: a partial header, a valid header with a short payload, or a last-frame payload checksum failure followed only by zeros — in the WAL and the value log only a frame whose last byte is zero and whose checksum bytes that landed match the landed payload; in the Raft log only a frame whose end marker is zero; in the append-only engine only a frame whose last payload byte is zero | **Torn tail.** Truncated in the active tail only (last WAL segment, highest value-log segment, the single file of the other logs); every earlier frame is recovered without a warning |
+| Event log or Raft log: a last-frame payload checksum failure that is followed by anything, zeros included, after the frame's end, or whose last byte (the event log's last payload byte, the Raft log's end marker) is non-zero | **Corruption.** These two logs write and fsync one frame per append, so bytes after a frame's end cannot come from that frame's interrupted write, and an interrupted frame ends in zeros. A payload checksum failure is repaired as a torn tail only when the damaged frame ends exactly at end-of-file and its last byte is zero; otherwise `InvalidDataException`, file untouched |
+| WAL, value log or append-only engine: a final frame whose last byte landed yet fails its payload checksum | **Corruption.** Each append is fsync'd before it is acknowledged, so a frame whose last byte landed was written completely; `WriteAheadLogCorruptException`, `CorruptValueLogException` or `InvalidDataException`, file untouched |
+| Checksum failure with a non-zero byte after it; a complete header that fails its checksum; a torn tail on any segment but the last | **Corruption.** Typed exception (`WriteAheadLogCorruptException`, `CorruptValueLogException`, `InvalidDataException`); file untouched |
+| Sealed segment emptied, cut (even at a frame boundary), extended, reordered, renamed or swapped | **Corruption.** WAL: the `SegmentSeal` frame no longer matches. Value log: the manifest seal record's length, frame count and checksum no longer match |
+| Missing middle WAL segment; deleted last WAL segment; emptied, header-cut or zero-filled last WAL segment numbered above 1 (only `wal_000001.log` may be cut to nothing); manifest-listed value-log segment missing on disk; lost or emptied value-log manifest beside segments that hold frames | **Fail loud on open.** Never read as an empty log; the value-log orphan sweep never deletes acknowledged segments |
+| Active tail or single-file log truncated exactly at a frame boundary; every WAL segment deleted; the oldest WAL segment or segments deleted | **Outside the threat model.** Only valid frames remain and nothing records how many followed, so it is indistinguishable from writes that never happened; recovery returns what remains. A deleted head is also indistinguishable from reclamation: recovery requires only contiguous surviving segment indices, and reclaiming flushed segments legitimately removes an oldest-first prefix. The writes in the deleted segments are gone, and an LSM engine over that WAL reopens without them |
+| Append-only engine: damage to a final payload whose genuine last byte is zero (an encoding that ends in a zero byte, such as a small little-endian integer) | **Outside the threat model.** The frame ends with its payload, so the damaged bytes are ones a payload prefix followed by zeros could produce: recovered as a torn append, and that acknowledged record is lost. The event log's JSON payloads never end in a zero byte, and the Raft log ends every frame with a fixed non-zero end marker, a byte the writer always makes non-zero |
+
+The last row is a declared limit, not an oversight: closing the tail cases needs a durable
+high-water mark written on every append, which costs a second fsync per append, and closing the
+lost-head case needs a durable reclamation low-water mark that recovery checks, which the WAL does
+not keep. Truncation or deletion of fsync'd data is deliberate tampering, not a crash state.
+
+**Tests that execute this table**:
+`tests/Infrastructure/WritePathAndRecoveryDocsAccuracyTests.cs` runs the WAL rows
+(`Wal_TornActiveTail_…`, `Wal_MidFileDamage_…`, `Wal_SealedSegmentCutAtAFrameBoundary_…`,
+`Wal_MissingMiddleSegment_…`, `Wal_ActiveTailCutExactlyAtAFrameBoundary_…`) and the Raft-log rows
+(`RaftLog_…`) against the real logs;
+`tests/Infrastructure/ValueLog/ValueLogSegmentSealIntegrityTests.cs` and
+`ValueLogManifestLossDetectionTests.cs` cover the value-log seal and manifest rows;
+`tests/Infrastructure/AppendOnlyFileStorageEngineTornTailTests.cs` covers the append-only engine.
+`tests/Infrastructure/RecoveryThreatModelDocsAccuracyTests.cs` executes the rows that name a
+specific log: the deleted oldest WAL segment, the emptied last WAL segment, and which logs repair a
+last-frame payload checksum failure followed by zeros.
 
 ---
 
@@ -177,8 +253,7 @@ of `ObjectDisposedException`).
 public method. For the WriteAheadLog, use `Interlocked.Exchange` for thread-safe dispose detection.
 
 **Code**:
-- `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — `ObjectDisposedException.ThrowIf` on all
-  8 public methods.
+- `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — `ObjectDisposedException.ThrowIf` on public operations.
 - `src/Infrastructure/WriteAheadLog/WriteAheadLog.cs` — `Interlocked.Exchange(ref _disposed, 1)` in
   `Dispose()`, checked in all public methods.
 
@@ -217,7 +292,7 @@ Callers could mutate the returned array, silently corrupting the tree's root has
 **Fix pattern**: Return `(byte[])_tree[0].Clone()` to provide a defensive copy. Callers can
 mutate their copy without affecting the tree.
 
-**Code**: `src/Infrastructure/DataStructures/MerkleTree.cs` — `RootHash` returns
+**Code**: `src/Distributed/Merkle/MerkleTree.cs:65` — `RootHash` returns
 `(byte[])_tree[0].Clone()`.
 
 **Test**: `tests/Infrastructure/MerkleTreeTests.cs` — `RootHash_ShouldReturnDefensiveCopy`
@@ -249,7 +324,7 @@ array indexing instead of a clear error.
 **Fix pattern**: Use `ArgumentOutOfRangeException.ThrowIfNegative(leafIndex)` before any
 computation.
 
-**Code**: `src/Infrastructure/DataStructures/MerkleTree.cs` — validates `leafIndex` in `VerifyProof`.
+**Code**: `src/Distributed/Merkle/MerkleTree.cs` — validates `leafIndex` in `VerifyProof`.
 
 ---
 
@@ -284,10 +359,11 @@ separate phase. This ensures that at any point during compaction, all data exist
 one valid segment:
 1. Read all entries from old segments (old segments remain intact)
 2. Write merged entries to a new compacted segment
-3. Only after the new segment is fully written, delete old segments
+3. Commit the replacement segment set in the manifest
+4. Retire old segments; physically delete only after their last snapshot pin is released
 
 **Code**: `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — `CompactInternalAsync` implements
-the three-phase pattern: read → write → delete.
+the read → write → manifest commit → retire pattern.
 
 ### Trap: Wrong merge order loses newer values
 
@@ -299,8 +375,9 @@ duplicate keys, violating last-writer-wins semantics.
 later `dictionary[key] = value` assignments overwrite earlier ones, the newest segment's value
 wins for any given key — matching the LSM read-path semantics (newest segment searched first).
 
-**Code**: `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — `CompactInternalAsync` iterates
-`_segments` in list order (oldest first, since segments are added chronologically).
+**Code**: `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — the current compactor uses a
+k-way merge of selected oldest-to-newest streams, preserving sequence numbers, value kinds
+and tombstones. It does not materialize a `SortedDictionary` as the illustrative pattern does.
 
 **Test**: `tests/Infrastructure/LsmStorageEngineTests.cs` —
 `CompactAsync_ShouldPreserveLastWriterWins` writes the same key to two different segments
@@ -316,13 +393,15 @@ and verifies the newer value survives compaction.
 partially-written, corrupt file. The next read sees a truncated SSTable with valid header but
 missing entries.
 
-**Fix pattern**: Write to a temporary file (`.tmp`), then atomically rename via
-`File.Move(tempPath, finalPath, overwrite: true)`. This leverages the filesystem's atomic rename
-guarantee — the final path either contains the old complete file or the new complete file, never
-a partial write.
+**Fix pattern**: Write and flush a temporary file, then publish it through
+`DurableFile.AtomicReplace`. The final path contains the old complete file or the new complete
+file. On Windows the helper uses extended rename semantics so an existing delete-sharing
+reader retains the old file while new opens see the replacement. Unsupported filesystem
+semantics fail explicitly; there is no delete-then-copy fallback. Atomic visibility alone
+does not establish persistence across physical power loss.
 
-**Code**: `src/Infrastructure/SortedStringTable/SortedStringTable.cs` — `Write()` serializes to
-`MemoryStream`, writes to `.tmp` file, then `File.Move` with overwrite.
+**Code**: `src/Infrastructure/SortedStringTable/SortedStringTable.cs` publishes its completed
+temporary file through `DurableFile.AtomicReplace`.
 
 ---
 
@@ -333,28 +412,30 @@ a partial write.
 **Bug**: When the MemTable is empty but tombstones exist, flushing would either skip the tombstones
 (losing delete information) or create an empty segment file (wasting disk and confusing recovery).
 
-**Fix pattern**: When only tombstones exist (no data), attach the tombstones to the newest existing
-segment's tombstone set rather than creating a new empty segment.
+**Fix pattern**: Write a data-less segment carrying the tombstone keys and sequence numbers
+in its footer, then commit it in the manifest. Updating only an older segment's in-memory
+map would lose deletes on reopen.
 
-**Code**: `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — `FlushInternalAsync` handles the
-`itemList.Count == 0 && _memTableTombstones.Count > 0` case by appending to `_segmentTombstones[^1]`.
+**Code**: `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — the background flusher writes
+an empty entry list with a nonempty tombstone map through either segment format.
 
 ---
 
-## 14. WriteAheadLog Replay in Constructor (Sync-Over-Async)
+## 14. Async Startup Recovery
 
-### Trap: Calling async methods synchronously during construction
+### Trap: Replaying the WAL synchronously during construction
 
-**Bug**: The LSM engine constructor needs to replay the WriteAheadLog, but constructors cannot be async.
-Using `.GetAwaiter().GetResult()` on an arbitrary async method risks deadlock if a
-`SynchronizationContext` is present.
+**Bug**: Replaying the WAL from the LSM engine constructor required
+`.GetAwaiter().GetResult()`. Blocking an arbitrary async operation during construction can
+deadlock under a `SynchronizationContext` and makes cancellation impossible to propagate cleanly.
 
-**Why it's acceptable here**: At construction time, the engine's `SemaphoreSlim` is not yet
-contended (no other callers exist), and the WriteAheadLog's internal semaphore is similarly uncontested.
-This is documented as a one-time startup operation.
+**Fix pattern**: Keep synchronous setup in the constructor and expose an async factory for the
+remaining work. `LsmStorageEngine.OpenAsync(options, cancellationToken)` constructs the engine,
+opens an existing value log, then awaits WAL replay. The constructor still validates options,
+creates the directory, validates the `CURRENT` manifest and opens its segment set synchronously.
 
-**Code**: `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — `ReplayWal()` uses
-`.GetAwaiter().GetResult()` with a comment explaining why it's safe.
+**Code**: `src/Infrastructure/LsmTree/LsmStorageEngine.cs` — `OpenAsync` delegates async recovery
+to `InitialiseAsync`; `ReplayWalAsync` is never called through sync-over-async.
 
 ---
 
@@ -395,7 +476,7 @@ Before submitting storage engine code, verify:
 - [ ] Hash algorithms validated against a reference implementation
 - [ ] All file writes use `Flush(flushToDisk: true)` for durability-critical paths
 - [ ] On-disk formats use explicit endianness (`BinaryPrimitives`)
-- [ ] Recovery skips corrupt entries without losing subsequent valid entries
+- [ ] Recovery fails closed — stops at the first corrupt frame, then classifies torn-tail (truncate cleanly) vs mid-file corruption (throw loud)
 - [ ] Sorted input is validated, not silently corrected
 - [ ] Synchronous code paths call synchronous methods (no sync-over-async)
 - [ ] Every public method checks `ObjectDisposedException` after dispose
@@ -407,7 +488,7 @@ Before submitting storage engine code, verify:
 - [ ] Compaction writes the new segment before deleting old segments (crash-safe ordering)
 - [ ] Compaction merges segments oldest-to-newest (last-writer-wins preserved)
 - [ ] File writes use write-to-temp-then-rename for atomicity
-- [ ] Tombstone-only flushes attach to existing segments (don't create empty segments)
-- [ ] Sync-over-async in constructors is documented and justified (uncontested locks only)
+- [ ] Tombstone-only flushes persist a tombstone-carrying segment and commit its manifest
+- [ ] Async startup work uses an async factory; constructors do not block on Tasks
 - [ ] StreamReader/StreamWriter are not created per-entry on a shared stream (use byte-level I/O)
 - [ ] StreamWriter uses BOM-less UTF-8 (`new UTF8Encoding(false)`) — never `Encoding.UTF8` for per-call writers

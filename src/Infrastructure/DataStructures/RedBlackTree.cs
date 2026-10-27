@@ -61,27 +61,20 @@ namespace Boutquin.Storage.Infrastructure.DataStructures;
 /// </para>
 /// </remarks>
 public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     // Enumeration for node colors used in the red-black tree
     private enum Color { Red, Black }
 
     // Class representing a node in the red-black tree
-    private sealed class Node
+    private sealed class Node(TKey key, TValue value, RedBlackTree<TKey, TValue>.Color nodeColor)
     {
-        public TKey Key { get; }
-        public TValue Value { get; set; }
+        public TKey Key { get; } = key;
+        public TValue Value { get; set; } = value;
         public Node? Left { get; set; }
         public Node? Right { get; set; }
         public Node? Parent { get; set; }
-        public Color NodeColor { get; set; }
-
-        public Node(TKey key, TValue value, Color nodeColor)
-        {
-            Key = key;
-            Value = value;
-            NodeColor = nodeColor;
-        }
+        public Color NodeColor { get; set; } = nodeColor;
     }
 
     private Node? _root; // The root node of the red-black tree
@@ -90,6 +83,14 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
     /// <inheritdoc />
     public bool IsFull => _count >= maxSize; // Check if the tree has reached its maximum size
 
+    /// <summary>
+    /// Number of entries currently in the tree. Cheap O(1) — backed by the in-memory
+    /// counter the insert path maintains. Engine code uses this to distinguish an empty
+    /// memtable from one with at least one entry without paying the O(n)
+    /// <see cref="GetAllItemsAsync"/> walk.
+    /// </summary>
+    public int Count => _count;
+
     /// <inheritdoc />
     public async Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
@@ -97,6 +98,9 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
         // implementations backed by I/O (e.g., on-disk B-trees). This in-memory implementation completes
         // synchronously, so we wrap results in completed tasks to satisfy the interface contract without
         // incurring async state machine overhead.
+        cancellationToken.ThrowIfCancellationRequested();
+        Guard.AgainstNullOrDefault(() => key);
+        Guard.AgainstNullOrDefault(() => value);
         AddNode(key, value);
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -124,13 +128,13 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
     }
 
     /// <inheritdoc />
-    public async Task RemoveAsync(TKey key, CancellationToken cancellationToken = default)
+    public Task RemoveAsync(TKey key, CancellationToken cancellationToken = default)
     {
         // Why not implemented? In an LSM-tree MemTable, deletes are handled by writing tombstone markers
         // (a special "deleted" value), not by removing nodes. The MemTable is append-only — it captures the
         // intent to delete, which is resolved during compaction when SSTables are merged. True node removal
         // would require red-black deletion (6 cases, O(log n) restructuring) for no architectural benefit.
-        throw new NotSupportedException("Remove operation is not supported in an append-only storage engine.");
+        return Task.FromException(new NotSupportedException("Remove operation is not supported in an append-only storage engine."));
     }
 
     /// <inheritdoc />
@@ -172,10 +176,17 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
         // synchronously, so we wrap results in completed tasks to satisfy the interface contract without
         // incurring async state machine overhead.
 
-        // Add each item to the tree. This operation is performed synchronously for each item.
+        Guard.AgainstNullOrDefault(() => items);
+
+        // Add each item to the tree. This operation is performed synchronously for each item,
+        // under the same per-item guards as SetAsync (AddNode only rejects a null key).
         foreach (var item in items)
         {
-            AddNode(item.Key, item.Value);
+            var key = item.Key;
+            var value = item.Value;
+            Guard.AgainstNullOrDefault(() => key);
+            Guard.AgainstNullOrDefault(() => value);
+            AddNode(key, value);
         }
         await Task.CompletedTask.ConfigureAwait(false);
     }
@@ -195,7 +206,7 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
     {
         while (true)
         {
-            var comparison = newNode.Key.CompareTo(root.Key);
+            var comparison = KeyOrder<TKey>.Compare(newNode.Key, root.Key);
             if (comparison < 0)
             {
                 if (root.Left == null)
@@ -243,6 +254,11 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
         // Fix the tree by performing rotations and recoloring nodes to restore red-black properties.
         while (node != _root && node.Parent!.NodeColor == Color.Red)
         {
+            // Invariant: entering the loop body with Parent.NodeColor == Red implies Parent is non-null.
+            // A red parent cannot be the root (the root is always black), so Parent.Parent is also non-null.
+            // The null-forgiving operators below rely on this; the asserts make the invariant explicit.
+            System.Diagnostics.Debug.Assert(node.Parent is not null);
+            System.Diagnostics.Debug.Assert(node.Parent.Parent is not null);
             if (node.Parent == node.Parent.Parent!.Left)
             {
                 // Parent is the left child.
@@ -454,7 +470,7 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
         while (current != null)
         {
             // Compare the key with the current node's key
-            var comparison = key.CompareTo(current.Key);
+            var comparison = KeyOrder<TKey>.Compare(key, current.Key);
 
             if (comparison < 0)
             {
@@ -498,14 +514,62 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
     }
 
     /// <summary>
-    /// Performs an in-order traversal of the tree to collect all items.
+    /// Structural self-check used by tests (finding #18). Verifies the four red-black invariants:
+    /// (1) the root is black; (2) no red node has a red child; (3) every root-to-null path has the
+    /// same black-height; and (4) the in-order key sequence is strictly ascending (BST property).
+    /// A regression in the insert fix-up that silently degraded the tree to <c>O(n)</c> would still
+    /// pass the behavioural sorted-iteration tests but fail this check. <c>internal</c> so the test
+    /// assembly can assert balance after a randomised insertion batch without exposing node colours.
     /// </summary>
-    /// <param name="node">The starting node for traversal.</param>
-    /// <param name="items">The list to collect the key-value pairs.</param>
-    /// <remarks>
-    /// This method uses in-order traversal to visit nodes in ascending order
-    /// of their keys, ensuring that the collected items are sorted.
-    /// </remarks>
+    internal bool SatisfiesRedBlackInvariants()
+    {
+        if (_root is null)
+        {
+            return true;
+        }
+        if (_root.NodeColor != Color.Black)
+        {
+            return false;
+        }
+        return BlackHeight(_root) >= 0 && IsStrictlyAscending();
+    }
+
+    // Returns the black-height of the subtree, or -1 if a red-red violation or a black-height
+    // mismatch is found anywhere beneath (null leaves count as black).
+    private static int BlackHeight(Node? node)
+    {
+        if (node is null)
+        {
+            return 1;
+        }
+        if (node.NodeColor == Color.Red
+            && (node.Left?.NodeColor == Color.Red || node.Right?.NodeColor == Color.Red))
+        {
+            return -1;
+        }
+        var left = BlackHeight(node.Left);
+        var right = BlackHeight(node.Right);
+        if (left < 0 || right < 0 || left != right)
+        {
+            return -1;
+        }
+        return left + (node.NodeColor == Color.Black ? 1 : 0);
+    }
+
+    private bool IsStrictlyAscending()
+    {
+        var items = new List<KeyValuePair<TKey, TValue>>();
+        InOrderTraversal(_root, items);
+        for (var i = 1; i < items.Count; i++)
+        {
+            if (KeyOrder<TKey>.Compare(items[i - 1].Key, items[i].Key) >= 0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static void InOrderTraversal(Node? root, List<KeyValuePair<TKey, TValue>> items)
     {
         // Why iterative instead of recursive? Recursive in-order traversal uses O(h) stack frames
@@ -538,7 +602,10 @@ public sealed class RedBlackTree<TKey, TValue>(int maxSize) : IRedBlackTree<TKey
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        if (IsFull)
+        // An update of an existing key adds no node, so a full memtable must accept it
+        // (parity with SkipListMemTable's IsFull && !ContainsKey predicate) — a tombstone
+        // or value overwrite at exactly-full capacity must not throw.
+        if (IsFull && FindNode(key) is null)
         {
             throw new InvalidOperationException("The red-black tree is full.");
         }

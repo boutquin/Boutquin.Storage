@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "capturedAtUtc": "2026-09-17",
+  "runtime": ".NET 10.0.11 Arm64 RyuJIT",
+  "hardware": "Apple M4",
+  "job": {
+    "iterationCount": 3,
+    "warmupCount": 1
+  },
+  "results": [
+    {
+      "rowCount": 4096,
+      "rowObjectMeanMicroseconds": 1.777,
+      "columnBatchMeanMicroseconds": 3.872,
+      "columnBatchAllocatedBytes": 16912
+    },
+    {
+      "rowCount": 65536,
+      "rowObjectMeanMicroseconds": 50.370,
+      "columnBatchMeanMicroseconds": 2342.234,
+      "columnBatchAllocatedBytes": 2095071
+    }
+  ],
+  "interpretation": "The current filter materializes selected rows across projected columns. This makes a reusable batch for downstream operators but costs allocations; it is not a hardware-SIMD path. Project columns before filtering to limit copied data."
+}

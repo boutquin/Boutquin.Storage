@@ -21,8 +21,8 @@ namespace Boutquin.Storage.Domain.Interfaces.Cdc;
 /// <para>CDC sources bridge existing storage engines to downstream consumers (materialized views,
 /// search indexes, analytics). Consumers read from their last checkpoint position forward.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing" and Ch. 12 — "The Future of Data Systems":
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing" and Ch. 13 — "A Philosophy of Streaming Systems":
 /// CDC as the foundation for derived data systems.</para>
 /// </summary>
 /// <typeparam name="TKey">The key type.</typeparam>

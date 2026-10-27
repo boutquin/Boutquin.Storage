@@ -15,6 +15,10 @@
 //
 namespace Boutquin.Storage.SourceGenerator.Tests;
 
+// Every fixture here carries explicit [Tag(N)] attributes on every property — Phase 2
+// enforces BSSG010 universally. Snapshot shape itself is unchanged for [Key] types
+// (still positional; Phase 3 will migrate to ordered wire) and updated for
+// [StorageSerializable] types (now tagged wire).
 public sealed class SnapshotTests
 {
     [Fact]
@@ -24,7 +28,7 @@ public sealed class SnapshotTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [Key]
-            public partial record struct MyKey(long Value);
+            public partial record struct MyKey([property: Tag(1)] long Value);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -38,7 +42,9 @@ public sealed class SnapshotTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [StorageSerializable]
-            public partial record struct MyValue(string Name, int Count);
+            public partial record struct MyValue(
+                [property: Tag(1)] string Name,
+                [property: Tag(2)] int Count);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -52,7 +58,9 @@ public sealed class SnapshotTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [Key]
-            public partial record struct CompositeKey(string Region, long Id);
+            public partial record struct CompositeKey(
+                [property: Tag(1)] string Region,
+                [property: Tag(2)] long Id);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -66,9 +74,11 @@ public sealed class SnapshotTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [StorageSerializable]
-            public partial record struct Inner(string Name);
+            public partial record struct Inner([property: Tag(1)] string Name);
             [StorageSerializable]
-            public partial record struct Outer(string Label, Inner Child);
+            public partial record struct Outer(
+                [property: Tag(1)] string Label,
+                [property: Tag(2)] Inner Child);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -83,9 +93,11 @@ public sealed class SnapshotTests
             using System.Collections.Generic;
             namespace TestNamespace;
             [StorageSerializable]
-            public partial record struct Item(string Name);
+            public partial record struct Item([property: Tag(1)] string Name);
             [StorageSerializable]
-            public partial record struct Container(string Label, IEnumerable<Item> Items);
+            public partial record struct Container(
+                [property: Tag(1)] string Label,
+                [property: Tag(2)] IEnumerable<Item> Items);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -100,7 +112,9 @@ public sealed class SnapshotTests
             using System.Collections.Generic;
             namespace TestNamespace;
             [StorageSerializable]
-            public partial record struct Tags(string Label, IEnumerable<string> Values);
+            public partial record struct Tags(
+                [property: Tag(1)] string Label,
+                [property: Tag(2)] IEnumerable<string> Values);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -113,7 +127,7 @@ public sealed class SnapshotTests
         const string source = """
             using Boutquin.Storage.Domain.Attributes;
             [Key]
-            public partial record struct GlobalKey(int Id);
+            public partial record struct GlobalKey([property: Tag(1)] int Id);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -128,9 +142,14 @@ public sealed class SnapshotTests
             namespace TestNamespace;
             [StorageSerializable]
             public partial record struct AllPrimitives(
-                int IntProp, long LongProp, string StringProp,
-                float FloatProp, double DoubleProp, bool BoolProp,
-                byte ByteProp, char CharProp);
+                [property: Tag(1)] int IntProp,
+                [property: Tag(2)] long LongProp,
+                [property: Tag(3)] string StringProp,
+                [property: Tag(4)] float FloatProp,
+                [property: Tag(5)] double DoubleProp,
+                [property: Tag(6)] bool BoolProp,
+                [property: Tag(7)] byte ByteProp,
+                [property: Tag(8)] char CharProp);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);
@@ -146,7 +165,7 @@ public sealed class SnapshotTests
             public partial class Outer
             {
                 [Key]
-                public partial record struct InnerKey(long Value);
+                public partial record struct InnerKey([property: Tag(1)] long Value);
             }
             """;
 
@@ -161,7 +180,7 @@ public sealed class SnapshotTests
             using Boutquin.Storage.Domain.Attributes;
             namespace TestNamespace;
             [StorageSerializable]
-            internal partial record struct InternalValue(string Data);
+            internal partial record struct InternalValue([property: Tag(1)] string Data);
             """;
 
         var (_, runResult) = TestHelpers.RunGenerator(source);

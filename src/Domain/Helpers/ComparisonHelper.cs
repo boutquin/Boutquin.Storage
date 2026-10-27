@@ -31,6 +31,7 @@ public static class ComparisonHelper
     /// <summary>
     /// Compares two values of the same type with null-safe semantics.
     /// Null is considered less than any non-null value; two nulls are equal.
+    /// Strings use UTF-8 byte order, preserving ordinal identity independently of the current culture.
     /// </summary>
     /// <typeparam name="T">The comparable type.</typeparam>
     /// <param name="obj">The first value to compare.</param>
@@ -43,6 +44,13 @@ public static class ComparisonHelper
             return other == null ? 0 : -1;
         }
 
-        return other == null ? 1 : obj.CompareTo(other);
+        if (other == null)
+        {
+            return 1;
+        }
+
+        return obj is string left && other is string right
+            ? OrderedByteHelpers.CompareStringByteLex(left, right)
+            : obj.CompareTo(other);
     }
 }

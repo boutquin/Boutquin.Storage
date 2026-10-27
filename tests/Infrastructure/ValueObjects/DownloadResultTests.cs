@@ -32,8 +32,8 @@ public sealed class DownloadResultTests
     [Fact]
     public void Equality_SameValues_AreEqual()
     {
-        var a = new DownloadResult(1, 2, Array.Empty<string>());
-        var b = new DownloadResult(1, 2, Array.Empty<string>());
+        var a = new DownloadResult(1, 2, []);
+        var b = new DownloadResult(1, 2, []);
 
         // Record equality compares by value for primitive fields but by reference for lists.
         // This test documents that behavior.

@@ -16,4 +16,6 @@
 namespace Boutquin.Storage.Samples;
 
 [StorageSerializable]
-public partial record struct City(string Name, IEnumerable<Attraction> Attractions);
+public partial record struct City(
+    [property: Tag(1)] string Name,
+    [property: Tag(2)] IEnumerable<Attraction> Attractions);

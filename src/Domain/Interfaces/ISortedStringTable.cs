@@ -13,71 +13,141 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using Boutquin.Storage.Domain.ValueObjects.SortedStringTable;
+
 namespace Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
-/// Interface for interacting with a Sorted String Table (SSTable) file.
+/// Sorted String Table (SSTable) — immutable on-disk sorted key/value store used as an
+/// LSM-tree segment. Every entry carries a monotonic sequence number assigned by the
+/// calling LSM engine so that recovery can reseed its counter to
+/// <c>max(sst_max, wal_max) + 1</c> (DDIA 2e Ch. 4 p. 119).
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the SSTable.</typeparam>
 /// <typeparam name="TValue">The type of the values in the SSTable.</typeparam>
 /// <remarks>
-/// <para><b>Theory:</b></para>
-/// <para>A Sorted String Table (SSTable) is an immutable data structure used in the Log-Structured Merge-Tree (LSM-tree) architecture. 
-/// SSTables are written to disk as the result of flushing the in-memory MemTable when it becomes full. SSTables contain sorted key-value pairs, 
-/// which allows for efficient range queries and merges.</para>
-/// 
-/// <para>In the LSM-tree, write operations are first handled by the MemTable, an in-memory data structure. When the MemTable reaches its size threshold, 
-/// it is flushed to disk, creating a new SSTable. This process is efficient because the MemTable already maintains the key-value pairs in sorted 
-/// order, allowing the SSTable to be written sequentially to disk.</para>
-/// 
-/// <para>SSTables are immutable, meaning once they are written, they do not change. This immutability ensures that read operations can be performed 
-/// without locking, thus improving read performance. To manage deleted and updated records, compaction processes merge and reorganize SSTables, 
-/// discarding obsolete data.</para>
-/// 
-/// <para><b>Choices of Implementation:</b></para>
-/// <para>- <b>Standard SSTable:</b> Stores sorted key-value pairs with indexing for efficient lookups. Simple to implement and provides good read performance.</para>
-/// <para>- <b>Indexed SSTable:</b> Extends the standard SSTable by adding more advanced indexing structures to further speed up read operations. More complex 
-///   to implement but can significantly improve performance for large datasets.</para>
-/// <para>- <b>Compressed SSTable:</b> Uses compression techniques to reduce the storage footprint. Involves additional computational overhead for compression 
-///   and decompression but can save significant disk space.</para>
-/// 
-/// <para>The choice of SSTable implementation depends on the specific requirements of the application, such as the need for read performance, storage
-/// efficiency, and complexity.</para>
+/// <para><b>Theory.</b> An SSTable is an immutable, sorted, block-structured file. Writes
+/// are issued once per memtable flush (or compaction result); subsequent reads are
+/// point-lookup (O(log N)) or full scan (sequential). The sorted order enables O(n+m)
+/// merges during compaction and sparse-index / bloom-filter acceleration on lookup.</para>
 ///
-/// <para><b>Complexity (where S = entries in this SSTable, I = index entries, n + m = entries in two SSTables being merged):</b></para>
-/// <para>- <b>Write:</b> O(S) — writes all entries sequentially (already sorted by the MemTable).</para>
-/// <para>- <b>TryGetValue (lookup):</b> O(log S) with a sparse index, or O(log I + B) where I = index entries and B = entries per index block. Binary search on the index, then scan within the block.</para>
-/// <para>- <b>Merge:</b> O(n + m) — merges two sorted sequences in a single pass.</para>
-/// <para>- <b>GetEntryCount:</b> O(1) — stored as metadata.</para>
-/// <para>- <b>Space:</b> O(S) on disk.</para>
+/// <para><b>Seqno contract.</b> <c>Write</c> takes triples
+/// <c>(Key, Value, SequenceNumber)</c>; each entry's seqno persists to disk as the
+/// C6 slot on the block entry and <see cref="MaxSequenceNumber"/> surfaces the highest
+/// persisted seqno. Callers without a seqno to offer (demos, standalone use) pass
+/// <c>0UL</c>.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
-/// section on SSTables and LSM-trees. SSTables are the on-disk component of LSM-trees, storing sorted
-/// key-value pairs that enable efficient merging and range queries.</para>
+/// <para><b>Complexity</b> (where S = entries in this SSTable, n + m = entries in two
+/// SSTables being merged):
+/// <list type="bullet">
+///   <item><description><b>Write:</b> O(S) — one sequential pass over pre-sorted input.</description></item>
+///   <item><description><b>TryGetValue:</b> O(log B + E) where B = number of blocks, E = entries per block.</description></item>
+///   <item><description><b>GetEntryCount / MaxSequenceNumber:</b> O(1) — cached from the footer.</description></item>
+/// </list>
+/// </para>
+///
+/// <para><b>No raw file surface.</b> The table is not an <see cref="IStorageFile"/>: its footer,
+/// bloom filter and block-cache identity are derived from the bytes it wrote, so a raw
+/// whole-file write, append or writable stream would leave it answering from bytes no longer
+/// on disk. <see cref="Write(IEnumerable{SegmentWriteEntry{TKey, TValue}})"/> is the only way to
+/// replace its contents and <see cref="Delete"/> the only way to remove them.</para>
+///
+/// <para><b>Reference.</b> Kleppmann, <i>Designing Data-Intensive Applications</i>
+/// (2nd ed., 2026), Ch. 4 "Storage and Retrieval" — SSTable / LSM-tree primitives.</para>
 /// </remarks>
-public interface ISortedStringTable<TKey, TValue> : IStorageFile where TKey : IComparable<TKey>
+public interface ISortedStringTable<TKey, TValue> : IFileInformation, IDisposable where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     /// <summary>
-    /// Writes a collection of key-value pairs to the SSTable file.
+    /// Whether the table's file exists on disk.
     /// </summary>
-    /// <param name="items">The collection of key-value pairs to write.</param>
-    void Write(IEnumerable<KeyValuePair<TKey, TValue>> items);
+    /// <returns><see langword="true"/> when the file exists; otherwise <see langword="false"/>.</returns>
+    bool Exists();
 
     /// <summary>
-    /// Reads the value associated with the specified key from the SSTable file.
+    /// Deletes the table's file and invalidates every piece of state derived from it. Content
+    /// reads, content-derived metadata and scans throw <see cref="ObjectDisposedException"/> until a successful
+    /// <c>Write</c> replaces its contents; an interrupted scan must never appear complete.
+    /// </summary>
+    /// <param name="deletionHandling">Whether a missing file is ignored or raises.</param>
+    /// <exception cref="FileNotFoundException">The file does not exist and
+    /// <paramref name="deletionHandling"/> is <see cref="FileDeletionHandling.ThrowIfNotExists"/>.</exception>
+    void Delete(FileDeletionHandling deletionHandling);
+
+    /// <summary>
+    /// Writes a sorted, seqno-carrying stream of discriminated entries to the SSTable file.
+    /// </summary>
+    /// <param name="items">
+    /// The entries to persist, in strictly ascending key order. Each entry's sequence number
+    /// is stamped into the on-disk block entry and surfaces back through <see cref="EnumerateInline"/>
+    /// and <see cref="MaxSequenceNumber"/>. Entries with <c>Kind == ValueKind.Inline</c> are
+    /// serialised via <c>TValue.Serialize</c>; entries with
+    /// <c>Kind == ValueKind.ValueLogPointer</c> write the 12-byte pointer body verbatim into
+    /// the block-entry value slot verbatim.
+    /// </param>
+    /// <exception cref="ArgumentException">Keys are not strictly ascending or an entry fails
+    /// the <see cref="SegmentWriteEntry{TKey, TValue}"/> invariant.</exception>
+    void Write(IEnumerable<SegmentWriteEntry<TKey, TValue>> items);
+
+    /// <summary>
+    /// Writes a sorted, seqno-carrying stream of discriminated entries to the SSTable file
+    /// AND persists the supplied tombstone map (deleted key → deletion seqno) into the
+    /// footer. Used by the LSM engine's flush path to carry the active memtable's
+    /// tombstones onto disk so compaction's tombstone-GC step (DDIA Ch. 4 p. 124) can
+    /// safely reclaim the markers — it now has the deletion seqno needed to prove that no
+    /// older live entry survives elsewhere.
+    /// </summary>
+    /// <param name="items">As <c>Write(IEnumerable&lt;SegmentWriteEntry&lt;TKey, TValue&gt;&gt;)</c>.</param>
+    /// <param name="tombstones">Deleted-key → deletion-seqno map persisted into the footer.
+    /// <see langword="null"/> writes a tombstone-free segment.</param>
+    void Write(
+        IEnumerable<SegmentWriteEntry<TKey, TValue>> items,
+        IReadOnlyDictionary<TKey, ulong>? tombstones);
+
+    /// <summary>
+    /// Decodes the persisted footer-level tombstone list into a
+    /// <typeparamref name="TKey"/> → deletion-seqno map. Empty when the segment carries no
+    /// tombstones. The compactor consumes this to reclaim deletion markers safely.
+    /// </summary>
+    IReadOnlyDictionary<TKey, ulong> GetTombstoneSeqnos();
+
+    /// <summary>
+    /// Reads the value associated with the specified key from the SSTable file,
+    /// filtering entries whose per-entry sequence number exceeds
+    /// <paramref name="maxSequenceNumber"/>.
     /// </summary>
     /// <param name="key">The key to search for.</param>
-    /// <param name="value">The value associated with the key, if found.</param>
-    /// <returns>True if the key is found; otherwise, false.</returns>
-    bool TryGetValue(TKey key, out TValue value);
+    /// <param name="value">The value associated with the key, if found and visible.</param>
+    /// <param name="maxSequenceNumber">
+    /// Inclusive upper bound on per-entry seqno. Callers outside the snapshot read path
+    /// pass <see cref="ulong.MaxValue"/> (the default) — the filter collapses cheaply and
+    /// yields every persisted entry. Callers serving a snapshot read pass the snapshot's
+    /// <c>SequenceNumber</c> so entries written after acquisition are invisible. See
+    /// <c>docs/snapshot-isolation.md</c> for the visibility rule.
+    /// </param>
+    /// <returns>True if the key is found and its seqno is visible; otherwise, false.</returns>
+    bool TryGetValue(TKey key, out TValue value, ulong maxSequenceNumber = ulong.MaxValue);
 
     /// <summary>
-    /// Merges another SSTable into the current SSTable.
-    /// When both tables contain the same key, the entry from <paramref name="otherTable"/>
-    /// takes precedence (last-writer-wins).
+    /// Yields every persisted <b>inline</b> entry whose per-entry seqno is
+    /// <c>≤ <paramref name="maxSequenceNumber"/></c> as a
+    /// <c>(Key, Value, SequenceNumber)</c> triple in ascending key order. Pointer entries
+    /// (WiscKey value-log references) are skipped because their raw 12-byte bodies cannot
+    /// be decoded as <typeparamref name="TValue"/> at this layer; callers that need the
+    /// discriminated form use the engine-level read path.
     /// </summary>
-    /// <param name="otherTable">The other SSTable to merge.</param>
-    void Merge(ISortedStringTable<TKey, TValue> otherTable);
+    /// <param name="maxSequenceNumber">
+    /// Inclusive upper bound on per-entry seqno. Pass <see cref="ulong.MaxValue"/>
+    /// (the default) to enumerate every persisted inline entry. Snapshot reads pass the
+    /// snapshot's <c>SequenceNumber</c>.
+    /// </param>
+    IEnumerable<(TKey Key, TValue Value, ulong SequenceNumber)> EnumerateInline(ulong maxSequenceNumber = ulong.MaxValue);
+
+    /// <summary>
+    /// Highest sequence number persisted in the SSTable, or zero when the file is empty.
+    /// Recovery reads this to reseed the LSM engine's monotonic counter to
+    /// <c>max(sst_max, wal_max) + 1</c>.
+    /// </summary>
+    ulong MaxSequenceNumber { get; }
 
     /// <summary>
     /// Gets the number of entries in the SSTable.

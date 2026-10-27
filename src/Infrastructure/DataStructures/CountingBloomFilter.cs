@@ -27,6 +27,14 @@ namespace Boutquin.Storage.Infrastructure.DataStructures;
 /// </para>
 ///
 /// <para>
+/// <b>Byte identity is the filter's identity.</b> As in <see cref="BloomFilter{T}"/>, positions derive
+/// from the serializer's bytes, so equal items must produce equal bytes: an item whose queried bytes differ
+/// from the bytes it was added under is reported absent (and a <c>Remove</c> decrements different counters
+/// than the <c>Add</c> incremented). Canonicalise inside the serializer for any key type whose equality
+/// identifies values that serialize differently.
+/// </para>
+///
+/// <para>
 /// <b>Thread safety:</b> This class is not thread-safe. External synchronization is required for concurrent use.
 /// </para>
 /// </remarks>
@@ -36,18 +44,45 @@ public sealed class CountingBloomFilter<T> : ICountingBloomFilter<T>
     private readonly int[] _counters;
     private readonly int _hashFunctionCount;
     private readonly int _counterArraySize;
-    private readonly Func<T, byte[]> _itemToBytes;
+
+    // Test-only observability — see BloomFilter<T>.HashFunctionCount.
+    internal int HashFunctionCount => _hashFunctionCount;
+    private readonly Func<T, byte[]>? _itemToBytes;
+    private readonly BloomFilterStreamSerializer<T>? _streamSerializer;
     private readonly IHashAlgorithm _hashAlgorithm1;
     private readonly IHashAlgorithm _hashAlgorithm2;
 
+    // Per-instance scratch reused across Add/Contains/Remove/GetCount calls when the
+    // streaming-serializer path is in use. The class is documented as not thread-safe, so a
+    // single instance buffer is sufficient.
+    private MemoryStream? _scratch;
+    private int _disposed;
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="CountingBloomFilter{T}"/> class with expected elements and false positive probability.
-    /// Uses Murmur3 and XxHash32 as default hash algorithms.
+    /// Initializes a new instance of the <see cref="CountingBloomFilter{T}"/> class with the default
+    /// Murmur3 + xxHash32 algorithms and a required item-to-bytes serializer.
     /// </summary>
     /// <param name="expectedElements">The expected number of elements to store.</param>
     /// <param name="falsePositiveProbability">The desired false positive probability.</param>
-    public CountingBloomFilter(int expectedElements, double falsePositiveProbability)
-        : this(expectedElements, falsePositiveProbability, new Murmur3(), new XxHash32(), DefaultItemToBytes)
+    /// <param name="itemToBytes">
+    /// Required serializer that maps an item to a stable byte representation. Equal items must
+    /// produce equal bytes, otherwise a stored item is reported absent; distinct items must produce
+    /// distinct bytes, otherwise the filter degenerates. For <see cref="ISerializable{T}"/>
+    /// keys, prefer <see cref="CountingBloomFilter.ForSerializable{T}(int, double)"/>, which uses
+    /// the allocation-free streaming-serializer path.
+    /// </param>
+    public CountingBloomFilter(int expectedElements, double falsePositiveProbability, Func<T, byte[]> itemToBytes)
+        : this(expectedElements, falsePositiveProbability, new Murmur3(), new XxHash32(), itemToBytes)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CountingBloomFilter{T}"/> class with the default
+    /// Murmur3 + xxHash32 algorithms and a streaming serializer that writes item bytes into a
+    /// reusable, per-instance scratch buffer instead of allocating a fresh <c>byte[]</c> per call.
+    /// </summary>
+    public CountingBloomFilter(int expectedElements, double falsePositiveProbability, BloomFilterStreamSerializer<T> streamSerializer)
+        : this(expectedElements, falsePositiveProbability, new Murmur3(), new XxHash32(), streamSerializer)
     {
     }
 
@@ -55,11 +90,34 @@ public sealed class CountingBloomFilter<T> : ICountingBloomFilter<T>
     /// Initializes a new instance of the <see cref="CountingBloomFilter{T}"/> class with custom hash functions.
     /// </summary>
     public CountingBloomFilter(int expectedElements, double falsePositiveProbability, IHashAlgorithm hashAlgorithm1, IHashAlgorithm hashAlgorithm2, Func<T, byte[]> itemToBytes)
+        : this(expectedElements, falsePositiveProbability, hashAlgorithm1, hashAlgorithm2)
     {
-        _counterArraySize = CalculateOptimalBitArraySize(expectedElements, falsePositiveProbability);
-        _hashFunctionCount = CalculateOptimalHashFunctionCount(expectedElements, _counterArraySize);
-        _counters = new int[_counterArraySize];
         _itemToBytes = itemToBytes ?? throw new ArgumentNullException(nameof(itemToBytes));
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CountingBloomFilter{T}"/> class with custom hash
+    /// functions and the streaming-serializer path.
+    /// </summary>
+    public CountingBloomFilter(int expectedElements, double falsePositiveProbability, IHashAlgorithm hashAlgorithm1, IHashAlgorithm hashAlgorithm2, BloomFilterStreamSerializer<T> streamSerializer)
+        : this(expectedElements, falsePositiveProbability, hashAlgorithm1, hashAlgorithm2)
+    {
+        _streamSerializer = streamSerializer ?? throw new ArgumentNullException(nameof(streamSerializer));
+    }
+
+    private CountingBloomFilter(int expectedElements, double falsePositiveProbability, IHashAlgorithm hashAlgorithm1, IHashAlgorithm hashAlgorithm2)
+    {
+        if (expectedElements <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(expectedElements), "Expected elements must be positive.");
+        }
+        if (!(falsePositiveProbability > 0 && falsePositiveProbability < 1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(falsePositiveProbability), "Must be in (0, 1).");
+        }
+        _counterArraySize = BloomFilterSizing.OptimalArraySize(expectedElements, falsePositiveProbability);
+        _hashFunctionCount = BloomFilterSizing.OptimalHashFunctionCount(expectedElements, _counterArraySize);
+        _counters = new int[_counterArraySize];
         _hashAlgorithm1 = hashAlgorithm1 ?? throw new ArgumentNullException(nameof(hashAlgorithm1));
         _hashAlgorithm2 = hashAlgorithm2 ?? throw new ArgumentNullException(nameof(hashAlgorithm2));
     }
@@ -67,30 +125,123 @@ public sealed class CountingBloomFilter<T> : ICountingBloomFilter<T>
     /// <inheritdoc/>
     public void Add(T item)
     {
-        if (item == null)
-        {
-            throw new ArgumentNullException(nameof(item), "Cannot add null item to the counting Bloom filter.");
-        }
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        ArgumentNullException.ThrowIfNull(item);
 
-        var itemBytes = _itemToBytes(item);
-        foreach (var position in GetHashPositions(itemBytes))
+        if (_streamSerializer is not null)
         {
-            _counters[position]++;
+            var ms = _scratch ??= new MemoryStream(64);
+            ms.SetLength(0);
+            _streamSerializer(item, ms);
+            AddCore(ms.GetBuffer().AsSpan(0, (int)ms.Length));
+        }
+        else
+        {
+            AddCore(_itemToBytes!(item));
         }
     }
 
     /// <inheritdoc/>
     public bool Contains(T item)
     {
-        if (item == null)
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (_streamSerializer is not null)
         {
-            throw new ArgumentNullException(nameof(item), "Cannot check null item in the counting Bloom filter.");
+            var ms = _scratch ??= new MemoryStream(64);
+            ms.SetLength(0);
+            _streamSerializer(item, ms);
+            return ContainsCore(ms.GetBuffer().AsSpan(0, (int)ms.Length));
         }
 
-        var itemBytes = _itemToBytes(item);
-        foreach (var position in GetHashPositions(itemBytes))
+        return ContainsCore(_itemToBytes!(item));
+    }
+
+    /// <inheritdoc/>
+    public void Remove(T item)
+    {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (_streamSerializer is not null)
         {
-            if (_counters[position] <= 0)
+            var ms = _scratch ??= new MemoryStream(64);
+            ms.SetLength(0);
+            _streamSerializer(item, ms);
+            RemoveCore(ms.GetBuffer().AsSpan(0, (int)ms.Length));
+        }
+        else
+        {
+            RemoveCore(_itemToBytes!(item));
+        }
+    }
+
+    /// <inheritdoc/>
+    public int GetCount(T item)
+    {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        ArgumentNullException.ThrowIfNull(item);
+
+        if (_streamSerializer is not null)
+        {
+            var ms = _scratch ??= new MemoryStream(64);
+            ms.SetLength(0);
+            _streamSerializer(item, ms);
+            return GetCountCore(ms.GetBuffer().AsSpan(0, (int)ms.Length));
+        }
+
+        return GetCountCore(_itemToBytes!(item));
+    }
+
+    /// <inheritdoc/>
+    public void Clear()
+    {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        Array.Clear(_counters, 0, _counters.Length);
+    }
+
+    /// <summary>
+    /// Releases the per-instance scratch <see cref="MemoryStream"/> used by the
+    /// streaming-serializer constructor path. Idempotent — concurrent disposers cannot
+    /// double-free (<see cref="Interlocked.Exchange(ref int, int)"/> gates the cleanup).
+    /// After dispose, every public method throws <see cref="ObjectDisposedException"/>.
+    /// </summary>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+        _scratch?.Dispose();
+        _scratch = null;
+    }
+
+    private void AddCore(ReadOnlySpan<byte> itemBytes)
+    {
+        var hash1 = _hashAlgorithm1.ComputeHash(itemBytes);
+        var hash2 = _hashAlgorithm2.ComputeHash(itemBytes);
+        for (var i = 0; i < _hashFunctionCount; i++)
+        {
+            var pos = (int)(unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_counterArraySize);
+            // Saturate at int.MaxValue — wrapping past int.MaxValue to a negative value would
+            // corrupt Contains (negative counters read as "absent") and GetCount (min scan
+            // returns negative).
+            if (_counters[pos] < int.MaxValue)
+            {
+                _counters[pos]++;
+            }
+        }
+    }
+
+    private bool ContainsCore(ReadOnlySpan<byte> itemBytes)
+    {
+        var hash1 = _hashAlgorithm1.ComputeHash(itemBytes);
+        var hash2 = _hashAlgorithm2.ComputeHash(itemBytes);
+        for (var i = 0; i < _hashFunctionCount; i++)
+        {
+            var pos = (int)(unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_counterArraySize);
+            if (_counters[pos] <= 0)
             {
                 return false;
             }
@@ -98,77 +249,80 @@ public sealed class CountingBloomFilter<T> : ICountingBloomFilter<T>
         return true;
     }
 
-    /// <inheritdoc/>
-    public void Remove(T item)
-    {
-        if (item == null)
-        {
-            throw new ArgumentNullException(nameof(item), "Cannot remove null item from the counting Bloom filter.");
-        }
-
-        var itemBytes = _itemToBytes(item);
-        foreach (var position in GetHashPositions(itemBytes))
-        {
-            // Why floor at 0? Decrementing below 0 would corrupt the filter — a counter at -1 would
-            // cause Contains to return false for any element that hashes to that position, even if
-            // the element was legitimately added.
-            if (_counters[position] > 0)
-            {
-                _counters[position]--;
-            }
-        }
-    }
-
-    /// <inheritdoc/>
-    public int GetCount(T item)
-    {
-        if (item == null)
-        {
-            throw new ArgumentNullException(nameof(item), "Cannot get count for null item.");
-        }
-
-        var itemBytes = _itemToBytes(item);
-        var minCount = int.MaxValue;
-        foreach (var position in GetHashPositions(itemBytes))
-        {
-            if (_counters[position] < minCount)
-            {
-                minCount = _counters[position];
-            }
-        }
-        return minCount == int.MaxValue ? 0 : minCount;
-    }
-
-    /// <inheritdoc/>
-    public void Clear()
-    {
-        Array.Clear(_counters, 0, _counters.Length);
-    }
-
-    private static int CalculateOptimalBitArraySize(int n, double p)
-    {
-        return (int)Math.Ceiling((-n * Math.Log(p)) / (Math.Log(2) * Math.Log(2)));
-    }
-
-    private static int CalculateOptimalHashFunctionCount(int n, int m)
-    {
-        return (int)Math.Max(1, Math.Round((double)m / n * Math.Log(2)));
-    }
-
-    private IEnumerable<int> GetHashPositions(byte[] itemBytes)
+    private void RemoveCore(ReadOnlySpan<byte> itemBytes)
     {
         var hash1 = _hashAlgorithm1.ComputeHash(itemBytes);
         var hash2 = _hashAlgorithm2.ComputeHash(itemBytes);
 
+        // Decrement ONLY when all k counters are positive — i.e., the item currently passes
+        // the membership test. Removing a key that was never added (any counter at 0) must
+        // be a complete no-op: an unguarded per-counter decrement drains whatever positive
+        // counters the ghost key collides with, eventually producing a false negative for a
+        // genuine member — the one failure the filter contract forbids. (A ghost that is a
+        // bloom false positive can still decrement shared counters; that residual hazard is
+        // inherent to counting filters, which is why Remove's contract requires removing
+        // only previously-added items, at most as many times as they were added.)
         for (var i = 0; i < _hashFunctionCount; i++)
         {
-            var combinedHash = unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_counterArraySize;
-            yield return (int)combinedHash;
+            var pos = (int)(unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_counterArraySize);
+            if (_counters[pos] <= 0)
+            {
+                return;
+            }
+        }
+
+        for (var i = 0; i < _hashFunctionCount; i++)
+        {
+            var pos = (int)(unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_counterArraySize);
+            _counters[pos]--;
         }
     }
 
-    private static byte[] DefaultItemToBytes(T item)
+    private int GetCountCore(ReadOnlySpan<byte> itemBytes)
     {
-        return Encoding.UTF8.GetBytes(item?.ToString() ?? string.Empty);
+        var hash1 = _hashAlgorithm1.ComputeHash(itemBytes);
+        var hash2 = _hashAlgorithm2.ComputeHash(itemBytes);
+        var minCount = int.MaxValue;
+        for (var i = 0; i < _hashFunctionCount; i++)
+        {
+            var pos = (int)(unchecked((uint)(hash1 + (uint)i * hash2)) % (uint)_counterArraySize);
+            if (_counters[pos] < minCount)
+            {
+                minCount = _counters[pos];
+            }
+        }
+        return minCount == int.MaxValue ? 0 : minCount;
     }
+}
+
+/// <summary>
+/// Static convenience entry points for <see cref="CountingBloomFilter{T}"/>.
+/// </summary>
+/// <remarks>
+/// See <see cref="BloomFilter"/> for the rationale: method-level <c>where T : ISerializable&lt;T&gt;</c>
+/// constraints provide an opt-in factory for engine-friendly key types without over-constraining the
+/// generic type itself.
+/// </remarks>
+public static class CountingBloomFilter
+{
+    /// <summary>
+    /// Creates a <see cref="CountingBloomFilter{T}"/> for an <see cref="ISerializable{T}"/> key type,
+    /// binding the item-to-bytes serializer automatically via <see cref="ISerializable{T}.Serialize(Stream)"/>.
+    /// </summary>
+    /// <typeparam name="T">A type implementing <see cref="ISerializable{T}"/>.</typeparam>
+    /// <param name="expectedElements">The expected number of elements.</param>
+    /// <param name="falsePositiveProbability">The desired false positive probability.</param>
+    /// <returns>A configured <see cref="CountingBloomFilter{T}"/>.</returns>
+    /// <remarks>
+    /// The filter positions derive from <c>Serialize</c>'s bytes, so <typeparamref name="T"/> must
+    /// serialize equal keys identically: equal items must produce equal bytes, where "equal" is the
+    /// relation the fronted store matches keys by (<see cref="IComparable{T}.CompareTo"/>).
+    /// </remarks>
+    public static CountingBloomFilter<T> ForSerializable<T>(int expectedElements, double falsePositiveProbability)
+        where T : ISerializable<T>
+        => new(expectedElements, falsePositiveProbability, SerializeToStream<T>);
+
+    private static void SerializeToStream<T>(T item, Stream destination)
+        where T : ISerializable<T>
+        => item.Serialize(destination);
 }

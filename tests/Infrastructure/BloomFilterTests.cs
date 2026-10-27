@@ -30,7 +30,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter with a capacity for 100 elements and a false positive probability of 1%.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
 
         // Act: Add an element to the Bloom filter.
         var item = "exampleKey";
@@ -49,7 +49,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter with a capacity for 100 elements and a false positive probability of 1%.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
 
         // Act: Check if the Bloom filter contains an element that has not been added.
         var item = "nonExistentKey";
@@ -67,7 +67,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter and add an element to it.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
         var item = "exampleKey";
         bloomFilter.Add(item);
 
@@ -87,7 +87,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter with a capacity for 100 elements and a false positive probability of 1%.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
 
         var items = new[] { "key1", "key2", "key3" };
 
@@ -113,7 +113,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter with a capacity for 100 elements and a false positive probability of 1%.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
         var item = "duplicateKey";
 
         // Act: Add the same element multiple times to the Bloom filter.
@@ -134,7 +134,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter with a capacity for 100 elements and a false positive probability of 1%.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
         var item = string.Empty;
 
         // Act: Add an empty string to the Bloom filter.
@@ -153,7 +153,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter with a capacity for 100 elements and a false positive probability of 1%.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
 
         // Act & Assert: Attempt to add a null element and expect an NullReferenceException.
         Assert.Throws<ArgumentNullException>(() => bloomFilter.Add(null!));
@@ -168,7 +168,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a Bloom filter with a capacity for 100 elements and a false positive probability of 1%.
         var expectedElements = 100;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability);
+        var bloomFilter = new BloomFilter<string>(expectedElements, falsePositiveProbability, Encoding.UTF8.GetBytes);
 
         var items = new[] { "a", "abc", "abcdef", new string('x', 1000) };
 
@@ -194,7 +194,7 @@ public sealed class BloomFilterTests
         // Arrange: Create a filter sized for 1000 elements at 5% FP rate
         var expectedElements = 1000;
         var targetFpRate = 0.05;
-        var bloomFilter = new BloomFilter<string>(expectedElements, targetFpRate);
+        var bloomFilter = new BloomFilter<string>(expectedElements, targetFpRate, Encoding.UTF8.GetBytes);
 
         // Act: Add exactly expectedElements items
         for (var i = 0; i < expectedElements; i++)
@@ -227,7 +227,7 @@ public sealed class BloomFilterTests
     public void Clear_ThenReadd_WorksCorrectly()
     {
         // Arrange
-        var bloomFilter = new BloomFilter<string>(100, 0.01);
+        var bloomFilter = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
         bloomFilter.Add("key1");
         bloomFilter.Clear();
 
@@ -246,7 +246,7 @@ public sealed class BloomFilterTests
     public void Add_IntegerType_WorksCorrectly()
     {
         // Arrange
-        var bloomFilter = new BloomFilter<int>(100, 0.01);
+        var bloomFilter = new BloomFilter<int>(100, 0.01, BitConverter.GetBytes);
 
         // Act
         bloomFilter.Add(42);
@@ -265,7 +265,7 @@ public sealed class BloomFilterTests
     public void Add_BeyondCapacity_NoFalseNegatives()
     {
         // Arrange — sized for 10 elements
-        var bloomFilter = new BloomFilter<string>(10, 0.01);
+        var bloomFilter = new BloomFilter<string>(10, 0.01, Encoding.UTF8.GetBytes);
 
         // Act — add 100 elements (10x capacity)
         for (var i = 0; i < 100; i++)
@@ -287,8 +287,8 @@ public sealed class BloomFilterTests
     public void TwoFilters_HaveIndependentState()
     {
         // Arrange
-        var filter1 = new BloomFilter<string>(100, 0.01);
-        var filter2 = new BloomFilter<string>(100, 0.01);
+        var filter1 = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
+        var filter2 = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
 
         // Act
         filter1.Add("key1");
@@ -299,5 +299,197 @@ public sealed class BloomFilterTests
         Assert.False(filter1.Contains("key2"));
         Assert.False(filter2.Contains("key1"));
         Assert.True(filter2.Contains("key2"));
+    }
+
+    /// <summary>
+    /// Test that the <see cref="BloomFilter.ForSerializable{T}(int, double)"/> factory
+    /// distinguishes distinct keys by serializer-derived bytes — not by <c>ToString()</c>.
+    /// </summary>
+    /// <remarks>
+    /// The earlier default ctor used <c>T.ToString()</c> as the byte source; for any key type
+    /// whose <c>ToString()</c> collapsed to a constant (e.g., a class without an override returning
+    /// the type name) every distinct value collided and the filter degenerated to always-true.
+    /// The serializable factory binds the <see cref="ISerializable{T}.Serialize(Stream)"/> method
+    /// instead, which produces distinct bytes for distinct values by contract.
+    /// </remarks>
+    [Fact]
+    public void ForSerializable_DistinguishesDistinctKeys()
+    {
+        // Arrange
+        var filter = BloomFilter.ForSerializable<SerializableWrapper<int>>(100, 0.01);
+
+        // Act
+        filter.Add(new SerializableWrapper<int>(1));
+
+        // Assert — present key found
+        Assert.True(filter.Contains(new SerializableWrapper<int>(1)));
+
+        // Assert — absent key NOT found (guarded against ~1% FP noise by checking a key
+        // far from the populated bit positions; the FP rate is 0.01 so a single negative
+        // probe is robust in practice).
+        Assert.False(filter.Contains(new SerializableWrapper<int>(424242)));
+    }
+
+    /// <summary>
+    /// Test that the explicit-serializer constructor accepts a custom <c>Func&lt;T, byte[]&gt;</c>.
+    /// </summary>
+    [Fact]
+    public void ExplicitSerializerCtor_AcceptsCustomFunc()
+    {
+        // Arrange — deterministic custom serializer with call counting.
+        var calls = 0;
+        byte[] CountedBytes(string s)
+        {
+            calls++;
+            return Encoding.UTF8.GetBytes(s);
+        }
+        var filter = new BloomFilter<string>(100, 0.01, CountedBytes);
+
+        // Act
+        filter.Add("alpha");
+        var found = filter.Contains("alpha");
+
+        // Assert — custom serializer was invoked twice (one Add, one Contains).
+        Assert.True(found);
+        Assert.Equal(2, calls);
+    }
+
+    // ── Constructor validation guards ────────────────────────────────────────
+
+    [Fact]
+    public void Constructor_ZeroExpectedElements_Throws()
+    {
+        Action act = () => _ = new BloomFilter<string>(0, 0.01, Encoding.UTF8.GetBytes);
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("expectedElements");
+    }
+
+    [Fact]
+    public void Constructor_NegativeExpectedElements_Throws()
+    {
+        Action act = () => _ = new BloomFilter<string>(-1, 0.01, Encoding.UTF8.GetBytes);
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("expectedElements");
+    }
+
+    [Fact]
+    public void Constructor_FppZero_Throws()
+    {
+        Action act = () => _ = new BloomFilter<string>(100, 0.0, Encoding.UTF8.GetBytes);
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("falsePositiveProbability");
+    }
+
+    [Fact]
+    public void Constructor_FppOne_Throws()
+    {
+        Action act = () => _ = new BloomFilter<string>(100, 1.0, Encoding.UTF8.GetBytes);
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("falsePositiveProbability");
+    }
+
+    [Fact]
+    public void Constructor_NullItemToBytes_Throws()
+    {
+        Action act = () => _ = new BloomFilter<string>(100, 0.01, (Func<string, byte[]>)null!);
+        act.Should().Throw<ArgumentNullException>().WithParameterName("itemToBytes");
+    }
+
+    [Fact]
+    public void Add_NullItem_Throws()
+    {
+        var filter = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
+        Action act = () => filter.Add(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Contains_NullItem_Throws()
+    {
+        var filter = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
+        Action act = () => filter.Contains(null!);
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void AfterDispose_AllMethodsThrowObjectDisposed()
+    {
+        var filter = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
+        filter.Dispose();
+
+        ((Action)(() => filter.Add("x"))).Should().Throw<ObjectDisposedException>();
+        ((Action)(() => filter.Contains("x"))).Should().Throw<ObjectDisposedException>();
+        ((Action)(() => filter.Clear())).Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        var filter = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
+        filter.Dispose();
+        ((Action)filter.Dispose).Should().NotThrow();
+    }
+
+    [Fact]
+    public void Clear_ResetsBitArray_RemovesAllItemsFromContainsCheck()
+    {
+        var filter = new BloomFilter<string>(100, 0.01, Encoding.UTF8.GetBytes);
+        filter.Add("alpha");
+        filter.Add("beta");
+        filter.Contains("alpha").Should().BeTrue();
+
+        filter.Clear();
+
+        filter.Contains("alpha").Should().BeFalse();
+        filter.Contains("beta").Should().BeFalse();
+    }
+
+    // ── AC-7.1: Array.MaxLength overflow guard ───────────────────────────────
+
+    /// <summary>
+    /// AC-7.1: expectedElements large enough to require a bit array exceeding
+    /// Array.MaxLength must throw <see cref="ArgumentOutOfRangeException"/> with a
+    /// clear message, not silently overflow to a negative BitArray size.
+    /// </summary>
+    [Fact]
+    public void Constructor_ExpectedElementsExceedingArrayMaxLength_ThrowsArgumentOutOfRange()
+    {
+        // n=300_000_000, p=0.01 → optimal bit array size ≈ 2,875,517,513 > Array.MaxLength
+        // Without the guard the (int) cast overflows to a negative value and either
+        // BitArray ctor throws a cryptic ArgumentOutOfRangeException or wraps silently.
+        Action act = () => _ = new BloomFilter<string>(300_000_000, 0.01, Encoding.UTF8.GetBytes);
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .WithParameterName("expectedElements");
+    }
+
+    /// <summary>
+    /// AC-7.1: Same guard for the custom-hash-algorithm constructor path.
+    /// </summary>
+    [Fact]
+    public void Constructor_CustomHash_ExpectedElementsExceedingArrayMaxLength_ThrowsArgumentOutOfRange()
+    {
+        Action act = () => _ = new BloomFilter<string>(300_000_000, 0.01, new Murmur3(), new XxHash32(), Encoding.UTF8.GetBytes);
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .WithParameterName("expectedElements");
+    }
+
+    // ── AC-7.7: custom-IHashAlgorithm constructor path ───────────────────────
+
+    /// <summary>
+    /// AC-7.7: The custom-hash constructor path wires the supplied algorithms into
+    /// the actual Add/Contains flow (not the default Murmur3+XxHash32 path).
+    /// </summary>
+    [Fact]
+    public void CustomHashAlgorithmCtor_WiresAlgorithmsIntoAddContains()
+    {
+        // Use a trivially predictable "hash everything to 0" stub — if the custom
+        // algorithms are ignored and defaults are used, the bit pattern is different
+        // and Contains returns false for a key that hash-to-0 would always set.
+        var allZeroHash = new ConstantHashAlgorithm(0u);
+        var filter = new BloomFilter<string>(100, 0.01, allZeroHash, allZeroHash, Encoding.UTF8.GetBytes);
+
+        filter.Add("any-key");
+
+        // With two hash functions both returning 0, position (0+i*0) % size == 0 for all i.
+        // Only bit 0 is set. "other-key" hashed by the same constant functions also maps
+        // to bit 0 → always Contains (guaranteed FP). This proves the custom algorithms
+        // drive the bit positions, not the defaults.
+        filter.Contains("other-key").Should().BeTrue("constant-zero hash always maps to bit 0");
     }
 }

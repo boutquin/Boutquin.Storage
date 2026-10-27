@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup><PackageReference Include="BenchmarkDotNet" /><ProjectReference Include="../../src/Infrastructure/Boutquin.Storage.Infrastructure.csproj" /></ItemGroup>
+</Project>

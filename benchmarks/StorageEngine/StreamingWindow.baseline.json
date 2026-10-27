@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "description": "Measured characterization of direct processing-order aggregation versus event-time window state, watermarking, and asynchronous enumeration. The methods have different semantics; these numbers document cost rather than impose a ratio threshold.",
+  "measuredAtUtc": "2026-09-17T21:33:00Z",
+  "executedCaseCount": 4,
+  "toolchain": {
+    "benchmarkDotNet": "0.15.8",
+    "dotnetSdk": "10.0.401",
+    "runtime": ".NET 10.0.12 Arm64 RyuJIT",
+    "hardware": "Apple M4",
+    "warmupCount": 1,
+    "iterationCount": 3
+  },
+  "cases": [
+    {
+      "method": "ProcessingOrderLoop",
+      "recordCount": 4096,
+      "meanNanoseconds": 5546.222902933757,
+      "allocatedBytes": 0
+    },
+    {
+      "method": "EventTimeWindowOperator",
+      "recordCount": 4096,
+      "meanNanoseconds": 981567.4235026041,
+      "allocatedBytes": 2344048
+    },
+    {
+      "method": "ProcessingOrderLoop",
+      "recordCount": 65536,
+      "meanNanoseconds": 93826.89243570964,
+      "allocatedBytes": 0
+    },
+    {
+      "method": "EventTimeWindowOperator",
+      "recordCount": 65536,
+      "meanNanoseconds": 90288717.0,
+      "allocatedBytes": 37523032
+    }
+  ]
+}

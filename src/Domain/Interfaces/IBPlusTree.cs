@@ -37,24 +37,26 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para><b>Complexity (where t = order/minimum degree, n = number of keys):</b></para>
 /// <para>- <b>Search (TryGetValueAsync, ContainsKeyAsync):</b> O(log_t n) — always descends to a leaf.</para>
 /// <para>- <b>Insert (SetAsync):</b> O(log_t n) — descends to leaf, may split nodes upward.</para>
-/// <para>- <b>Delete (RemoveAsync):</b> O(log_t n) — descends to leaf, may merge/redistribute.</para>
+/// <para>- <b>Delete (RemoveAsync):</b> not supported — throws <see cref="System.NotSupportedException"/>.
+/// Deletes are tombstone entries in the LSM layer (append-only / tombstone semantics), so the tree
+/// never removes keys; use <c>ClearAsync</c> to reset it.</para>
 /// <para>- <b>Range query (RangeQueryAsync):</b> O(log_t n + k) where k = number of results — find start leaf, then follow links.</para>
 /// <para>- <b>GetAllItemsAsync:</b> O(n) — traverse linked leaves from leftmost.</para>
 /// <para>- <b>Space:</b> O(n).</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
 /// section on B-trees. B+ trees are the standard on-disk index structure in most relational databases (PostgreSQL,
 /// MySQL InnoDB, SQLite) because their leaf-linked structure makes range scans efficient.</para>
 /// </summary>
 /// <typeparam name="TKey">The type of the keys in the tree.</typeparam>
 /// <typeparam name="TValue">The type of the values in the tree.</typeparam>
 public interface IBPlusTree<TKey, TValue> : IBulkKeyValueStore<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     /// <summary>
-    /// Gets the order (minimum degree) of the B+ tree.
+    /// Gets the minimum degree t of the B+ tree (each node holds at most 2t − 1 keys).
     /// </summary>
-    int Order { get; }
+    int MinimumDegree { get; }
 
     /// <summary>
     /// Gets the current height of the B+ tree.

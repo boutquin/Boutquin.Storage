@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.ValueObjects;
 /// <summary>
 /// Wraps a payload with its schema version and a timestamp for versioned serialization.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": envelope patterns for versioned data.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": envelope patterns for versioned data.</para>
 /// </summary>
 /// <typeparam name="T">The payload type.</typeparam>
 /// <param name="Version">The schema version used to serialize the payload.</param>

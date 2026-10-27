@@ -21,7 +21,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 public interface ICompactableBulkStorageEngine<TKey, TValue> :
     IBulkStorageEngine<TKey, TValue>,
     ICompactableStorageEngine<TKey, TValue>
-    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     /// <summary>

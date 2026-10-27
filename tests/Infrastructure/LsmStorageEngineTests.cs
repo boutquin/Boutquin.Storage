@@ -40,12 +40,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task SetAsync_And_TryGetValueAsync_ShouldWorkForSingleItem()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         var key = new SerializableWrapper<int>(1);
         var value = new SerializableWrapper<string>("hello");
@@ -68,22 +65,25 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task SetAsync_ShouldFlushToSegment_WhenMemTableIsFull()
     {
         // Arrange: capacity of 3, write 4 items to force a flush
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 3,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 3,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
-        // Act: write 3 items to fill MemTable, then a 4th triggers flush
+        // Act: write 3 items to fill MemTable, then a 4th triggers a seal. Under the
+        // active+immutable rotation (DDIA Ch. 4 p. 117–119), the seal queues an immutable
+        // for the background flusher; the segment lands asynchronously. FlushAsync drains
+        // the queue so the SegmentCount assertion below is deterministic.
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
         await engine.SetAsync(new SerializableWrapper<int>(2), new SerializableWrapper<string>("b"));
         await engine.SetAsync(new SerializableWrapper<int>(3), new SerializableWrapper<string>("c"));
-        // MemTable is now full. Next write triggers flush.
+        // MemTable is now full. Next write triggers a seal + signals the flusher.
         await engine.SetAsync(new SerializableWrapper<int>(4), new SerializableWrapper<string>("d"));
+        await engine.FlushAsync();
 
-        // Assert: one segment should have been created
-        engine.SegmentCount.Should().Be(1);
+        // Assert: at least one segment should have been created. (Under the rotation,
+        // FlushAsync drains both the queued immutable AND the now-non-empty active,
+        // producing two segments — one for keys 1-3, one for key 4.)
+        engine.SegmentCount.Should().BeGreaterThanOrEqualTo(1);
 
         // All items should be readable
         var (val1, found1) = await engine.TryGetValueAsync(new SerializableWrapper<int>(1));
@@ -103,12 +103,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task TryGetValueAsync_ShouldPreferMemTableOverSegments()
     {
         // Arrange: capacity of 2
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Write key=1 with "old" value, then fill MemTable to flush it to segment
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("old"));
@@ -131,21 +128,22 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task MultipleFlushes_ShouldCreateMultipleSegments()
     {
         // Arrange: capacity of 2
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
-        // Act: write 6 items with capacity 2 => 2 auto-flushes (at items 3 and 5)
+        // Act: write 6 items with capacity 2. The active+immutable rotation seals at
+        // items 3 and 5 (and again at any further fills); FlushAsync drains the queue
+        // plus the still-non-empty active so segments are durable before the assertion.
         for (var i = 1; i <= 6; i++)
         {
             await engine.SetAsync(new SerializableWrapper<int>(i), new SerializableWrapper<string>($"val{i}"));
         }
+        await engine.FlushAsync();
 
-        // Assert: should have 2 segments (flush at write 3 and write 5)
-        engine.SegmentCount.Should().Be(2);
+        // Assert: at least 2 segments (rotation produces one per seal; the active is sealed
+        // by FlushAsync as well).
+        engine.SegmentCount.Should().BeGreaterThanOrEqualTo(2);
 
         // All 6 items should be readable
         for (var i = 1; i <= 6; i++)
@@ -163,12 +161,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task GetAllItemsAsync_ShouldReturnAllItemsSorted()
     {
         // Arrange: capacity of 3
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 3,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 3,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Write items in non-sorted order; some will be flushed to segments
         await engine.SetAsync(new SerializableWrapper<int>(3), new SerializableWrapper<string>("c"));
@@ -194,12 +189,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task OverwriteKey_ShouldReturnLatestValue()
     {
         // Arrange: capacity of 2
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Write key=1 with "v1", then a filler to fill MemTable
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("v1"));
@@ -228,19 +220,16 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task ClearAsync_ShouldEmptyEverything()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
         await engine.SetAsync(new SerializableWrapper<int>(2), new SerializableWrapper<string>("b"));
-        // Flush triggered by next write
         await engine.SetAsync(new SerializableWrapper<int>(3), new SerializableWrapper<string>("c"));
+        await engine.FlushAsync(); // drain rotation queue
 
-        engine.SegmentCount.Should().Be(1, "precondition: should have 1 segment");
+        engine.SegmentCount.Should().BeGreaterThanOrEqualTo(1, "precondition: at least one segment");
 
         // Act
         await engine.ClearAsync();
@@ -255,37 +244,15 @@ public sealed class LsmStorageEngineTests : IDisposable
     }
 
     /// <summary>
-    /// Test that RemoveAsync throws NotSupportedException.
-    /// </summary>
-    [Fact]
-    public async Task RemoveAsync_ShouldThrowNotSupportedException()
-    {
-        // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
-            segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => engine.RemoveAsync(new SerializableWrapper<int>(1)));
-    }
-
-    /// <summary>
     /// Test that FlushAsync forces a flush even when the MemTable is not full.
     /// </summary>
     [Fact]
     public async Task FlushAsync_ShouldForceFlushWhenMemTableNotFull()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 100,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 100,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
 
@@ -306,12 +273,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task FlushAsync_ShouldBeNoOp_WhenMemTableIsEmpty()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Act
         await engine.FlushAsync();
@@ -327,12 +291,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task ContainsKeyAsync_ShouldReturnCorrectResults()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
 
@@ -351,12 +312,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task SetBulkAsync_ShouldWriteMultipleItems()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 5,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 5,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
         {
@@ -380,12 +338,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task TryGetValueAsync_ShouldReturnFalse_WhenKeyDoesNotExist()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Act
         var (_, found) = await engine.TryGetValueAsync(new SerializableWrapper<int>(42));
@@ -401,12 +356,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task SetAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -421,12 +373,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task TryGetValueAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -441,12 +390,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task ContainsKeyAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -461,12 +407,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task RemoveAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -481,12 +424,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task ClearAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -501,12 +441,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task GetAllItemsAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -521,12 +458,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task SetBulkAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -541,12 +475,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task FlushAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -563,12 +494,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_ShouldMergeMultipleSegmentsIntoOne()
     {
         // Arrange: capacity of 2, write 6 items => 2 auto-flushes => 2 segments + MemTable
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         for (var i = 1; i <= 6; i++)
         {
@@ -602,12 +530,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_ShouldPreserveLastWriterWins()
     {
         // Arrange: capacity of 2
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Write key=1 with "v1", then filler to flush
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("v1"));
@@ -650,12 +575,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_ShouldBeNoOp_WhenSegmentCountIsLessThanTwo(int segmentsToCreate)
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         if (segmentsToCreate == 1)
         {
@@ -687,12 +609,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_ShouldDeleteOldSegmentFiles()
     {
         // Arrange: capacity of 2, create multiple segments
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         for (var i = 1; i <= 6; i++)
         {
@@ -701,15 +620,15 @@ public sealed class LsmStorageEngineTests : IDisposable
 
         await engine.FlushAsync();
 
-        // Count .dat files before compaction
-        var filesBefore = Directory.GetFiles(_testDirectory, "seg_*.dat");
+        // Count .sst files before compaction
+        var filesBefore = Directory.GetFiles(_testDirectory, "seg_*.sst");
         filesBefore.Length.Should().BeGreaterThan(1, "precondition: multiple segment files");
 
         // Act
         await engine.CompactAsync();
 
         // Assert: only 1 segment file remains (the compacted one)
-        var filesAfter = Directory.GetFiles(_testDirectory, "seg_*.dat");
+        var filesAfter = Directory.GetFiles(_testDirectory, "seg_*.sst");
         filesAfter.Length.Should().Be(1, "old segment files should be deleted after compaction");
     }
 
@@ -720,12 +639,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_AfterDispose_ShouldThrowObjectDisposedException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
         engine.Dispose();
 
         // Act & Assert
@@ -740,12 +656,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_WithCancelledToken_ShouldThrowOperationCanceledException()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Create multiple segments
         for (var i = 1; i <= 4; i++)
@@ -769,12 +682,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_ShouldAllowContinuedWritesAndReads()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Create some segments
         for (var i = 1; i <= 4; i++)
@@ -810,12 +720,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task GetAllItemsAsync_ShouldReturnCorrectResults_AfterCompaction()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Write with overwrites: key=1 written twice
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("old"));
@@ -843,13 +750,10 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task AutoCompaction_ShouldTrigger_WhenSegmentCountReachesThreshold()
     {
         // Arrange: capacity of 2, compaction threshold of 3
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
-            compactionThreshold: 3);
+            compactionStrategy: new SizeTieredCompactionStrategy<SerializableWrapper<int>>(minSegments: 3));
 
         // Act: write enough to create 3+ segments (capacity 2, so flush every 2 items)
         // Items 1-2 => flush (segment 0)
@@ -879,12 +783,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_MultipleTimes_ShouldProduceCorrectResults()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Round 1: write and compact
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
@@ -920,28 +821,27 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task WithWal_SetAsync_ShouldLogToWal_AndTruncateAfterFlush()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var walPath = Path.Combine(_testDirectory, "test.wal");
-        using var wal = new WriteAheadLog<SerializableWrapper<int>, SerializableWrapper<string>>(walPath);
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        var walDirectory = Path.Combine(_testDirectory, "wal");
+        using var wal = new WriteAheadLog<SerializableWrapper<int>, SerializableWrapper<string>>(walDirectory);
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
             writeAheadLog: wal);
 
         // Act: write an item
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("hello"));
 
-        // Assert: WriteAheadLog file should exist and contain data
-        File.Exists(walPath).Should().BeTrue("WriteAheadLog file should be created on write");
-        new FileInfo(walPath).Length.Should().BeGreaterThan(0, "WriteAheadLog should contain the logged entry");
+        // Assert: a WAL segment file should exist inside the directory and contain data.
+        var firstSegment = Path.Combine(walDirectory, "wal_000001.log");
+        File.Exists(firstSegment).Should().BeTrue("first WAL segment should be created on write");
+        new FileInfo(firstSegment).Length.Should().BeGreaterThan(0, "first WAL segment should contain the logged entry");
 
         // Act: flush to disk
         await engine.FlushAsync();
 
-        // Assert: WriteAheadLog should be truncated after flush
-        new FileInfo(walPath).Length.Should().Be(0, "WriteAheadLog should be truncated after flush");
+        // Assert: every WAL segment file should be deleted after the flush-driven truncate.
+        Directory.GetFiles(walDirectory, "wal_*.log").Should().BeEmpty(
+            "WriteAheadLog should be truncated after flush — D2 deletes every segment fully covered by the watermark");
     }
 
     /// <summary>
@@ -951,12 +851,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task WithoutWal_ShouldWorkNormally()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Act
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("hello"));
@@ -976,13 +873,10 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task Recovery_ShouldLoadExistingSegmentsFromDisk()
     {
         // Arrange: create an engine, write data, flush to disk, then dispose
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
         {
-            using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-                memTableCapacity: 2,
+            using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
                 segmentFolder: _testDirectory,
-                segmentPrefix: "seg",
-                entrySerializer: serializer);
+                segmentPrefix: "seg");
 
             await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
             await engine.SetAsync(new SerializableWrapper<int>(2), new SerializableWrapper<string>("b"));
@@ -991,11 +885,9 @@ public sealed class LsmStorageEngineTests : IDisposable
         }
 
         // Act: create a new engine instance pointing to the same directory
-        using var recovered = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var recovered = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         // Assert: the new engine should have found the existing segments
         recovered.SegmentCount.Should().BeGreaterThan(0, "engine should recover existing segment files");
@@ -1016,17 +908,14 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task Recovery_ShouldReplayWalIntoMemTable()
     {
         // Arrange: create an engine with WriteAheadLog, write data (not flushed), then dispose
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var walPath = Path.Combine(_testDirectory, "test.wal");
+        var walPath = Path.Combine(_testDirectory, "wal");
 
         {
             using var wal = new WriteAheadLog<SerializableWrapper<int>, SerializableWrapper<string>>(walPath);
-            using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-                memTableCapacity: 10,
+            using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
                 segmentFolder: _testDirectory,
                 segmentPrefix: "seg",
-                entrySerializer: serializer,
-                writeAheadLog: wal);
+                    writeAheadLog: wal);
 
             await engine.SetAsync(new SerializableWrapper<int>(42), new SerializableWrapper<string>("unflushed_value"));
             // Do NOT flush — simulate crash by disposing without flush
@@ -1034,11 +923,9 @@ public sealed class LsmStorageEngineTests : IDisposable
 
         // Act: create a new engine with the same WriteAheadLog — it should replay
         using var wal2 = new WriteAheadLog<SerializableWrapper<int>, SerializableWrapper<string>>(walPath);
-        using var recovered = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var recovered = await LsmEngineFactory.BuildAsync<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
             writeAheadLog: wal2);
 
         // Assert: the unflushed key should be recovered from the WriteAheadLog
@@ -1054,17 +941,14 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task Recovery_ShouldHandleBothSegmentsAndWalReplay()
     {
         // Arrange: create engine, write some data, flush (creates segment), write more (WriteAheadLog only)
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var walPath = Path.Combine(_testDirectory, "test.wal");
+        var walPath = Path.Combine(_testDirectory, "wal");
 
         {
             using var wal = new WriteAheadLog<SerializableWrapper<int>, SerializableWrapper<string>>(walPath);
-            using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-                memTableCapacity: 10,
+            using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
                 segmentFolder: _testDirectory,
                 segmentPrefix: "seg",
-                entrySerializer: serializer,
-                writeAheadLog: wal);
+                    writeAheadLog: wal);
 
             // This will be flushed to a segment
             await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("flushed"));
@@ -1076,11 +960,9 @@ public sealed class LsmStorageEngineTests : IDisposable
 
         // Act: recover
         using var wal2 = new WriteAheadLog<SerializableWrapper<int>, SerializableWrapper<string>>(walPath);
-        using var recovered = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var recovered = await LsmEngineFactory.BuildAsync<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
             writeAheadLog: wal2);
 
         // Assert: both keys should be recoverable
@@ -1096,19 +978,46 @@ public sealed class LsmStorageEngineTests : IDisposable
     // ---- Tombstone/delete tests ----
 
     /// <summary>
+    /// A delete-only workload must rotate the active memtable like a write workload does:
+    /// tombstones count toward <c>MemTableCapacity</c>, so the slot seals, the background
+    /// flusher writes the tombstones out, and the WAL frames behind them can be discarded.
+    /// </summary>
+    [Fact]
+    public async Task RemoveAsync_DeleteOnlyWorkload_SealsAndFlushesWithoutExplicitFlush()
+    {
+        const int capacity = 4;
+        var walDir = Path.Combine(_testDirectory, "wal");
+        using var wal = new WriteAheadLog<SerializableWrapper<int>, SerializableWrapper<string>>(walDir);
+        using (var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(
+            memTableCapacity: capacity, segmentFolder: _testDirectory, segmentPrefix: "seg", writeAheadLog: wal))
+        {
+            for (var i = 1; i <= 50 * capacity; i++)
+            {
+                await engine.RemoveAsync(new SerializableWrapper<int>(i));
+            }
+
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (engine.SegmentCount == 0 && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(25);
+            }
+
+            engine.SegmentCount.Should().BeGreaterThan(0,
+                $"{50 * capacity} tombstones against a {capacity}-entry memtable must seal and background-flush "
+                + "the active slot instead of accumulating every tombstone (and its WAL frame) in memory");
+        }
+    }
+
+    /// <summary>
     /// Test that RemoveAsync with tombstone support marks a key as deleted.
     /// </summary>
     [Fact]
     public async Task RemoveAsync_WithTombstoneSupport_ShouldDeleteKey()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer,
-            enableTombstones: true);
+            segmentPrefix: "seg");
 
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value"));
 
@@ -1127,13 +1036,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task RemoveAsync_TombstoneShouldSurviveFlush()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer,
-            enableTombstones: true);
+            segmentPrefix: "seg");
 
         // Write key=1 then flush to create a segment
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value"));
@@ -1158,13 +1063,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task CompactAsync_ShouldStripTombstones()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer,
-            enableTombstones: true);
+            segmentPrefix: "seg");
 
         // Write 4 items (creates 2 segments)
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
@@ -1187,26 +1088,6 @@ public sealed class LsmStorageEngineTests : IDisposable
         allItems.Should().HaveCount(3, "only keys 2, 3, 4 should remain after compaction strips tombstone");
     }
 
-    /// <summary>
-    /// Test that RemoveAsync still throws NotSupportedException when tombstones are not enabled (backward compat).
-    /// </summary>
-    [Fact]
-    public async Task RemoveAsync_WithoutTombstones_ShouldThrowNotSupportedException()
-    {
-        // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
-            segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer,
-            enableTombstones: false);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => engine.RemoveAsync(new SerializableWrapper<int>(1)));
-    }
-
     // ---- Range query tests ----
 
     /// <summary>
@@ -1216,12 +1097,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task GetRangeAsync_ShouldReturnItemsInRange()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         for (var i = 1; i <= 10; i++)
         {
@@ -1229,9 +1107,13 @@ public sealed class LsmStorageEngineTests : IDisposable
         }
 
         // Act
-        var range = (await engine.GetRangeAsync(
+        var range = new List<(SerializableWrapper<int> Key, SerializableWrapper<string> Value)>();
+        await foreach (var item in engine.GetRangeAsync(
             new SerializableWrapper<int>(3),
-            new SerializableWrapper<int>(7))).ToList();
+            new SerializableWrapper<int>(7)))
+        {
+            range.Add(item);
+        }
 
         // Assert
         range.Should().HaveCount(5);
@@ -1245,25 +1127,30 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task GetRangeAsync_ShouldSpanMemTableAndSegments()
     {
         // Arrange: capacity of 3
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 3,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 3,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
-        // Write 5 items: keys 1-3 flushed to segment, keys 4-5 in MemTable
+        // Write 5 items: keys 1-3 fill the active; key 4 triggers a seal of the original
+        // active. With the active+immutable rotation, segments materialise asynchronously,
+        // so we explicitly drain via FlushAsync before asserting on-disk state. After the
+        // drain, every key is in a segment (active also gets sealed by FlushAsync).
         for (var i = 1; i <= 5; i++)
         {
             await engine.SetAsync(new SerializableWrapper<int>(i), new SerializableWrapper<string>($"val{i}"));
         }
+        await engine.FlushAsync();
 
         engine.SegmentCount.Should().BeGreaterThan(0, "precondition: some data should be on disk");
 
         // Act: range spanning both segment and MemTable
-        var range = (await engine.GetRangeAsync(
+        var range = new List<(SerializableWrapper<int> Key, SerializableWrapper<string> Value)>();
+        await foreach (var item in engine.GetRangeAsync(
             new SerializableWrapper<int>(2),
-            new SerializableWrapper<int>(5))).ToList();
+            new SerializableWrapper<int>(5)))
+        {
+            range.Add(item);
+        }
 
         // Assert
         range.Should().HaveCount(4);
@@ -1277,20 +1164,21 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task GetRangeAsync_ShouldReturnEmpty_WhenNoKeysInRange()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 10,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 10,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer);
+            segmentPrefix: "seg");
 
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
         await engine.SetAsync(new SerializableWrapper<int>(10), new SerializableWrapper<string>("b"));
 
         // Act: range between existing keys with no matches
-        var range = (await engine.GetRangeAsync(
+        var range = new List<(SerializableWrapper<int> Key, SerializableWrapper<string> Value)>();
+        await foreach (var item in engine.GetRangeAsync(
             new SerializableWrapper<int>(5),
-            new SerializableWrapper<int>(8))).ToList();
+            new SerializableWrapper<int>(8)))
+        {
+            range.Add(item);
+        }
 
         // Assert
         range.Should().BeEmpty();
@@ -1306,13 +1194,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task WithBloomFilter_ReadsShouldReturnCorrectResults()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer,
-            bloomFilterFactory: () => new BloomFilter<SerializableWrapper<int>>(100, 0.01));
+            segmentPrefix: "seg");
 
         // Write enough to create segments
         for (var i = 1; i <= 6; i++)
@@ -1343,13 +1227,9 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task WithBloomFilter_ShouldSkipSegmentsForMissingKeys()
     {
         // Arrange
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
-            segmentPrefix: "seg",
-            entrySerializer: serializer,
-            bloomFilterFactory: () => new BloomFilter<SerializableWrapper<int>>(100, 0.01));
+            segmentPrefix: "seg");
 
         // Create a segment with keys 1, 2
         await engine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a"));
@@ -1372,13 +1252,10 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task WithCompactionStrategy_FullCompaction_ShouldTriggerAtThreshold()
     {
         // Arrange: capacity of 2, FullCompactionStrategy with threshold=3
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var strategy = new FullCompactionStrategy(threshold: 3);
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        var strategy = new FullCompactionStrategy<SerializableWrapper<int>>(threshold: 3);
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
             compactionStrategy: strategy);
 
         // Act: write enough to create 3 segments (capacity 2, so flush every 2 items)
@@ -1409,13 +1286,10 @@ public sealed class LsmStorageEngineTests : IDisposable
     public async Task WithCompactionStrategy_SizeTiered_ShouldTriggerAtMinSegments()
     {
         // Arrange: capacity of 2, SizeTieredCompactionStrategy with minSegments=4
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var strategy = new SizeTieredCompactionStrategy(minSegments: 4);
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        var strategy = new SizeTieredCompactionStrategy<SerializableWrapper<int>>(minSegments: 4);
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
             compactionStrategy: strategy);
 
         // Act: write enough to create 4+ segments
@@ -1437,21 +1311,19 @@ public sealed class LsmStorageEngineTests : IDisposable
     }
 
     /// <summary>
-    /// Test that compaction strategy takes precedence over compactionThreshold when both are provided.
+    /// Test that a custom compaction strategy drives the engine's compaction decision.
+    /// After the consolidation, the strategy is the single trigger source — the prior parallel
+    /// `compactionThreshold` knob no longer exists.
     /// </summary>
     [Fact]
-    public async Task WithCompactionStrategy_ShouldTakePrecedenceOverThreshold()
+    public async Task WithCompactionStrategy_DrivesCompactionDecision()
     {
-        // Arrange: compactionThreshold=0 (disabled), but strategy with threshold=2
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        var strategy = new FullCompactionStrategy(threshold: 2);
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        // Arrange: strategy with threshold=2 so the second flush triggers compaction.
+        var strategy = new FullCompactionStrategy<SerializableWrapper<int>>(threshold: 2);
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
-            compactionThreshold: 0, // disabled
-            compactionStrategy: strategy); // enabled at threshold 2
+            compactionStrategy: strategy);
 
         // Act: write enough to create 2+ segments
         for (var i = 1; i <= 5; i++)
@@ -1459,24 +1331,23 @@ public sealed class LsmStorageEngineTests : IDisposable
             await engine.SetAsync(new SerializableWrapper<int>(i), new SerializableWrapper<string>($"val{i}"));
         }
 
-        // Assert: strategy should have triggered despite compactionThreshold=0
-        engine.SegmentCount.Should().BeLessThan(2, "strategy should override disabled threshold");
+        // Assert: strategy triggered, collapsing segments.
+        engine.SegmentCount.Should().BeLessThan(2, "strategy fired at threshold=2");
     }
 
     /// <summary>
-    /// Test that without a compaction strategy, the legacy compactionThreshold still works.
+    /// Test that the size-tiered strategy with <c>minSegments=3</c> triggers compaction
+    /// once three segments accumulate. After the consolidation, the strategy is the single trigger source;
+    /// the prior parallel <c>compactionThreshold</c> knob no longer exists.
     /// </summary>
     [Fact]
-    public async Task WithoutCompactionStrategy_LegacyThreshold_ShouldStillWork()
+    public async Task SizeTieredCompactionStrategy_TriggersAtMinSegmentsThreshold()
     {
-        // Arrange: compactionThreshold=3, no strategy
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-        using var engine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 2,
+        // Arrange: explicit STCS with minSegments=3.
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 2,
             segmentFolder: _testDirectory,
             segmentPrefix: "seg",
-            entrySerializer: serializer,
-            compactionThreshold: 3);
+            compactionStrategy: new SizeTieredCompactionStrategy<SerializableWrapper<int>>(minSegments: 3));
 
         // Act
         for (var i = 1; i <= 7; i++)
@@ -1484,8 +1355,67 @@ public sealed class LsmStorageEngineTests : IDisposable
             await engine.SetAsync(new SerializableWrapper<int>(i), new SerializableWrapper<string>($"val{i}"));
         }
 
-        // Assert: legacy auto-compaction should still trigger
+        // Assert: STCS fires once three same-tier segments are present, collapsing them.
         engine.SegmentCount.Should().BeLessThan(3);
+    }
+
+    /// <summary>
+    /// A CompactAsync cancelled after its merge output is written — while it waits for the
+    /// commit lock — must not leave that output on disk outside the manifest for the life of
+    /// the process: nothing ever lists it, and in-process reclamation never sees it.
+    /// </summary>
+    [Fact]
+    public async Task CompactAsync_CancelledAfterMergeWrite_DeletesUnlistedOutput()
+    {
+        using var engine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 100,
+            segmentFolder: _testDirectory,
+            segmentPrefix: "seg");
+        for (var i = 1; i <= 4; i++)
+        {
+            await engine.SetAsync(new SerializableWrapper<int>(i), new SerializableWrapper<string>($"v{i}"));
+        }
+
+        await engine.FlushAsync();
+        for (var i = 5; i <= 8; i++)
+        {
+            await engine.SetAsync(new SerializableWrapper<int>(i), new SerializableWrapper<string>($"v{i}"));
+        }
+
+        await engine.FlushAsync();
+
+        // A concurrent holder of the engine lock (the value-log GC's lock seam) takes it inside
+        // the merge window, so the compaction writes its output and then parks on the commit
+        // lock; cancelling there is the post-write, pre-manifest-flip window.
+        var host = (Boutquin.Storage.Infrastructure.ValueLog.IValueLogGcHost)engine;
+        var lockHeld = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        engine.CompactionMergeHook = async () =>
+        {
+            await host.EnterLockForGcAsync(CancellationToken.None).ConfigureAwait(true);
+            lockHeld.TrySetResult();
+        };
+
+        using var cts = new CancellationTokenSource();
+        var compaction = engine.CompactAsync(cts.Token);
+        await lockHeld.Task.WaitAsync(TimeSpan.FromSeconds(20));
+
+        var outputPath = Path.Combine(_testDirectory, "seg_000002.sst");
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (!File.Exists(outputPath) && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(10);
+        }
+
+        File.Exists(outputPath).Should().BeTrue("the merge output is written before the commit lock wait");
+        cts.Cancel();
+        var act = async () => await compaction;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        host.ExitLockForGc();
+
+        var listed = SegmentManifest.ReadEntries(_testDirectory).Select(e => e.FileName).ToHashSet();
+        var onDisk = Directory.GetFiles(_testDirectory, "seg_*.sst").Select(Path.GetFileName).ToList();
+        onDisk.Should().OnlyContain(f => listed.Contains(f),
+            "a cancelled compaction's output was never listed in CURRENT and must be reclaimed, not orphaned");
+        engine.SegmentCount.Should().Be(2, "the cancelled compaction changed no live state");
     }
 
     /// <summary>

@@ -1,0 +1,7 @@
+syntax = "proto3";
+package storage.examples.v1;
+option csharp_namespace = "Boutquin.Storage.Samples.Proto.V1";
+message Person {
+  string name = 1;
+  sint32 score = 2;
+}

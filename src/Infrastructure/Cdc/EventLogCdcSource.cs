@@ -25,8 +25,8 @@ namespace Boutquin.Storage.Infrastructure.Cdc;
 /// <para>This is a thin adapter — all ordering, durability, and concurrency guarantees
 /// are delegated to the underlying event log.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing": CDC derived from an event log.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing": CDC derived from an event log.</para>
 /// </summary>
 /// <typeparam name="TKey">The key type.</typeparam>
 /// <typeparam name="TValue">The value type.</typeparam>
@@ -48,9 +48,14 @@ public sealed class EventLogCdcSource<TKey, TValue> : IChangeDataCaptureSource<T
     public async IAsyncEnumerable<ChangeRecord<TKey, TValue>> ReadChangesAsync(
         long position, [EnumeratorCancellation] CancellationToken ct = default)
     {
-        await foreach (var (_, record) in _eventLog.ReadFromAsync(position, ct).ConfigureAwait(false))
+        await foreach (var (logPosition, record) in _eventLog.ReadFromAsync(position, ct).ConfigureAwait(false))
         {
-            yield return record;
+            // The backing log's position is the resume coordinate this method filters by, so
+            // it is the position the yielded record must carry: consumers checkpoint the last
+            // record's Position and pass it back here. The producer-stamped Position cannot be
+            // trusted to match — the log assigns positions at append time, after the record
+            // (and any Position field inside it) was already serialized.
+            yield return record with { Position = logPosition };
         }
     }
 }

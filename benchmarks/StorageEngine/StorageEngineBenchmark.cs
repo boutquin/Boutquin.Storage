@@ -22,7 +22,7 @@ namespace Boutquin.Storage.BenchMark;
 /// <typeparam name="TKey">Type of the key, must implement ISerializable, IComparable, and have a parameterless constructor.</typeparam>
 /// <typeparam name="TValue">Type of the value, must implement ISerializable and have a parameterless constructor.</typeparam>
 public class StorageEngineBenchmark<TKey, TValue>
-    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     private IStorageEngine<TKey, TValue> _store = null!; // Instance of the key-value store being benchmarked
@@ -54,13 +54,12 @@ public class StorageEngineBenchmark<TKey, TValue>
 
         await _store.ClearAsync().ConfigureAwait(false); // Clear any existing data in the store
 
-        // Populate the store with the initial data
-        var tasks = new List<Task>();
+        // Populate the store with the initial data. Writes are awaited one at a time: the
+        // append-only engines are single-mutator and overlapping writers fail fast.
         for (var i = 0; i < ItemCount; i++)
         {
-            tasks.Add(_store.SetAsync(_keys[i], _values[i])); // Add tasks to set key-value pairs in the store
+            await _store.SetAsync(_keys[i], _values[i]).ConfigureAwait(false);
         }
-        await Task.WhenAll(tasks).ConfigureAwait(false); // Wait for all tasks to complete
     }
 
     /// <summary>
@@ -80,12 +79,11 @@ public class StorageEngineBenchmark<TKey, TValue>
     [BenchmarkCategory("Write")]
     public async Task Write()
     {
-        var tasks = new List<Task>();
+        // Sequential on purpose: single-mutator engines reject overlapping writers.
         for (var i = 0; i < ItemCount; i++)
         {
-            tasks.Add(_store.SetAsync(_keys[i], _values[i])); // Add tasks to set key-value pairs in the store
+            await _store.SetAsync(_keys[i], _values[i]).ConfigureAwait(false);
         }
-        await Task.WhenAll(tasks).ConfigureAwait(false); // Wait for all tasks to complete
     }
 
     /// <summary>

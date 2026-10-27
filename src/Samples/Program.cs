@@ -23,38 +23,69 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        var index = new InMemoryFileIndex<Key>();
+        if (args is ["analytics"])
+        {
+            await AnalyticsDemo.RunAsync().ConfigureAwait(false);
+            return;
+        }
+
+        if (args is ["projections"])
+        {
+            await ProjectionDemo.RunAsync().ConfigureAwait(false);
+            return;
+        }
+
+        if (args is ["search"])
+        {
+            SearchDemo.Run();
+            return;
+        }
+
+        if (args is ["protobuf"])
+        {
+            await ProtoEvolutionDemo.RunAsync().ConfigureAwait(false);
+            return;
+        }
+
+        if (args is ["streaming"])
+        {
+            await StreamingDemo.RunAsync().ConfigureAwait(false);
+            return;
+        }
+
+        _ = new InMemoryFileIndex<Key>();
         var expectedElements = 10;
         var falsePositiveProbability = 0.01; // 1% false positive rate
 
-        var bloomFilter = new BloomFilter<Key>(expectedElements, falsePositiveProbability);
+        using var bloomFilter = BloomFilter.ForSerializable<Key>(expectedElements, falsePositiveProbability);
 
+        using var storageFile = new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db");
         var innerstore = new AppendOnlyFileStorageEngine<Key, City>(
-            new StorageFile(Directory.GetCurrentDirectory(), "AppendOnlyFileStorageEngine.db"),
+            storageFile,
             new BinaryEntrySerializer<Key, City>());
 
-        var store = new BulkKeyValueStoreWithBloomFilter<Key, City>(
+        using var store = await BulkKeyValueStoreWithBloomFilter<Key, City>.CreateAsync(
             innerstore,
-            bloomFilter);
+            bloomFilter).ConfigureAwait(false);
 
-        await store.ClearAsync();
+        await store.ClearAsync().ConfigureAwait(false);
 
         // db_set 123456 '{"name":"London","attractions":["Big Ben","London Eye"]}'
         await store.SetAsync(new Key(123456), new City("London",
         [
             new((string)"Big Ben"),
             new((string)"London Eye")
-        ]));
+        ])).ConfigureAwait(false);
 
         // db_set 42 '{"name":"San Francisco","attractions":["Golden Gate Bridge"]}'
         await store.SetAsync(new Key(42), new City("San Francisco",
         [
             new((string)"Golden Gate Bridge")
-        ]));
+        ])).ConfigureAwait(false);
 
         // db_get 42
         Console.WriteLine("db_get 42");
-        var value = await store.TryGetValueAsync(new Key(42));
+        var value = await store.TryGetValueAsync(new Key(42)).ConfigureAwait(false);
         if (value.Found)
         {
             Console.WriteLine(JsonSerializer.Serialize(value.Value));
@@ -66,11 +97,11 @@ public static class Program
         await store.SetAsync(new Key(42), new City("San Francisco",
         [
             new((string)"Exploratorium")
-        ]));
+        ])).ConfigureAwait(false);
 
         // db_get 42
         Console.WriteLine("db_get 42");
-        value = await store.TryGetValueAsync(new Key(42));
+        value = await store.TryGetValueAsync(new Key(42)).ConfigureAwait(false);
         if (value.Found)
         {
             Console.WriteLine(JsonSerializer.Serialize(value.Value));
@@ -80,7 +111,7 @@ public static class Program
 
         // cat database
         Console.WriteLine("cat database");
-        var items = await store.GetAllItemsAsync();
+        var items = await store.GetAllItemsAsync().ConfigureAwait(false);
         foreach (var item in items)
         {
             Console.WriteLine($"{item.Key.Value}, {JsonSerializer.Serialize(item.Value)}");
@@ -91,10 +122,10 @@ public static class Program
         // 42, {"name":"San Francisco","attractions":["Golden Gate Bridge"]}
         // 42, {"name":"San Francisco","attractions":["Exploratorium"]}
 
-        await store.CompactAsync();
+        await store.CompactAsync().ConfigureAwait(false);
         // cat database
         Console.WriteLine("cat database --after compaction");
-        var compacted = await store.GetAllItemsAsync();
+        var compacted = await store.GetAllItemsAsync().ConfigureAwait(false);
         foreach (var item in compacted)
         {
             Console.WriteLine($"{item.Key.Value}, {JsonSerializer.Serialize(item.Value)}");
@@ -106,7 +137,7 @@ public static class Program
 
         // db_get 42
         Console.WriteLine("db_get 42 --after compaction");
-        value = await store.TryGetValueAsync(new Key(42));
+        value = await store.TryGetValueAsync(new Key(42)).ConfigureAwait(false);
         if (value.Found)
         {
             Console.WriteLine(JsonSerializer.Serialize(value.Value));

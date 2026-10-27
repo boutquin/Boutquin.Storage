@@ -13,41 +13,35 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using System.Diagnostics;
+
 namespace Boutquin.Storage.Domain.Attributes;
 
 /// <summary>
-/// Specifies that a class or struct should be used as a key in the storage engine.
-/// This attribute is used to mark classes or structs that will be utilized as keys 
-/// for key-value pairs in the storage engine.
+/// Marks a <c>partial record struct</c> as a storage key: the source generator emits a
+/// byte-lex-comparable ordered-wire encoding plus the <see cref="IComparable{T}"/> and
+/// <see cref="IEquatable{T}"/> surface the engine needs for in-memory sort order and
+/// dictionary lookup.
 /// </summary>
 /// <remarks>
-/// The KeyAttribute should be applied to classes or structs that implement the IComparable&lt;T&gt; interface.
-/// It ensures that the type can be used effectively as a key within the storage engine, which requires 
-/// keys to be comparable.
+/// <para>The annotated type must (a) be <c>partial</c> so the generator can emit
+/// <c>CompareTo</c> and the wire-format helpers; (b) carry <c>[Tag(N)]</c> on every
+/// property — the generator enforces this universally (BSSG010); (c) carry
+/// <c>[DecimalScale(N)]</c> on every <c>decimal</c> property so the ordered wire can
+/// canonicalise scales (BSSG017). See <c>docs/source-generator-type-reference.md</c>
+/// for the full type matrix.</para>
+/// <para>Marked <c>[Conditional("BOUTQUIN_STORAGE_GENERATOR")]</c> so the attribute
+/// vanishes from compiled output once the generator has consumed it — zero runtime
+/// metadata footprint on shipped consumer assemblies.</para>
 /// </remarks>
 /// <example>
-/// The following example shows how to use the KeyAttribute:
 /// <code>
-/// using Boutquin.Storage.Domain.Attributes;
-/// using Boutquin.Storage.Samples;
-///
-/// namespace Boutquin.Storage.Samples
-/// {
-///     /// &lt;summary&gt;
-///     /// A record struct that represents a key with a single long value.
-///     /// &lt;/summary&gt;
-///     [Key]
-///     public partial record struct Key(long Value) : IComparable&lt;Key&gt;
-///     {
-///         public int CompareTo(Key other)
-///         {
-///             return Value.CompareTo(other.Value);
-///         }
-///     }
-/// }
+/// [Key]
+/// public partial record struct OrderId([property: Tag(1)] long Value);
 /// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+[Conditional("BOUTQUIN_STORAGE_GENERATOR")]
 public sealed class KeyAttribute : Attribute
 {
     /// <summary>
@@ -56,12 +50,7 @@ public sealed class KeyAttribute : Attribute
     /// <remarks>
     /// This constructor initializes the attribute and sets it to the target class or struct.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the attribute is applied to a type that does not implement the IComparable&lt;T&gt; interface.
-    /// </exception>
     public KeyAttribute()
     {
-        // Implementation logic can be added here, if needed.
-        // For example, you can enforce that the attribute can only be applied to types that implement IComparable<T>.
     }
 }

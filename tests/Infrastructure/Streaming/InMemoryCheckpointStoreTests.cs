@@ -57,7 +57,7 @@ public sealed class InMemoryCheckpointStoreTests
     public async Task MultipleProcessorIds_AreIndependent()
     {
         var store = new InMemoryCheckpointStore();
-        await store.SaveAsync("a", 100, new byte[] { 10 }).ConfigureAwait(true);
+        await store.SaveAsync("a", 100, "\n"u8.ToArray()).ConfigureAwait(true);
         await store.SaveAsync("b", 200, new byte[] { 20 }).ConfigureAwait(true);
 
         var a = await store.LoadAsync("a").ConfigureAwait(true);
@@ -70,7 +70,7 @@ public sealed class InMemoryCheckpointStoreTests
     public async Task EmptyState_IsValid()
     {
         var store = new InMemoryCheckpointStore();
-        await store.SaveAsync("empty", 99, ReadOnlyMemory<byte>.Empty).ConfigureAwait(true);
+        await store.SaveAsync("empty", 99, Array.Empty<byte>()).ConfigureAwait(true);
 
         var result = await store.LoadAsync("empty").ConfigureAwait(true);
         result!.Value.Offset.Should().Be(99);
@@ -96,5 +96,51 @@ public sealed class InMemoryCheckpointStoreTests
         await Task.WhenAll(tasks).ConfigureAwait(true);
         var result = await store.LoadAsync("concurrent").ConfigureAwait(true);
         result.Should().NotBeNull();
+    }
+
+    /// <summary>
+    /// Sibling contract parity: a processor id the file-backed store rejects (outside its
+    /// safe charset) must be rejected by the in-memory sibling too — swapping the
+    /// ICheckpointStore implementation must not change which ids are valid.
+    /// </summary>
+    [Theory]
+    [InlineData("a/b")]
+    [InlineData("a\\b")]
+    [InlineData("id with spaces")]
+    [InlineData("id:colon")]
+    public async Task InvalidProcessorId_IsRejected_MatchingTheFileBackedSibling(string processorId)
+    {
+        var store = new InMemoryCheckpointStore();
+
+        var save = async () => await store.SaveAsync(processorId, 1, Array.Empty<byte>()).ConfigureAwait(true);
+        var load = async () => await store.LoadAsync(processorId).ConfigureAwait(true);
+
+        await save.Should().ThrowAsync<ArgumentException>().ConfigureAwait(true);
+        await load.Should().ThrowAsync<ArgumentException>().ConfigureAwait(true);
+    }
+
+    // AC-8.8 (test gap): cancellation-token coverage for InMemoryCheckpointStore.
+    [Fact]
+    public async Task SaveAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var store = new InMemoryCheckpointStore();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () => await store.SaveAsync("p", 1, Array.Empty<byte>(), cts.Token).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task LoadAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var store = new InMemoryCheckpointStore();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () => await store.LoadAsync("p", cts.Token).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
     }
 }

@@ -13,8 +13,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using Boutquin.Storage.Infrastructure.Partitioning;
-
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 /// <summary>
@@ -213,5 +211,44 @@ public sealed class RangePartitionerTests
         // Assert
         Assert.Equal(0, start);
         Assert.Equal(3, end);
+    }
+
+    /// <summary>
+    /// Reversed bounds (startKey &gt; endKey) throw <see cref="ArgumentException"/>
+    /// rather than silently returning a (start &gt; end) tuple that downstream consumers
+    /// would treat as an empty range. DDIA Ch. 6 p. 211 treats range partitioning as an
+    /// ordered key-space; reversed bounds indicate caller error.
+    /// </summary>
+    [Fact]
+    public void GetPartitionRange_ReversedBounds_ThrowsArgumentException()
+    {
+        var partitioner = new RangePartitioner<int>([10, 20, 30]);
+
+        Assert.Throws<ArgumentException>(() => partitioner.GetPartitionRange(50, 5));
+    }
+
+    [Fact]
+    public void GetPartition_NullKey_ThrowsArgumentNullException()
+    {
+        // Sibling-contract parity (class G): HashPartitioner.GetPartition and this type's own
+        // GetPartitionRange null-guard; the point-key GetPartition did not, throwing an
+        // undocumented NullReferenceException instead.
+        var partitioner = new RangePartitioner<string>(["m"]);
+
+        var act = () => partitioner.GetPartition(null!);
+
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void GetBoundaries_ReturnsDefensiveCopy_CallerCannotMutateInternalState()
+    {
+        // The returned list must not alias the internal boundary array, or a caller could cast it
+        // back to TKey[] and break the documented immutable-after-construction guarantee.
+        var partitioner = new RangePartitioner<int>([10, 20, 30]);
+
+        ((int[])partitioner.GetBoundaries())[0] = 999; // mutate the returned array
+
+        partitioner.GetBoundaries()[0].Should().Be(10, "the internal boundaries must be unaffected by mutating a returned copy");
     }
 }

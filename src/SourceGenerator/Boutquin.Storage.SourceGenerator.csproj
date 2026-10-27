@@ -5,22 +5,34 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-    <!-- Generator assemblies should not be packed as runtime deps -->
+    <!-- Generator assemblies must not flow as runtime deps — this is a build-time analyzer. -->
     <IsRoslynComponent>true</IsRoslynComponent>
     <IncludeBuildOutput>false</IncludeBuildOutput>
-    <IsPackable>false</IsPackable>
-    <!-- Override Directory.Build.props — generator is not versioned/packaged -->
-    <MinVerSkip>true</MinVerSkip>
+    <!-- Packed as a consumer-facing analyzer NuGet so downstream repos (MarketData,
+         Analytics, Trading) can apply [StorageSerializable] / [ColumnarStorable]. -->
+    <IsPackable>true</IsPackable>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <PackageId>Boutquin.Storage.SourceGenerator</PackageId>
+    <Description>Roslyn source generator that emits ISerializable&lt;T&gt; and IColumnarSegmentFormat&lt;T&gt; implementations for types annotated with [StorageSerializable] and [ColumnarStorable]. Build-time only; no runtime footprint.</Description>
+    <PackageTags>roslyn;analyzer;source-generator;serialization;columnar;storage</PackageTags>
+    <!-- The analyzer ships with the Storage family and uses the same MinVer
+         override as its runtime packages, even though it targets netstandard2.0. -->
+    <!-- Analyzer has no lib/ payload, only analyzers/; symbols package is empty and
+         triggers NU5017 on pack. Disable. -->
+    <IncludeSymbols>false</IncludeSymbols>
+    <!-- Suppress NU5128 — a pure analyzer package legitimately has no lib/ref folder. -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
     <!-- Suppress TreatWarningsAsErrors for generator project: netstandard2.0
          generates some CS1591 (missing XML docs) warnings on Polyfill types that
          we cannot control. The generator itself is not a public API surface. -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <NoWarn>CS1591</NoWarn>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Boutquin.Storage.SourceGenerator.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
     <PackageReference Include="Polyfill" PrivateAssets="all" />
@@ -33,5 +45,32 @@
   <ItemGroup>
     <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
     <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+  <!-- Pack the generator DLL into the analyzer path Roslyn expects. -->
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+  <!-- Pack the BSSG010 code-fix DLL alongside the generator under analyzers/dotnet/cs so
+       Roslyn discovers both as peers in the same analyzer folder. The .CodeFixes project is
+       not packable on its own (IsPackable=false) — it ships inside this nupkg. The
+       ProjectReference is required so MSBuild builds the code-fix assembly before pack;
+       ReferenceOutputAssembly stays false because the generator DLL does NOT consume the
+       code-fix DLL at build or runtime (they are peer analyzer components, not a chain of
+       library references). -->
+  <ItemGroup>
+    <ProjectReference Include="..\SourceGenerator.CodeFixes\Boutquin.Storage.SourceGenerator.CodeFixes.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\SourceGenerator.CodeFixes\bin\$(Configuration)\netstandard2.0\Boutquin.Storage.SourceGenerator.CodeFixes.dll"
+          Pack="true"
+          PackagePath="analyzers/dotnet/cs"
+          Visible="false" />
+  </ItemGroup>
+  <!-- Icon + README required by Directory.Build.props (PackageIcon, PackageReadmeFile). -->
+  <ItemGroup>
+    <None Include="..\..\Resources\icon.png" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="..\..\docs\nuget-readme.md" Pack="true" PackagePath="README.md" Visible="false" />
   </ItemGroup>
 </Project>

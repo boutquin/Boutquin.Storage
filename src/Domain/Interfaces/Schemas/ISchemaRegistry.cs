@@ -22,8 +22,8 @@ namespace Boutquin.Storage.Domain.Interfaces.Schemas;
 /// New schemas are validated against the latest version using the specified compatibility mode
 /// before registration succeeds.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": schema registries for safe evolution.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": schema registries for safe evolution.</para>
 /// </summary>
 public interface ISchemaRegistry
 {

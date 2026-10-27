@@ -13,8 +13,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using Boutquin.Storage.Infrastructure.Partitioning;
-
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 /// <summary>
@@ -180,11 +178,45 @@ public sealed class RendezvousHashTests
         hash.AddNode("server1");
 
         var nodeAfter = hash.GetNode("testKey");
-        var allNodes = hash.GetNodes("testKey", 10);
+        var allNodes = hash.GetNodes("testKey", 2); // request exactly the unique-node count
 
-        // Assert — same result, only 2 unique nodes
+        // Assert — same result, only 2 unique nodes (duplicate adds were deduplicated)
         Assert.Equal(nodeBefore, nodeAfter);
         Assert.Equal(2, allNodes.Count);
+    }
+
+    /// <summary>
+    /// Strict fan-out contract (matching <c>ConsistentHashRing.GetNodes</c>): requesting more
+    /// distinct nodes than are registered throws rather than silently returning fewer, so a
+    /// downstream replication tier cannot under-replicate on a configuration mismatch.
+    /// </summary>
+    [Fact]
+    public void GetNodes_MoreThanRegistered_Throws()
+    {
+        var hash = new RendezvousHash<string>();
+        hash.AddNode("server1");
+        hash.AddNode("server2");
+
+        var act = () => hash.GetNodes("testKey", 3);
+
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .WithParameterName("count");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void GetNodes_NonPositiveCount_Throws(int count)
+    {
+        // Sibling-contract parity (class G): ConsistentHashRing.GetNodes rejects count <= 0, but
+        // RendezvousHash silently returned an empty list (.Take(0)/.Take(-1)). It must throw too.
+        var hash = new RendezvousHash<string>();
+        hash.AddNode("server1");
+        hash.AddNode("server2");
+
+        var act = () => hash.GetNodes("testKey", count);
+
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName(nameof(count));
     }
 
     /// <summary>
@@ -263,5 +295,75 @@ public sealed class RendezvousHashTests
 
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => hash.GetNodes(null!, 1));
+    }
+
+    /// <summary>Returns a constant score for every input — the all-candidates-score-zero edge.</summary>
+    private sealed class ConstantHash(uint value) : IHashAlgorithm
+    {
+        public uint ComputeHash(ReadOnlySpan<byte> data) => value;
+    }
+
+    /// <summary>
+    /// HRW must return a member node even when every candidate's score is zero
+    /// (<c>uint.MinValue</c>) — a seed of <c>bestHash = 0</c> with a strict <c>&gt;</c>
+    /// selection otherwise returns null to the caller with no error.
+    /// </summary>
+    [Fact]
+    public void GetNode_TieBreaking_IsDeterministicRegardlessOfNodeAdditionOrder()
+    {
+        // When two nodes produce the same hash score for a key the result must be deterministic.
+        // Without a secondary sort the winner is whichever node happens to be iterated last —
+        // an insertion-order artefact that can flip when nodes are re-registered in a different
+        // order, producing different routing for the same key across process restarts.
+        var hash1 = new RendezvousHash<string>(new ConstantHashAlgorithm(42));
+        hash1.AddNode("alpha");
+        hash1.AddNode("beta");
+
+        var hash2 = new RendezvousHash<string>(new ConstantHashAlgorithm(42));
+        hash2.AddNode("beta");   // reversed addition order
+        hash2.AddNode("alpha");
+
+        // Both instances must agree on the same winner for every key.
+        var keys = new[] { "k1", "k2", "k3", "k4", "k5" };
+        foreach (var k in keys)
+        {
+            hash1.GetNode(k).Should().Be(hash2.GetNode(k),
+                $"tie-breaking must be deterministic regardless of node addition order for key '{k}'");
+        }
+    }
+
+    [Fact]
+    public void GetNodes_TieBreaking_IsDeterministicRegardlessOfNodeAdditionOrder()
+    {
+        // Same guarantee for GetNodes: the ranked list must be stable across registration orders.
+        var hash1 = new RendezvousHash<string>(new ConstantHashAlgorithm(42));
+        hash1.AddNode("alpha");
+        hash1.AddNode("beta");
+        hash1.AddNode("gamma");
+
+        var hash2 = new RendezvousHash<string>(new ConstantHashAlgorithm(42));
+        hash2.AddNode("gamma");
+        hash2.AddNode("alpha");
+        hash2.AddNode("beta");
+
+        var keys = new[] { "k1", "k2", "k3" };
+        foreach (var k in keys)
+        {
+            hash1.GetNodes(k, 2).Should().Equal(hash2.GetNodes(k, 2),
+                $"GetNodes tie-breaking must be deterministic for key '{k}'");
+        }
+    }
+
+    [Fact]
+    public void GetNode_WhenEveryCandidateScoresZero_StillReturnsAMemberNode()
+    {
+        var hash = new RendezvousHash<string>(new ConstantHash(0));
+        hash.AddNode("server1");
+        hash.AddNode("server2");
+
+        var node = hash.GetNode("any-key");
+
+        node.Should().NotBeNull("HRW selects the max-scoring node; a uniform zero score is still a maximum");
+        new[] { "server1", "server2" }.Should().Contain(node);
     }
 }

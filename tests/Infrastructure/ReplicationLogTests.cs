@@ -13,8 +13,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using Boutquin.Storage.Infrastructure.Replication;
-
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 /// <summary>
@@ -261,5 +259,46 @@ public sealed class ReplicationLogTests
         Assert.Equal(long.MaxValue - 1, log.GetLatestSequenceNumber());
         var entries = await log.GetEntriesAfterAsync(1).ConfigureAwait(true);
         Assert.Equal(2, entries.Count);
+    }
+
+    /// <summary>
+    /// Gap detection must be EXACT for sparse sequences, not watermark-pessimistic: rebootstrap
+    /// is required only when a sequence the follower still NEEDS was actually removed. With
+    /// entries {10, 20} and a truncation watermark of 15, only entry 10 was removed — a
+    /// follower already at 10 lost nothing, and forcing a full-state rebootstrap for it is a
+    /// false positive (the surviving entry 20 is the complete continuation).
+    /// </summary>
+    [Fact]
+    public async Task GetEntriesAfterAsync_SparseLog_WatermarkBetweenEntries_CatchesUpWithoutRebootstrap()
+    {
+        var log = new ReplicationLog<string, string>();
+        await log.AppendAsync("a", "v1", 10).ConfigureAwait(true);
+        await log.AppendAsync("b", "v2", 20).ConfigureAwait(true);
+
+        // Truncate below 15: removes only entry 10.
+        var removed = await log.TruncateBelowAsync(15).ConfigureAwait(true);
+        Assert.Equal(1, removed);
+
+        // A follower that already applied sequence 10 needs nothing that was truncated —
+        // entry 20 is the complete continuation and must be served, not refused.
+        var entries = await log.GetEntriesAfterAsync(10).ConfigureAwait(true);
+        Assert.Single(entries);
+        Assert.Equal(20, entries[0].SequenceNumber);
+    }
+
+    /// <summary>
+    /// The exact check still rebootstraps a follower that genuinely lost entries: with
+    /// {10, 20} truncated below 15, a follower at sequence 5 needed entry 10 — which is gone.
+    /// </summary>
+    [Fact]
+    public async Task GetEntriesAfterAsync_SparseLog_FollowerBelowRemovedEntry_StillRebootstraps()
+    {
+        var log = new ReplicationLog<string, string>();
+        await log.AppendAsync("a", "v1", 10).ConfigureAwait(true);
+        await log.AppendAsync("b", "v2", 20).ConfigureAwait(true);
+        await log.TruncateBelowAsync(15).ConfigureAwait(true);
+
+        await Assert.ThrowsAsync<FollowerTooFarBehindException>(
+            () => log.GetEntriesAfterAsync(5)).ConfigureAwait(true);
     }
 }

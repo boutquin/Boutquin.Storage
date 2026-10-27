@@ -10,6 +10,10 @@
 *.userosscache
 *.sln.docstates
 
+# Legacy .sln format — this repo uses .slnx only (Boutquin.* convention).
+# Prevent `dotnet sln add` regenerating a .sln that drifts from the .slnx of record.
+*.sln
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -62,6 +66,7 @@ BenchmarkDotNet.Artifacts/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+.dependencies/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -362,15 +367,53 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# Specs (private dev repo only — excluded from public squash-push)
-specs/
+# Specs are NOT gitignored — they are tracked in the private .Dev repo and
+# excluded from the public squash-push via `.gitattributes export-ignore`
+# (`specs/ export-ignore`). Gitignoring specs/ would make them untracked
+# entirely, losing the version history the private repo is meant to keep.
+# Exception: the whole specs/reference/ tree stays untracked — it holds raw
+# third-party SOURCE material only (copyrighted books/papers AND re-downloadable
+# public-domain sources: RFCs, arXiv papers). None of it belongs in history.
+# Tracked, repo-authored ground truth lives in specs/code-arena-reference/.
+# Whole-dir, not a *.pdf glob: the glob leaks the next .txt/.epub source.
+specs/reference/
 
 # Claude Code
 sessions/
 CLAUDE.local.md
+.claude/
+
+# Runtime artifacts from stray test / benchmark / sample runs.
+AppendOnlyFileStorageEngine.db
 
 # JetBrains Rider
 .idea/
 
 # macOS
 .DS_Store
+# Arena run EVIDENCE is git-tracked (findings, verdicts, fixes, audits, ledger).
+# Ignore ONLY machine state. Never add a bare `.code-arena/` line — git cannot
+# re-include a file below an excluded parent directory, so it kills all of it.
+.code-arena/locks/
+.code-arena/*.lock
+.code-arena/**/reduced-supervisor-state.json
+.code-arena/**/preflight-ok.txt
+.code-arena/**/.preflight
+.code-arena/**/PENDING-SPAWNS.md
+.code-arena/**/check-cache/
+.code-arena/**/investigation-cache/
+.code-arena/**/__pycache__/
+.code-arena/**/*.pyc
+# Re-include executed-gate evidence from the repository's generic `*.log` ignore.
+!.code-arena/**/*.log
+# Third-party reference text is NEVER committed (copyright) — the ledger records
+# its sha256, and `pdftotext -layout` re-derives it from the operator's source.
+.code-arena/**/reference.txt
+.code-arena/reference/
+
+# Build Arena run artifacts (spec-implementation arena working data, never shipped)
+.build-arena/
+nupkg/
+
+# Local execution cursor; durable comparison evidence is tracked under .code-arena.
+.work-ledger/

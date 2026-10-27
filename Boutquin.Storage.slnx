@@ -1,0 +1,58 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Cdc/Boutquin.Storage.Cdc.Benchmarks.csproj" />
+    <Project Path="benchmarks/Replication/Boutquin.Storage.Replication.Benchmarks.csproj" />
+    <Project Path="benchmarks/Coordination/Boutquin.Storage.Coordination.Benchmarks.csproj" />
+    <Project Path="benchmarks/Batch/Boutquin.Storage.Batch.Benchmarks.csproj" />
+    <Project Path="benchmarks/Transactions/Boutquin.Storage.Transactions.Benchmarks.csproj" />
+    <Project Path="benchmarks/Hashing/Boutquin.Storage.BenchMark.Hashing.csproj" />
+    <Project Path="benchmarks/Sharding/Boutquin.Storage.Sharding.Benchmarks.csproj" />
+    <Project Path="benchmarks/Simulation/Boutquin.Storage.Simulation.Benchmarks.csproj" />
+    <Project Path="benchmarks/StorageEngine/Boutquin.Storage.BenchMark.csproj" />
+    <Project Path="benchmarks/Sync/Boutquin.Storage.Sync.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="algorithms-in-designing-data-intensive-applications.md" />
+    <File Path="CHANGELOG.md" />
+    <File Path="CODE_OF_CONDUCT.md" />
+    <File Path="CONTRIBUTING.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/CdcSample/Boutquin.Storage.CdcSample.csproj" />
+    <Project Path="src/ReplicationSample/Boutquin.Storage.ReplicationSample.csproj" />
+    <Project Path="src/CoordinationSample/Boutquin.Storage.CoordinationSample.csproj" />
+    <Project Path="src/LocalFirstSyncDemo/Boutquin.Storage.LocalFirstSyncDemo.csproj" />
+    <Project Path="src/BatchSample/Boutquin.Storage.BatchSample.csproj" />
+    <Project Path="src/TransactionSample/Boutquin.Storage.TransactionSample.csproj" />
+    <Project Path="src/Distributed/Boutquin.Storage.Distributed.csproj" />
+    <Project Path="src/Domain/Boutquin.Storage.Domain.csproj" />
+    <Project Path="src/Infrastructure/Boutquin.Storage.Infrastructure.csproj" />
+    <Project Path="src/Samples/Boutquin.Storage.Samples.csproj">
+      <BuildDependency Project="src/Domain/Boutquin.Storage.Domain.csproj" />
+    </Project>
+    <Project Path="src/ShardRoutingDemo/Boutquin.Storage.ShardRoutingDemo.csproj" />
+    <Project Path="src/SourceGenerator/Boutquin.Storage.SourceGenerator.csproj" />
+    <Project Path="src/SimulationSample/Boutquin.Storage.SimulationSample.csproj" />
+    <Project Path="src/SourceGenerator.CodeFixes/Boutquin.Storage.SourceGenerator.CodeFixes.csproj" />
+  </Folder>
+  <Folder Name="/src/Domain/" />
+  <Folder Name="/src/Infrastructure/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Infrastructure/Boutquin.Storage.Infrastructure.Tests.csproj" />
+    <Project Path="tests/SourceGenerator/Boutquin.Storage.SourceGenerator.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/ArchitectureTests/">
+    <Project Path="tests/ArchitectureTests/Boutquin.Storage.ArchitectureTests.csproj" />
+  </Folder>
+</Solution>

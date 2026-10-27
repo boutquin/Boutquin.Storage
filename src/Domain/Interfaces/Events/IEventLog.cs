@@ -27,10 +27,13 @@ namespace Boutquin.Storage.Domain.Interfaces.Events;
 ///
 /// <para><b>Complexity:</b></para>
 /// <para>- <b>AppendAsync:</b> O(N) where N is the serialized event size, plus fsync for durable implementations.</para>
-/// <para>- <b>ReadFromAsync:</b> O(K) where K is the number of events read.</para>
+/// <para>- <b>ReadFromAsync:</b> O(K) where K is the number of events read for indexed or
+/// in-memory implementations. File-backed implementations without a position index (e.g. the
+/// shipped <c>AppendOnlyEventLog</c>) frame-walk from the start of the log, so a read from a
+/// high position costs O(entire log) I/O — budget resumes accordingly.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing": append-only event logs as the foundation for stream processing
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing": append-only event logs as the foundation for stream processing
 /// and event sourcing.</para>
 /// </summary>
 /// <typeparam name="TEvent">The event type.</typeparam>

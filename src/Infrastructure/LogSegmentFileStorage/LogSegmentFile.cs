@@ -36,27 +36,21 @@ namespace Boutquin.Storage.Infrastructure.LogSegmentFileStorage;
 /// to handle the overflow, keeping segment creation centralized.
 /// </para>
 /// </remarks>
-public sealed class LogSegmentFile<TKey, TValue> :
+/// <remarks>
+/// Initializes a new instance of the <see cref="LogSegmentFile{TKey, TValue}"/> class.
+/// </remarks>
+/// <param name="storageEngine">The storage engine to use for this segment file.</param>
+/// <param name="maxSegmentSize">The maximum size of the segment file in bytes.</param>
+/// <exception cref="ArgumentNullException">Thrown if <paramref name="storageEngine"/> is null.</exception>
+public sealed class LogSegmentFile<TKey, TValue>(
+    IFileBasedStorageEngine<TKey, TValue> storageEngine,
+    long maxSegmentSize) :
     IFileBasedStorageEngine<TKey, TValue>
-    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
-    private readonly IFileBasedStorageEngine<TKey, TValue> _storageEngine;
-    private readonly long _maxSegmentSize;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="LogSegmentFile{TKey, TValue}"/> class.
-    /// </summary>
-    /// <param name="storageEngine">The storage engine to use for this segment file.</param>
-    /// <param name="maxSegmentSize">The maximum size of the segment file in bytes.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="storageEngine"/> is null.</exception>
-    public LogSegmentFile(
-        IFileBasedStorageEngine<TKey, TValue> storageEngine,
-        long maxSegmentSize)
-    {
-        _storageEngine = storageEngine ?? throw new ArgumentNullException(nameof(storageEngine));
-        _maxSegmentSize = maxSegmentSize;
-    }
+    private readonly IFileBasedStorageEngine<TKey, TValue> _storageEngine = storageEngine ?? throw new ArgumentNullException(nameof(storageEngine));
+    private readonly long _maxSegmentSize = maxSegmentSize;
 
     /// <inheritdoc/>
     public string FileName => _storageEngine.FileName;
@@ -106,6 +100,12 @@ public sealed class LogSegmentFile<TKey, TValue> :
     /// <inheritdoc/>
     public Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
     {
+        // Same pre-write soft limit as SetAsync: a full segment refuses new writes whichever
+        // entry point they arrive through, so a bulk write cannot bypass the size boundary.
+        if (_storageEngine.FileSize >= _maxSegmentSize)
+        {
+            throw new InvalidOperationException("Segment size exceeded.");
+        }
         return _storageEngine.SetBulkAsync(items, cancellationToken);
     }
 

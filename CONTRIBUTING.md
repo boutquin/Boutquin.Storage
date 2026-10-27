@@ -72,6 +72,25 @@ To contribute code to this project, follow these steps:
 
 6. **Open a pull request**: Navigate to the original repository and open a pull request. Provide a clear and descriptive title and description of your changes.
 
+## Build prerequisites
+
+Use the .NET SDK in `global.json`. Central package versions are in `Directory.Packages.props`.
+`Boutquin.Domain` 1.0.0 is published on NuGet, so a normal restore is sufficient for a clean
+checkout:
+
+```sh
+dotnet restore
+dotnet test
+dotnet format --verify-no-changes
+```
+
+Package validation requires a fresh build: pass the same `MinVerVersionOverride` to build and
+pack, use `--no-incremental` for the build, then verify packaged DLL identities. Repacking stale
+build outputs can silently combine a new package version with an old assembly. The generator
+requires a Roslyn 5.9 or newer compiler host; the SDK pinned in `global.json` satisfies that
+requirement. Maintainers preparing a release should follow the complete
+[release validation checklist](docs/releasing.md).
+
 ## Style Guides
 
 ### Git Commit Messages
@@ -87,7 +106,7 @@ To contribute code to this project, follow these steps:
 - Use meaningful names for variables, methods, and classes.
 - Keep methods small and focused.
 - Write comments to explain why code exists, not what it does.
-- Prefer explicit over implicit types.
+- Prefer `var` for local declarations, as enforced by `.editorconfig`.
 
 ### Documentation Style Guide
 

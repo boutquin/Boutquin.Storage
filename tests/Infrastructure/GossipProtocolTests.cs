@@ -78,7 +78,27 @@ public sealed class GossipProtocolTests
     }
 
     /// <summary>
-    /// Test that PrepareSyncMessage returns snapshot.
+    /// Test that PrepareSyncMessage returns the full cluster state as a snapshot.
+    /// </summary>
+    [Fact]
+    public void PrepareSyncMessage_ReturnsFullClusterSnapshot()
+    {
+        // Arrange
+        var gossip = new GossipProtocol<string, string>();
+        gossip.UpdateLocalState("node1", "healthy");
+        gossip.UpdateLocalState("node2", "degraded");
+
+        // Act
+        var syncMessage = gossip.PrepareSyncMessage();
+
+        // Assert — both entries must be present so every recipient can learn the full view
+        Assert.Equal(2, syncMessage.Count);
+        Assert.Equal("healthy", syncMessage["node1"].State);
+        Assert.Equal("degraded", syncMessage["node2"].State);
+    }
+
+    /// <summary>
+    /// Test that PrepareSyncMessage returns a snapshot.
     /// </summary>
     [Fact]
     public void PrepareSyncMessage_ReturnsSnapshot()
@@ -88,7 +108,7 @@ public sealed class GossipProtocolTests
         gossip.UpdateLocalState("node1", "healthy");
 
         // Act
-        var syncMessage = gossip.PrepareSyncMessage("node1");
+        var syncMessage = gossip.PrepareSyncMessage();
 
         // Assert
         Assert.Single(syncMessage);
@@ -216,7 +236,7 @@ public sealed class GossipProtocolTests
         gossip.UpdateLocalState("node1", "healthy");
 
         // Act — take snapshot, then update
-        var snapshot = gossip.PrepareSyncMessage("node1");
+        var snapshot = gossip.PrepareSyncMessage();
         gossip.UpdateLocalState("node1", "degraded");
 
         // Assert — snapshot should still show "healthy"
@@ -306,8 +326,8 @@ public sealed class GossipProtocolTests
         gossip2.UpdateLocalState("node2", "healthy");
 
         // Act — sync both ways
-        var msg1 = gossip1.PrepareSyncMessage("node1");
-        var msg2 = gossip2.PrepareSyncMessage("node2");
+        var msg1 = gossip1.PrepareSyncMessage();
+        var msg2 = gossip2.PrepareSyncMessage();
 
         gossip1.ProcessSyncMessage(msg2);
         gossip2.ProcessSyncMessage(msg1);

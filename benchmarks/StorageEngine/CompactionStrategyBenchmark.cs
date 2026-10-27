@@ -56,28 +56,20 @@ public class CompactionStrategyBenchmark
     [IterationSetup]
     public void Setup()
     {
-        var serializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
-
         _fullDir = Path.Combine(Path.GetTempPath(), $"CompactBench_Full_{Guid.NewGuid():N}");
         _sizeTieredDir = Path.Combine(Path.GetTempPath(), $"CompactBench_ST_{Guid.NewGuid():N}");
         _leveledDir = Path.Combine(Path.GetTempPath(), $"CompactBench_Lev_{Guid.NewGuid():N}");
 
         // Small memTableCapacity forces frequent flushes, creating the segments that compaction merges.
         // Each strategy is explicitly passed to its engine.
-        _fullEngine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 50, segmentFolder: _fullDir, segmentPrefix: "full",
-            entrySerializer: serializer,
-            compactionStrategy: new FullCompactionStrategy(threshold: 2));
+        _fullEngine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 50, segmentFolder: _fullDir, segmentPrefix: "full",
+            compactionStrategy: new FullCompactionStrategy<SerializableWrapper<int>>(threshold: 2));
 
-        _sizeTieredEngine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 50, segmentFolder: _sizeTieredDir, segmentPrefix: "st",
-            entrySerializer: serializer,
-            compactionStrategy: new SizeTieredCompactionStrategy(minSegments: 2));
+        _sizeTieredEngine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 50, segmentFolder: _sizeTieredDir, segmentPrefix: "st",
+            compactionStrategy: new SizeTieredCompactionStrategy<SerializableWrapper<int>>(minSegments: 2));
 
-        _leveledEngine = new LsmStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
-            memTableCapacity: 50, segmentFolder: _leveledDir, segmentPrefix: "lev",
-            entrySerializer: serializer,
-            compactionStrategy: new LeveledCompactionStrategy(level0Threshold: 2));
+        _leveledEngine = LsmEngineFactory.Build<SerializableWrapper<int>, SerializableWrapper<string>>(memTableCapacity: 50, segmentFolder: _leveledDir, segmentPrefix: "lev",
+            compactionStrategy: new LeveledCompactionStrategy<SerializableWrapper<int>>(level0Threshold: 2));
 
         // Populate all three engines identically to create multiple segments.
         var engines = new[] { _fullEngine, _sizeTieredEngine, _leveledEngine };

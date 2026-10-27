@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- BSSG021 (unbounded decoded-length allocation) and RS0030 (banned-API: host-endian
+         BitConverter/BinaryWriter) target untrusted production decode paths and the on-disk format.
+         Benchmark harnesses read streams they wrote themselves (trusted, single-host), so neither
+         applies here. -->
+    <NoWarn>$(NoWarn);BSSG021;RS0030</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,6 +16,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\SourceGenerator\Boutquin.Storage.SourceGenerator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

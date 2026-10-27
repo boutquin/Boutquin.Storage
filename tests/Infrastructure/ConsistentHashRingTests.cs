@@ -13,8 +13,6 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-using Boutquin.Storage.Infrastructure.Partitioning;
-
 namespace Boutquin.Storage.Infrastructure.Tests;
 
 /// <summary>
@@ -124,21 +122,21 @@ public sealed class ConsistentHashRingTests
     }
 
     /// <summary>
-    /// Test that GetNodes with count > available returns all nodes.
+    /// GetNodes throws when the requested count exceeds the available physical
+    /// node count, instead of silently downgrading. DDIA Ch. 6 p. 211 treats the
+    /// partitioner as a deterministic mapping from key to a node-set of the requested
+    /// size; downstream replication tiers rely on the requested fan-out.
     /// </summary>
     [Fact]
-    public void GetNodes_CountExceedsAvailable_ReturnsAllNodes()
+    public void GetNodes_CountExceedsAvailable_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
         var ring = new ConsistentHashRing<string>(virtualNodeCount: 50);
         ring.AddNode("server1");
         ring.AddNode("server2");
 
-        // Act
-        var nodes = ring.GetNodes("testKey", 5);
-
-        // Assert
-        Assert.Equal(2, nodes.Count);
+        // Act / Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => ring.GetNodes("testKey", 5));
     }
 
     /// <summary>

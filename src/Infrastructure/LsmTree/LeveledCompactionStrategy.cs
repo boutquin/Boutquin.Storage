@@ -13,74 +13,76 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using Boutquin.Storage.Domain.ValueObjects.LsmTree;
+
 namespace Boutquin.Storage.Infrastructure.LsmTree;
 
 /// <summary>
-/// Leveled compaction strategy: organizes segments into levels with size limits.
-/// Level 0 contains freshly flushed segments; higher levels are compacted and non-overlapping.
+/// Leveled compaction — organises segments into size-capped levels with non-overlapping key
+/// ranges per level ≥ 1 (LevelDB/RocksDB default).
 /// </summary>
+/// <typeparam name="TKey">Key type used for key-range overlap detection between L_i and
+/// L_(i+1).</typeparam>
 /// <remarks>
 /// <para>
-/// <b>Theory:</b> Leveled compaction (used by LevelDB and RocksDB) organizes SSTables into levels.
-/// Level 0 receives freshly flushed memtable segments, which may have overlapping key ranges.
-/// When Level 0 exceeds a threshold, its segments are merged with overlapping segments from Level 1.
-/// Each subsequent level has a size limit that is a multiple of the previous level.
+/// <b>Theory:</b> DDIA 2e p. 124 — "All levels beyond L0 contain key range–partitioned
+/// SSTables", and leveled compaction "is more efficient for reads than size-tiered compaction
+/// because the storage engine needs to read fewer SSTables to check whether they contain the
+/// key." The non-overlapping invariant is what delivers that: a reader probes O(1) segments
+/// per level (plus the O(|L0|) overlapping L0 check), while writes pay O(levels) write
+/// amplification as each entry migrates level-by-level down the pyramid.
 /// </para>
-///
 /// <para>
-/// <b>Trade-offs vs size-tiered compaction:</b>
-/// - <b>Read amplification:</b> Lower — each level (except L0) has non-overlapping key ranges,
-///   so at most one segment per level needs to be checked.
-/// - <b>Write amplification:</b> Higher — data may be rewritten multiple times as it moves through levels.
-/// - <b>Space amplification:</b> Lower — less temporary space needed during compaction.
+/// <b>Read-path caveat (v2.0.0):</b> this strategy delivers the leveled <i>write</i>-amplification
+/// shape, but the engine's point/range read path still walks segments by recency position
+/// (<c>O(total segments)</c>); it does not yet exploit per-level key-range partitioning to prune to
+/// one segment per level. Levels currently drive compaction selection only — the read-amplification
+/// payoff above describes the algorithm, not the v2.0.0 engine read path.
 /// </para>
-///
 /// <para>
-/// <b>Current implementation:</b> This simplified version uses Level 0 segment count as the
-/// compaction trigger and selects Level 0 segments for compaction. A production implementation
-/// would track segment level assignments, key ranges, and merge with overlapping L1 segments.
+/// <b>Behaviour:</b>
 /// </para>
-///
+/// <list type="number">
+/// <item>If L0 has at least <see cref="Level0Threshold"/> segments, pick one L0 segment (the
+/// oldest) plus every L1 segment whose <c>[MinKey, MaxKey]</c> range overlaps that L0 segment's
+/// range. L0 is always treated as potentially-overlapping and all of L0 may be picked if their
+/// ranges intersect with the chosen L0 segment — this preserves last-writer-wins when the L0
+/// key space itself overlaps between files.</item>
+/// <item>Otherwise, for each level <c>L_i</c> starting at the highest non-empty level,
+/// recompute the level's total <see cref="SegmentMetadata{TKey}.SizeBytes"/>; if it exceeds
+/// <see cref="BaseLevelSizeMB"/> × <see cref="LevelSizeMultiplier"/>^i (LevelDB / RocksDB
+/// convention), pick one L_i segment plus every overlapping L_(i+1) segment.</item>
+/// <item>Return the picked set oldest → newest so the engine's k-way merge emits newest-value
+/// wins consistently.</item>
+/// </list>
 /// <para>
-/// <b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 —
-/// "SSTables and LSM-Trees": leveled compaction is used by LevelDB and RocksDB, offering better
-/// read performance than size-tiered compaction at the cost of higher write amplification.
+/// <b>Reference:</b> Kleppmann &amp; Riccomini, <i>Designing Data-Intensive Applications</i>,
+/// 2nd ed. (O'Reilly, 2026), Ch. 4 — "Leveled compaction" pp. 124–125. LevelDB/RocksDB size
+/// schedules documented in the RocksDB wiki
+/// (<c>Leveled-Compaction.md</c>).
 /// </para>
 /// </remarks>
-public sealed class LeveledCompactionStrategy : ICompactionStrategy
+public sealed class LeveledCompactionStrategy<TKey> : ICompactionStrategy<TKey>
+    where TKey : IComparable<TKey>
 {
-    private readonly int _level0Threshold;
+    /// <summary>Minimum L0 segments before compaction triggers on L0.</summary>
+    public int Level0Threshold { get; }
 
-    /// <summary>
-    /// Gets the size multiplier between levels.
-    /// </summary>
+    /// <summary>Per-level size schedule multiplier (LevelDB default: 10).</summary>
     public int LevelSizeMultiplier { get; }
 
-    /// <summary>
-    /// Gets the base level size in megabytes.
-    /// </summary>
+    /// <summary>L1 size cap in MiB; L_i cap = <c>BaseLevelSizeMB × LevelSizeMultiplier^(i−1)</c>
+    /// for <c>i ≥ 1</c>.</summary>
     public int BaseLevelSizeMB { get; }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="LeveledCompactionStrategy"/> class.
-    /// </summary>
-    /// <param name="level0Threshold">
-    /// The number of Level 0 segments that triggers compaction. Must be at least 2.
-    /// Recommended: 4 (RocksDB default). Lower values reduce read amplification but increase
-    /// write amplification. Higher values batch more L0 segments per compaction.
-    /// </param>
-    /// <param name="levelSizeMultiplier">
-    /// The size multiplier between levels. Must be at least 2.
-    /// Recommended: 10 (RocksDB default). A multiplier of 10 means Level 2 is 10× Level 1,
-    /// Level 3 is 100× Level 1, etc. Lower values (e.g., 4) reduce space amplification
-    /// but increase write amplification due to more frequent compactions.
-    /// </param>
-    /// <param name="baseLevelSizeMB">
-    /// The size limit for Level 1 in megabytes.
-    /// Recommended: 10–256 MB depending on total dataset size. For small datasets (&lt;1 GB),
-    /// 10 MB is appropriate. For larger datasets, 64–256 MB reduces the number of levels.
-    /// </param>
-    public LeveledCompactionStrategy(int level0Threshold = 4, int levelSizeMultiplier = 10, int baseLevelSizeMB = 10)
+    /// <summary>Creates a strategy with LevelDB-style defaults.</summary>
+    /// <param name="level0Threshold">L0 segment count that triggers L0→L1 compaction. Must be ≥ 2.</param>
+    /// <param name="levelSizeMultiplier">Per-level size multiplier. Must be ≥ 2.</param>
+    /// <param name="baseLevelSizeMB">L1 size cap in MiB. Must be positive.</param>
+    public LeveledCompactionStrategy(
+        int level0Threshold = 4,
+        int levelSizeMultiplier = 10,
+        int baseLevelSizeMB = 10)
     {
         if (level0Threshold < 2)
         {
@@ -92,21 +94,186 @@ public sealed class LeveledCompactionStrategy : ICompactionStrategy
             throw new ArgumentOutOfRangeException(nameof(levelSizeMultiplier), "Level size multiplier must be at least 2.");
         }
 
-        _level0Threshold = level0Threshold;
+        if (baseLevelSizeMB < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(baseLevelSizeMB), "Base level size must be at least 1 MB.");
+        }
+
+        Level0Threshold = level0Threshold;
         LevelSizeMultiplier = levelSizeMultiplier;
         BaseLevelSizeMB = baseLevelSizeMB;
     }
 
     /// <inheritdoc/>
-    public bool ShouldCompact(int segmentCount) => segmentCount >= _level0Threshold;
+    /// <remarks>
+    /// Callers that need both the yes/no answer and the segment list should call
+    /// <see cref="SelectSegments"/> once and check whether the result is non-empty —
+    /// calling <c>ShouldCompact</c> followed by <c>SelectSegments</c> runs the
+    /// selection algorithm twice.
+    /// </remarks>
+    public bool ShouldCompact(IReadOnlyList<SegmentMetadata<TKey>> segments)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        return SelectInternal(segments).Count > 0;
+    }
 
     /// <inheritdoc/>
-    public IReadOnlyList<int> SelectSegments(int segmentCount)
+    public IReadOnlyList<SegmentMetadata<TKey>> SelectSegments(
+        IReadOnlyList<SegmentMetadata<TKey>> segments)
     {
-        // Simplified: select all Level 0 segments (the most recent ones up to the threshold count).
-        // In a production implementation, this would select overlapping L0 segments plus
-        // their corresponding L1 segments for merge.
-        var count = Math.Min(segmentCount, _level0Threshold);
-        return Enumerable.Range(0, count).ToList();
+        ArgumentNullException.ThrowIfNull(segments);
+        return SelectInternal(segments);
+    }
+
+    /// <summary>
+    /// Actual algorithm. Returns empty when nothing needs compacting.
+    /// </summary>
+    private IReadOnlyList<SegmentMetadata<TKey>> SelectInternal(
+        IReadOnlyList<SegmentMetadata<TKey>> segments)
+    {
+        if (segments.Count < 2)
+        {
+            return [];
+        }
+
+        // Bucket by level once; strategy is pure wrt the input so local mutation is safe.
+        var byLevel = new Dictionary<int, List<SegmentMetadata<TKey>>>();
+        foreach (var metadata in segments)
+        {
+            if (!byLevel.TryGetValue(metadata.Level, out var list))
+            {
+                list = [];
+                byLevel[metadata.Level] = list;
+            }
+            list.Add(metadata);
+        }
+
+        // 1. L0 trigger — pick oldest L0 segment + overlapping L1 + any L0 segments whose range
+        //    intersects (L0 is inherently overlap-tolerant — it receives direct memtable flushes).
+        if (byLevel.TryGetValue(0, out var l0) && l0.Count >= Level0Threshold)
+        {
+            return PickForLevel(segments, byLevel, sourceLevel: 0);
+        }
+
+        // 2. Higher-level triggers — walk from the highest populated level downward so
+        //    over-sized levels get drained before L0 floods them further.
+        var orderedLevels = byLevel.Keys.OrderByDescending(l => l).ToList();
+        foreach (var level in orderedLevels)
+        {
+            if (level == 0)
+            {
+                continue; // already handled above.
+            }
+
+            var levelBytes = byLevel[level].Sum(m => m.SizeBytes);
+            var cap = LevelSizeCapBytes(level);
+            if (levelBytes > cap)
+            {
+                return PickForLevel(segments, byLevel, sourceLevel: level);
+            }
+        }
+
+        return [];
+    }
+
+    private static IReadOnlyList<SegmentMetadata<TKey>> PickForLevel(
+        IReadOnlyList<SegmentMetadata<TKey>> segments,
+        Dictionary<int, List<SegmentMetadata<TKey>>> byLevel,
+        int sourceLevel)
+    {
+        // A format without segment-wide bounds can overlap any key window. Compact the
+        // complete ordered set rather than comparing invalid default keys or dropping overlap.
+        if (segments.Any(segment => !segment.HasKeyRange))
+        {
+            return segments;
+        }
+        var sourceBucket = byLevel[sourceLevel];
+
+        // L0 picks one segment (the oldest); higher levels do the same.
+        var picked = new HashSet<SegmentMetadata<TKey>>();
+        var sourceSegment = sourceBucket[0];
+        picked.Add(sourceSegment);
+
+        var minKey = sourceSegment.MinKey;
+        var maxKey = sourceSegment.MaxKey;
+
+        if (sourceLevel == 0 && sourceBucket.Count > 1)
+        {
+            // Collect transitive overlaps within L0 so any ranges that touch the chosen key
+            // window migrate to L1 together. This is LevelDB's "overlapping L0 set."
+            var changed = true;
+            while (changed)
+            {
+                changed = false;
+                foreach (var candidate in sourceBucket)
+                {
+                    if (picked.Contains(candidate))
+                    {
+                        continue;
+                    }
+                    if (RangesOverlap(candidate.MinKey, candidate.MaxKey, minKey, maxKey))
+                    {
+                        picked.Add(candidate);
+                        if (candidate.MinKey.CompareTo(minKey) < 0) { minKey = candidate.MinKey; }
+                        if (candidate.MaxKey.CompareTo(maxKey) > 0) { maxKey = candidate.MaxKey; }
+                        changed = true;
+                    }
+                }
+            }
+        }
+
+        // Fold in every next-level segment that overlaps the current key window.
+        var nextLevel = sourceLevel + 1;
+        if (byLevel.TryGetValue(nextLevel, out var nextBucket))
+        {
+            foreach (var candidate in nextBucket)
+            {
+                if (RangesOverlap(candidate.MinKey, candidate.MaxKey, minKey, maxKey))
+                {
+                    picked.Add(candidate);
+                }
+            }
+        }
+
+        // Preserve oldest → newest input ordering for last-writer-wins stability.
+        var ordered = new List<SegmentMetadata<TKey>>(picked.Count);
+        foreach (var metadata in segments)
+        {
+            if (picked.Contains(metadata))
+            {
+                ordered.Add(metadata);
+            }
+        }
+        return ordered;
+    }
+
+    private static bool RangesOverlap(TKey aMin, TKey aMax, TKey bMin, TKey bMax)
+        // An empty segment carries default (null for reference key types) bounds and has no
+        // key range, so it cannot overlap anything — treat a null-bounded operand as
+        // non-overlapping rather than dereferencing it (NullReferenceException).
+        => aMin is not null && aMax is not null && bMin is not null && bMax is not null
+            && aMin.CompareTo(bMax) <= 0 && aMax.CompareTo(bMin) >= 0;
+
+    /// <summary>L_i size cap in bytes. L0 is count-triggered so it returns 0 (unused).</summary>
+    internal long LevelSizeCapBytes(int level)
+    {
+        if (level <= 0)
+        {
+            return 0;
+        }
+
+        var capBytes = (long)BaseLevelSizeMB * 1024L * 1024L;
+        for (var i = 1; i < level; i++)
+        {
+            // Guard against long overflow: if the next multiplication would exceed long.MaxValue,
+            // saturate at long.MaxValue. At multiplier=10, overflow occurs around level 20+;
+            // no compaction path can meaningfully distinguish a level at 10^20 bytes vs. capped.
+            if (capBytes > long.MaxValue / LevelSizeMultiplier)
+            {
+                return long.MaxValue;
+            }
+            capBytes *= LevelSizeMultiplier;
+        }
+        return capBytes;
     }
 }

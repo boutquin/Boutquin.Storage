@@ -51,4 +51,4 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// throughput, and the complexity of implementation.</para>
 /// </remarks>
 public interface IMemTable<TKey, TValue> : IBulkKeyValueStore<TKey, TValue>
-    where TKey : IComparable<TKey>;
+    where TKey : IComparable<TKey>, IEquatable<TKey>;

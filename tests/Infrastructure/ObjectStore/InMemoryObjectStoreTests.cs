@@ -149,4 +149,97 @@ public sealed class InMemoryObjectStoreTests
         await readStream!.CopyToAsync(ms).ConfigureAwait(true);
         ms.Length.Should().BeGreaterThan(0);
     }
+
+    /// <summary>
+    /// Sibling contract parity: the IObjectStore key contract is implementation-independent —
+    /// a key the file-backed store rejects (charset, traversal, absolute) must be rejected by
+    /// the in-memory sibling too, or a test suite developed against the in-memory store
+    /// silently accepts keys that fail in production.
+    /// </summary>
+    [Theory]
+    [InlineData("../escape.dat")]
+    [InlineData("a/../../b.dat")]
+    [InlineData("/etc/passwd")]
+    [InlineData("foo/../../bar")]
+    [InlineData("bad key!")] // outside the charset whitelist
+    public async Task InvalidKey_IsRejected_MatchingTheFileBackedSibling(string key)
+    {
+        var store = new InMemoryObjectStore();
+        var content = new byte[] { 0xDE, 0xAD };
+
+        var write = async () => await store.WriteAsync(key, new MemoryStream(content)).ConfigureAwait(true);
+        var exists = async () => await store.ExistsAsync(key).ConfigureAwait(true);
+
+        await write.Should().ThrowAsync<ArgumentException>().ConfigureAwait(true);
+        await exists.Should().ThrowAsync<ArgumentException>().ConfigureAwait(true);
+    }
+
+    // AC-8.8 (test gap): cancellation-token coverage for InMemoryObjectStore.
+    [Fact]
+    public async Task WriteAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var store = new InMemoryObjectStore();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () => await store.WriteAsync("key", new MemoryStream([0x01]), cts.Token).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task ReadAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var store = new InMemoryObjectStore();
+        await store.WriteAsync("key", new MemoryStream([0x01])).ConfigureAwait(true);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () => await store.ReadAsync("key", cts.Token).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task ExistsAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var store = new InMemoryObjectStore();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () => await store.ExistsAsync("key", cts.Token).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var store = new InMemoryObjectStore();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () => await store.DeleteAsync("key", cts.Token).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Contract parity with the file-backed sibling: a non-readable stream must be rejected
+    /// upfront with a contract-typed ArgumentException — not surface as a raw
+    /// NotSupportedException from CopyToAsync mid-call.
+    /// </summary>
+    [Fact]
+    public async Task WriteAsync_NonReadableStream_ThrowsArgumentException()
+    {
+        var store = new InMemoryObjectStore();
+        var tempFile = Path.Combine(Path.GetTempPath(), $"imos-{Guid.NewGuid():N}.tmp");
+        await using var writeOnly = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose);
+
+        var act = async () => await store.WriteAsync("some-key.dat", writeOnly).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<ArgumentException>(
+            "both IObjectStore implementations advertise one argument contract").ConfigureAwait(true);
+    }
 }

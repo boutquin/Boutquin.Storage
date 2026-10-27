@@ -19,7 +19,7 @@ namespace Boutquin.Storage.Domain.Enums;
 /// Represents the result of comparing two vector clocks.
 /// </summary>
 /// <remarks>
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 5 — "Replication",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 6 — "Replication",
 /// section on detecting concurrent writes. Vector clocks capture the causal ordering between events:
 /// two events are concurrent if neither happened-before the other.</para>
 /// </remarks>

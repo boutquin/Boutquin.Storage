@@ -30,7 +30,7 @@ namespace Boutquin.Storage.Domain.Exceptions;
 /// </para>
 /// <list type="bullet">
 /// <item>
-/// <description>Binary serialization using <see cref="BinaryWriter"/>.</description>
+/// <description>Binary serialization using a <c>BinaryWriter</c>.</description>
 /// </item>
 /// <item>
 /// <description>Text serialization using <see cref="StreamWriter"/>.</description>

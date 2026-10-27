@@ -43,12 +43,12 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <b>Read amplification:</b> O(k) without Bloom filters — must check each segment. O(1) amortized with Bloom filters. After compaction, k = 1.</para>
 /// <para>- <b>Space amplification:</b> O(n) to O(k * n) — depends on compaction strategy and how many obsolete versions are retained.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
 /// section on LSM-trees and SSTables. LSM-trees optimize write throughput by converting random writes into
 /// sequential I/O through the MemTable + SSTable architecture.</para>
 /// </remarks>
 public interface ILsmStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TValue>
-    where TKey : ISerializable<TKey>, IComparable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     /// <summary>
@@ -66,6 +66,24 @@ public interface ILsmStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TVal
     /// Gets the number of on-disk segments currently managed by the engine.
     /// </summary>
     int SegmentCount { get; }
+
+    /// <summary>
+    /// Whether this engine instance can serve point-in-time snapshots via
+    /// <see cref="AcquireSnapshotAsync(System.Threading.CancellationToken)"/>
+    /// (or any tier-specific equivalent). <see langword="false"/> means snapshot acquisition
+    /// will throw at runtime; consumers that need snapshot isolation should fail-fast at
+    /// construction time via this getter rather than after writes have already piled up
+    /// (DDIA 2e Ch. 8, transactions — snapshot isolation, p. 293–299).
+    /// </summary>
+    /// <remarks>
+    /// <b>Why a static capability getter, not a dynamic check.</b> Snapshot capability is a
+    /// structural property of the engine instance — it cannot change after construction.
+    /// Surfacing it on the interface lets composing engines (e.g., the time-series decorator)
+    /// fail at construction when their format choice is incompatible with their inner
+    /// engine's snapshot guarantees, rather than letting a writer run for hours before the
+    /// failure surfaces at the first <see cref="AcquireSnapshotAsync"/> call.
+    /// </remarks>
+    bool SupportsSnapshots { get; }
 
     /// <summary>
     /// Compacts on-disk segments by merging them into a single new segment, removing obsolete entries.
@@ -93,7 +111,7 @@ public interface ILsmStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TVal
     /// is fully written. A crash during compaction leaves the old segments intact — no data loss,
     /// but the compacted segment may be partially written (detected as an extra file on recovery).</para>
     ///
-    /// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 —
+    /// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 —
     /// "Constructing and maintaining SSTables": compaction merges multiple SSTable segments to
     /// reduce read amplification and reclaim space from obsolete entries.</para>
     /// </remarks>
@@ -106,7 +124,12 @@ public interface ILsmStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TVal
     /// <param name="startKey">The inclusive lower bound of the range.</param>
     /// <param name="endKey">The inclusive upper bound of the range.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>An enumerable of sorted key-value pairs within the range.</returns>
+    /// <returns>An async stream of sorted key-value pairs within the range. The engine
+    /// buffers the full range under its internal lock before the first element is yielded —
+    /// the stream shape exists for signature symmetry with <c>ISnapshot.GetRangeAsync</c>,
+    /// not as an incremental-production guarantee. Callers that need bounded memory or
+    /// early-first-result on large ranges should range over a snapshot, which genuinely
+    /// streams.</returns>
     /// <remarks>
     /// <para><b>How it works:</b> Merges results from the MemTable and all on-disk segments
     /// using the same last-writer-wins deduplication as <see cref="IBulkKeyValueStore{TKey, TValue}.GetAllItemsAsync"/>,
@@ -116,9 +139,38 @@ public interface ILsmStorageEngine<TKey, TValue> : IBulkStorageEngine<TKey, TVal
     /// since the current implementation performs a full merge then filters. A more optimized
     /// implementation could use sparse indexes and seek to reduce I/O.</para>
     ///
-    /// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 —
+    /// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 —
     /// range queries are a natural operation on SSTables because data is stored in sorted order.</para>
     /// </remarks>
-    Task<IEnumerable<(TKey Key, TValue Value)>> GetRangeAsync(
+    IAsyncEnumerable<(TKey Key, TValue Value)> GetRangeAsync(
         TKey startKey, TKey endKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Acquires a point-in-time consistent read snapshot of the engine.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// An <see cref="ISnapshot{TKey, TValue}"/> that serves reads as of the engine's
+    /// state at acquisition time. Callers must dispose the snapshot (<c>await using</c>)
+    /// to release the segment-pinning hold that blocks physical deletion of superseded
+    /// segments during compaction.
+    /// </returns>
+    /// <remarks>
+    /// <para><b>Atomicity.</b> Acquisition runs under the engine's write lock — the
+    /// <c>(LastAssignedSequenceNumber, current segment set)</c> pair is captured while
+    /// no concurrent <c>SetAsync</c> / <c>RemoveAsync</c> is straddling the memtable or
+    /// segment-list mutation. Every write that completed before
+    /// <see cref="AcquireSnapshotAsync"/> returns is visible to the snapshot; every
+    /// write that starts after the return is invisible.</para>
+    ///
+    /// <para><b>Pinning + compaction.</b> The snapshot keeps its captured segments
+    /// on disk until it is disposed, even if compaction has superseded them. Retention
+    /// cost is bounded by the longest-lived snapshot × post-acquisition write rate —
+    /// dispose snapshots promptly.</para>
+    ///
+    /// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i>
+    /// (2nd ed., 2026), Ch. 4 p. 131 (SSTable immutability as the substrate for
+    /// snapshot isolation); Ch. 8 (MVCC visibility rule).</para>
+    /// </remarks>
+    Task<ISnapshot<TKey, TValue>> AcquireSnapshotAsync(CancellationToken cancellationToken = default);
 }

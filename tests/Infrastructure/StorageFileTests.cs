@@ -148,7 +148,7 @@ public sealed class StorageFileTests : IDisposable
     {
         // Arrange: Create and write to the file.
         _storageFile.Create(FileExistenceHandling.Overwrite);
-        _storageFile.WriteAllBytes(new byte[] { 0x01, 0x02, 0x03 });
+        _storageFile.WriteAllBytes([0x01, 0x02, 0x03]);
 
         // Act: Get the file size.
         var length = _storageFile.FileSize;
@@ -408,6 +408,379 @@ public sealed class StorageFileTests : IDisposable
         sf2.Delete(FileDeletionHandling.DeleteIfExists);
         sf2.Dispose();
         Directory.Delete(tempDir, recursive: true);
+    }
+
+    /// <summary>
+    /// <see cref="StorageFile.WriteAllBytes"/> must replace content atomically (write a sibling temp
+    /// file, fsync it, then rename over the target). A reader that bypasses StorageFile's per-path
+    /// semaphore — exactly what a crash, another process, or a recovery scan does — must therefore
+    /// never observe a half-written file. A truncate-in-place write would expose a 0-byte or partial
+    /// file to such a reader. This drives both the atomicity (rename) and cleanup (no leftover temp)
+    /// contract; the fsync durability is asserted by inspection of the same code path.
+    /// </summary>
+    [Fact]
+    public async Task WriteAllBytes_IsCrashAtomic_RawReaderNeverSeesPartialFile()
+    {
+        Directory.CreateDirectory(_testDirectory);
+        var rawPath = Path.Combine(_testDirectory, _testFileName);
+
+        var contentA = Enumerable.Range(0, 200_000).Select(i => (byte)(i % 251)).ToArray();
+        var contentB = Enumerable.Range(0, 200_000).Select(i => (byte)((i + 7) % 251)).ToArray();
+        _storageFile.WriteAllBytes(contentA); // seed
+
+        Exception? failure = null;
+
+        var writer = Task.Run(() =>
+        {
+            for (var i = 0; i < 300; i++)
+            {
+                _storageFile.WriteAllBytes(i % 2 == 0 ? contentB : contentA);
+            }
+        });
+
+        var reader = Task.Run(() =>
+        {
+            while (!writer.IsCompleted && failure is null)
+            {
+                byte[] seen;
+                try
+                {
+                    // Allow delete/rename while this raw handle is open. A reader denying delete
+                    // sharing blocks Windows replacement rather than testing its atomicity.
+                    using var stream = new FileStream(rawPath, FileMode.Open, FileAccess.Read,
+                        FileShare.ReadWrite | FileShare.Delete);
+                    seen = new byte[checked((int)stream.Length)];
+                    stream.ReadExactly(seen); // bypasses the StorageFile semaphore
+                }
+                catch (IOException)
+                {
+                    continue; // a transient sharing/rename open failure is acceptable, a torn read is not
+                }
+
+                if (seen.Length == contentA.Length && (seen.SequenceEqual(contentA) || seen.SequenceEqual(contentB)))
+                {
+                    continue; // a complete, valid version
+                }
+
+                failure = new InvalidOperationException(
+                    $"raw reader observed a non-atomic file state: {seen.Length} bytes (expected a complete {contentA.Length}-byte version)");
+            }
+        });
+
+        await writer;
+        await reader;
+
+        failure.Should().BeNull("WriteAllBytes must replace content atomically");
+        Directory.GetFiles(_testDirectory).Select(Path.GetFileName)
+            .Should().OnlyContain(name => name == _testFileName, "no temp files may be left behind");
+    }
+
+    [Fact]
+    public async Task ConcurrentDispose_DoesNotThrow()
+    {
+        // Two concurrent Dispose calls must be safe — the Interlocked.Exchange guard inside
+        // Dispose(bool) ensures only the first caller enters the body; the second is a no-op.
+        var dir = Path.Combine(Path.GetTempPath(), $"StorageTests_ConcDispose_{Guid.NewGuid():N}");
+        try
+        {
+            var sf = new StorageFile(dir, "concurrent-dispose.bin");
+
+            var t1 = Task.Run(sf.Dispose);
+            var t2 = Task.Run(sf.Dispose);
+
+            var act = async () => await Task.WhenAll(t1, t2).ConfigureAwait(true);
+            await act.Should().NotThrowAsync("concurrent Dispose calls must be idempotent").ConfigureAwait(true);
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+            {
+                Directory.Delete(dir, recursive: true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// AC-5.3 — reading zero bytes at offset 0 of a freshly-created (empty) file must succeed and
+    /// return an empty buffer, not throw. The pre-fix guard rejected <c>offset &gt;= stream.Length</c>,
+    /// so offset 0 of a zero-length file (0 &gt;= 0) threw <see cref="ArgumentOutOfRangeException"/> —
+    /// a legitimate "the log is empty, read nothing" call surfaced as an error.
+    /// </summary>
+    [Fact]
+    public void ReadBytes_ZeroCountAtOffsetZeroOfEmptyFile_ReturnsEmptyBuffer()
+    {
+        // Arrange: the constructor already created an empty file; assert it is genuinely empty.
+        Assert.Equal(0, new FileInfo(_storageFile.FilePath).Length);
+
+        // Act: read 0 bytes at offset 0 of the empty file.
+        var buffer = _storageFile.ReadBytes(0, 0);
+
+        // Assert: an empty read succeeds.
+        Assert.Empty(buffer);
+    }
+
+    /// <summary>
+    /// AC-5.3 (async path) — the same empty-file zero-byte read must succeed through
+    /// <see cref="StorageFile.ReadBytesAsync"/>.
+    /// </summary>
+    [Fact]
+    public async Task ReadBytesAsync_ZeroCountAtOffsetZeroOfEmptyFile_ReturnsEmptyBuffer()
+    {
+        Assert.Equal(0, new FileInfo(_storageFile.FilePath).Length);
+
+        var buffer = await _storageFile.ReadBytesAsync(0, 0);
+
+        Assert.Empty(buffer);
+    }
+
+    /// <summary>
+    /// AC-5.3 — a genuinely out-of-range read (positive offset past the end of an empty file) must
+    /// still throw, so the empty-read relaxation does not swallow real overruns.
+    /// </summary>
+    [Fact]
+    public void ReadBytes_PositiveOffsetPastEmptyFile_StillThrows()
+    {
+        Assert.Equal(0, new FileInfo(_storageFile.FilePath).Length);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => _storageFile.ReadBytes(1, 1));
+    }
+
+    /// <summary>
+    /// AC-5.4 (DR-9) — <see cref="StorageFile.FileSize"/> is cached and tracks the on-disk size
+    /// across writes without a per-access <c>FileInfo().Length</c> stat. After a fresh file (size 0),
+    /// an append, and an atomic overwrite, the cached value must agree with the actual file length at
+    /// every step.
+    /// <para>
+    /// <b>Single-writer concurrency note (DR-9 / SPEC-CONCUR-01).</b> The cached field is mutated only
+    /// under the same per-path semaphore that already guards every write to the file, so its updates
+    /// are serialised with the writes they track — no new unsynchronised shared field is introduced.
+    /// <see cref="StorageFile"/>'s contract is single-mutator (see its remarks); concurrent writers
+    /// must compose under an external serialisation point, exactly as the append-only and segmented
+    /// engines do. This test exercises the cache on the single-writer path the contract guarantees.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task FileSize_IsCachedAndTracksWritesUnderSingleWriterDiscipline()
+    {
+        // Fresh file: cached size starts at the on-disk size (0).
+        Assert.Equal(0, _storageFile.FileSize);
+
+        // Append moves the size forward; the cache must reflect it.
+        var payload = new byte[] { 1, 2, 3, 4, 5 };
+        await _storageFile.AppendAllBytesAsync(payload);
+        Assert.Equal(5, _storageFile.FileSize);
+
+        // Atomic overwrite replaces the contents; the cache must track the new length.
+        await _storageFile.WriteAllBytesAsync(new byte[] { 9, 9 });
+        Assert.Equal(2, _storageFile.FileSize);
+    }
+
+    /// <summary>
+    /// AC-5.4 (non-masking pin) — proves <see cref="StorageFile.FileSize"/> serves a CACHED value and
+    /// does NOT <c>stat</c> on every access. After a tracked write through StorageFile, an out-of-band
+    /// modification to the underlying file (bypassing StorageFile entirely — neither a tracked write
+    /// nor an <c>Open</c>) must NOT be observed by <c>FileSize</c>: the cache still reports the last
+    /// tracked size. A per-access <c>FileInfo().Length</c> implementation would observe the external
+    /// change and fail this assertion — so the test would go RED if the cache were reverted to a stat.
+    /// </summary>
+    [Fact]
+    public async Task FileSize_ServesCachedValue_NotPerAccessStat()
+    {
+        // Tracked write: cache now holds 4.
+        await _storageFile.WriteAllBytesAsync(new byte[] { 1, 2, 3, 4 });
+        Assert.Equal(4, _storageFile.FileSize);
+
+        // Out-of-band growth: write straight to the path, bypassing StorageFile's tracked paths and
+        // its Open() seam. A cached FileSize must NOT see this; a per-access stat WOULD.
+        await File.AppendAllTextAsync(_storageFile.FilePath, "EXTRA-BYTES-WRITTEN-OUT-OF-BAND");
+
+        // Still the cached size — the external append is invisible. (A stat-per-access getter would
+        // return the larger on-disk length here, failing this assertion.)
+        Assert.Equal(4, _storageFile.FileSize);
+    }
+
+    /// <summary>
+    /// A fresh StorageFile over a PRE-EXISTING file starts with a stale size cache. An append
+    /// must not promote that stale base to authoritative: FileSize afterwards must equal the
+    /// pre-existing length plus the appended length, not just the appended length. (The append
+    /// path sets <c>_cachedSizeStale = false</c>, so a wrong base here stays wrong forever.)
+    /// </summary>
+    [Fact]
+    public void AppendAllBytes_OnPreExistingFile_FileSizeIncludesPreExistingBytes()
+    {
+        // Arrange: a file that already holds 10 bytes, created out-of-band BEFORE the
+        // StorageFile instance exists (recovery / second-instance scenario).
+        var dir = Path.Combine(Path.GetTempPath(), $"StorageTests_{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, "preexisting.bin");
+        File.WriteAllBytes(path, new byte[10]);
+
+        using var sf = new StorageFile(dir, "preexisting.bin");
+
+        // Act: append 4 bytes through the fresh instance (its size cache is still stale).
+        sf.AppendAllBytes([1, 2, 3, 4]);
+
+        // Assert: the authoritative size is 10 + 4, not 4.
+        Assert.Equal(14, sf.FileSize);
+
+        sf.Delete(FileDeletionHandling.DeleteIfExists);
+        try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* best effort */ }
+    }
+
+    /// <summary>Every StorageFile operation that can create the file's directory entry.</summary>
+    public enum EntryCreatingOperation
+    {
+        CreateOverwrite,
+        CreateDoNothingIfExists,
+        CreateThrowIfExists,
+        OpenAppend,
+        OpenOrCreate,
+        AppendAllBytes,
+        AppendAllBytesAsync,
+        AppendAllText,
+        AppendAllTextAsync,
+    }
+
+    private static async Task RunAsync(StorageFile storageFile, EntryCreatingOperation operation)
+    {
+        switch (operation)
+        {
+            case EntryCreatingOperation.CreateOverwrite:
+                storageFile.Create(FileExistenceHandling.Overwrite);
+                break;
+            case EntryCreatingOperation.CreateDoNothingIfExists:
+                storageFile.Create(FileExistenceHandling.DoNothingIfExists);
+                break;
+            case EntryCreatingOperation.CreateThrowIfExists:
+                storageFile.Create(FileExistenceHandling.ThrowIfExists);
+                break;
+            case EntryCreatingOperation.OpenAppend:
+                storageFile.Open(FileMode.Append);
+                storageFile.Close();
+                break;
+            case EntryCreatingOperation.OpenOrCreate:
+                storageFile.Open(FileMode.OpenOrCreate);
+                storageFile.Close();
+                break;
+            case EntryCreatingOperation.AppendAllBytes:
+                storageFile.AppendAllBytes([1, 2, 3]);
+                break;
+            case EntryCreatingOperation.AppendAllBytesAsync:
+                await storageFile.AppendAllBytesAsync([1, 2, 3]).ConfigureAwait(true);
+                break;
+            case EntryCreatingOperation.AppendAllText:
+                storageFile.AppendAllText("abc", Encoding.UTF8);
+                break;
+            case EntryCreatingOperation.AppendAllTextAsync:
+                await storageFile.AppendAllTextAsync("abc", Encoding.UTF8).ConfigureAwait(true);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Creating the file is a directory-entry mutation: a file fsync does not persist the entry, so a
+    /// crash can lose a newly created file together with every acknowledged write in it unless the
+    /// containing directory is fsync'd (POSIX; NTFS makes the entry durable on its own).
+    /// </summary>
+    [Theory]
+    [InlineData(EntryCreatingOperation.CreateOverwrite)]
+    [InlineData(EntryCreatingOperation.CreateDoNothingIfExists)]
+    [InlineData(EntryCreatingOperation.CreateThrowIfExists)]
+    [InlineData(EntryCreatingOperation.OpenAppend)]
+    [InlineData(EntryCreatingOperation.OpenOrCreate)]
+    [InlineData(EntryCreatingOperation.AppendAllBytes)]
+    [InlineData(EntryCreatingOperation.AppendAllBytesAsync)]
+    [InlineData(EntryCreatingOperation.AppendAllText)]
+    [InlineData(EntryCreatingOperation.AppendAllTextAsync)]
+    public async Task EntryCreatingOperation_OnMissingFile_FsyncsContainingDirectoryOnce(EntryCreatingOperation operation)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var storageFile = new StorageFile(_testDirectory, "entry-create.bin");
+        storageFile.Delete(FileDeletionHandling.DeleteIfExists);
+        var before = storageFile._directoryFsyncCount;
+
+        await RunAsync(storageFile, operation).ConfigureAwait(true);
+
+        Assert.True(storageFile.Exists());
+        Assert.Equal(before + 1, storageFile._directoryFsyncCount);
+    }
+
+    /// <summary>
+    /// Deleting the file is a directory-entry mutation too: without a directory fsync a crash can
+    /// resurrect a cleared log on restart.
+    /// </summary>
+    [Fact]
+    public void Delete_OfExistingFile_FsyncsContainingDirectoryOnce()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var storageFile = new StorageFile(_testDirectory, "entry-delete.bin");
+        var before = storageFile._directoryFsyncCount;
+
+        storageFile.Delete(FileDeletionHandling.DeleteIfExists);
+
+        Assert.False(storageFile.Exists());
+        Assert.Equal(before + 1, storageFile._directoryFsyncCount);
+    }
+
+    /// <summary>
+    /// Construction over a missing directory tree creates each directory level and the file; every
+    /// created entry must be made durable (two directory levels plus the file entry).
+    /// </summary>
+    [Fact]
+    public void Constructor_OverMissingDirectoryTree_FsyncsEveryCreatedEntry()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var nested = Path.Combine(_testDirectory, "level-1", "level-2");
+
+        using var storageFile = new StorageFile(nested, "entry-ctor.bin");
+
+        Assert.True(storageFile.Exists());
+        Assert.Equal(3, storageFile._directoryFsyncCount);
+    }
+
+    /// <summary>
+    /// Operations that leave the directory entry unchanged (the file already exists, or a delete of a
+    /// missing file) issue no directory fsync.
+    /// </summary>
+    [Fact]
+    public async Task EntryPreservingOperations_IssueNoDirectoryFsync()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var storageFile = new StorageFile(_testDirectory, "entry-preserve.bin");
+        var before = storageFile._directoryFsyncCount;
+
+        foreach (var operation in Enum.GetValues<EntryCreatingOperation>())
+        {
+            if (operation == EntryCreatingOperation.CreateThrowIfExists)
+            {
+                continue;
+            }
+
+            await RunAsync(storageFile, operation).ConfigureAwait(true);
+        }
+
+        storageFile.Delete(FileDeletionHandling.DeleteIfExists);
+        var afterDelete = storageFile._directoryFsyncCount;
+        storageFile.Delete(FileDeletionHandling.DeleteIfExists);
+
+        Assert.Equal(before + 1, afterDelete);
+        Assert.Equal(afterDelete, storageFile._directoryFsyncCount);
     }
 
     /// <summary>

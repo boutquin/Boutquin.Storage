@@ -86,20 +86,23 @@ public sealed class BPlusTreeTests
     }
 
     /// <summary>
-    /// Test remove existing key.
+    /// Remove is not supported: deletes are tombstone entries in the LSM layer (append-only /
+    /// tombstone semantics), consistent with BTree, RedBlackTree, and SkipListMemTable. A
+    /// balanced B+tree delete is deliberately not implemented — a leaf-only unlink would silently
+    /// violate the balance invariant and the interface contract (finding #6).
     /// </summary>
     [Fact]
-    public async Task Remove_ExistingKey()
+    public async Task Remove_Throws_NotSupported()
     {
         // Arrange
         var tree = new BPlusTree<int, string>(3);
         await tree.SetAsync(1, "value1");
 
-        // Act
-        await tree.RemoveAsync(1);
+        // Act + Assert
+        await Assert.ThrowsAsync<NotSupportedException>(() => tree.RemoveAsync(1));
 
-        // Assert
-        Assert.False(await tree.ContainsKeyAsync(1));
+        // The key remains — Remove is a no-op-by-exception, not an in-place delete.
+        Assert.True(await tree.ContainsKeyAsync(1));
     }
 
     /// <summary>
@@ -281,5 +284,118 @@ public sealed class BPlusTreeTests
         Assert.Equal(2, items.Count);
         Assert.Equal(10, items[0].Key);
         Assert.Equal(20, items[1].Key);
+    }
+
+    [Fact]
+    public async Task SetBulkAsync_ShouldInsertAllItems()
+    {
+        var tree = new BPlusTree<int, string>(minimumDegree: 3);
+        var items = new[]
+        {
+            new KeyValuePair<int, string>(1, "a"),
+            new KeyValuePair<int, string>(2, "b"),
+            new KeyValuePair<int, string>(3, "c"),
+        };
+
+        await tree.SetBulkAsync(items);
+
+        var (v1, f1) = await tree.TryGetValueAsync(1);
+        Assert.True(f1);
+        Assert.Equal("a", v1);
+        var (v2, f2) = await tree.TryGetValueAsync(2);
+        Assert.True(f2);
+        Assert.Equal("b", v2);
+        var (v3, f3) = await tree.TryGetValueAsync(3);
+        Assert.True(f3);
+        Assert.Equal("c", v3);
+    }
+
+    [Fact]
+    public async Task SetBulkAsync_EmptyEnumerable_IsNoOp()
+    {
+        var tree = new BPlusTree<int, string>(minimumDegree: 3);
+
+        await tree.SetBulkAsync([]);
+
+        var all = (await tree.GetAllItemsAsync()).ToList();
+        Assert.Empty(all);
+    }
+
+    [Fact]
+    public async Task SetBulkAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        var tree = new BPlusTree<int, string>(minimumDegree: 3);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => tree.SetBulkAsync(
+                [new KeyValuePair<int, string>(1, "a")],
+                cts.Token));
+    }
+
+    /// <summary>
+    /// AC-7.4: RangeQueryAsync must throw ArgumentException when start &gt; end.
+    /// </summary>
+    [Fact]
+    public async Task RangeQueryAsync_StartGreaterThanEnd_ThrowsArgumentException()
+    {
+        var tree = new BPlusTree<int, string>(minimumDegree: 3);
+        await tree.SetAsync(1, "a");
+        await tree.SetAsync(2, "b");
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => tree.RangeQueryAsync(start: 5, end: 2));
+    }
+
+    /// <summary>
+    /// AC-7.7: RangeQueryAsync must throw when start key is null (Guard.AgainstNullOrDefault
+    /// throws ArgumentNullException, a subclass of ArgumentException).
+    /// </summary>
+    [Fact]
+    public async Task RangeQueryAsync_NullStartKey_ThrowsArgumentNullException()
+    {
+        var tree = new BPlusTree<string, string>(minimumDegree: 3);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => tree.RangeQueryAsync(null!, "z"));
+    }
+
+    /// <summary>
+    /// AC-7.7: SetAsync must throw ArgumentNullException when key is null.
+    /// </summary>
+    [Fact]
+    public async Task SetAsync_NullKey_ThrowsArgumentNullException()
+    {
+        var tree = new BPlusTree<string, string>(minimumDegree: 3);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => tree.SetAsync(null!, "value"));
+    }
+
+    /// <summary>
+    /// AC-7.7: SetAsync must throw ArgumentNullException when value is null.
+    /// </summary>
+    [Fact]
+    public async Task SetAsync_NullValue_ThrowsArgumentNullException()
+    {
+        var tree = new BPlusTree<int, string>(minimumDegree: 3);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => tree.SetAsync(1, null!));
+    }
+
+    /// <summary>
+    /// AC-7.7: SetAsync with cancelled token throws OperationCanceledException.
+    /// </summary>
+    [Fact]
+    public async Task SetAsync_CancelledToken_ThrowsOperationCanceledException()
+    {
+        var tree = new BPlusTree<int, string>(minimumDegree: 3);
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => tree.SetAsync(1, "a", cts.Token));
     }
 }

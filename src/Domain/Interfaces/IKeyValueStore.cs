@@ -60,8 +60,8 @@ namespace Boutquin.Storage.Domain.Interfaces;
 ///
 /// <para><b>Methods:</b></para>
 /// <para>- <see cref="SetAsync"/>: Sets or updates the value for a specified key.</para>
-/// <para>- <see cref="TryGetValueAsync"/>: Attempts to retrieve the value associated with a specified key.</para>
-/// <para>- <see cref="ContainsKeyAsync"/>: Checks whether the store contains the specified key.</para>
+/// <para>- <see cref="IReadOnlyKeyValueStore{TKey, TValue}.TryGetValueAsync"/>: Attempts to retrieve the value associated with a specified key.</para>
+/// <para>- <see cref="IReadOnlyKeyValueStore{TKey, TValue}.ContainsKeyAsync"/>: Checks whether the store contains the specified key.</para>
 /// <para>- <see cref="RemoveAsync"/>: Removes the value associated with the specified key.</para>
 /// <para>- <see cref="ClearAsync"/>: Removes all key-value pairs from the store.</para>
 /// </remarks>

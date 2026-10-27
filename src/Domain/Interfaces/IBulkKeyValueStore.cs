@@ -35,8 +35,8 @@ namespace Boutquin.Storage.Domain.Interfaces;
 ///
 /// <para><b>Methods:</b></para>
 /// <para>- <see cref="IKeyValueStore{TKey, TValue}.SetAsync"/>: Sets or updates the value for a specified key.</para>
-/// <para>- <see cref="IKeyValueStore{TKey, TValue}.TryGetValueAsync"/>: Attempts to retrieve the value associated with a specified key.</para>
-/// <para>- <see cref="IKeyValueStore{TKey, TValue}.ContainsKeyAsync"/>: Checks whether the store contains the specified key.</para>
+/// <para>- <see cref="IReadOnlyKeyValueStore{TKey, TValue}.TryGetValueAsync"/>: Attempts to retrieve the value associated with a specified key.</para>
+/// <para>- <see cref="IReadOnlyKeyValueStore{TKey, TValue}.ContainsKeyAsync"/>: Checks whether the store contains the specified key.</para>
 /// <para>- <see cref="IKeyValueStore{TKey, TValue}.RemoveAsync"/>: Removes the value associated with the specified key.</para>
 /// <para>- <see cref="IKeyValueStore{TKey, TValue}.ClearAsync"/>: Removes all key-value pairs from the store.</para>
 /// <para>- <see cref="GetAllItemsAsync"/>: Retrieves all key-value pairs from the store.</para>
@@ -44,7 +44,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// </remarks>
 public interface IBulkKeyValueStore<TKey, TValue> :
     IKeyValueStore<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Retrieves all key-value pairs from the store.

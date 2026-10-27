@@ -41,7 +41,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <b>ClearAsync:</b> O(1) — resets head node and count.</para>
 /// <para>- <b>Space:</b> O(n) expected.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
 /// section on memtables. Skip lists are used by LevelDB and RocksDB as their default memtable implementation
 /// due to their simplicity and good concurrent performance.</para>
 /// </summary>
@@ -49,7 +49,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <typeparam name="TValue">The type of the values in the skip list.</typeparam>
 public interface ISkipListMemTable<TKey, TValue>
     : IMemTable<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Gets a value indicating whether the skip list MemTable has reached its maximum capacity.

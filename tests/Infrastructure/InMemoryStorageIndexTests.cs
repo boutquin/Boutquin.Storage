@@ -306,4 +306,62 @@ public sealed class InMemoryStorageIndexTests
         // Act & Assert: Check that an ArgumentException is thrown.
         await Assert.ThrowsAsync<ArgumentException>(() => index.SetAsync(default, "value1"));
     }
+
+    /// <summary>
+    /// AC-7.2: A value-type key that implements IEquatable&lt;TKey&gt; must satisfy the typed-equality
+    /// constraint on <see cref="InMemoryStorageIndex{TKey,TValue}"/>.
+    /// Verifies that a struct implementing both IComparable&lt;TKey&gt; and IEquatable&lt;TKey&gt;
+    /// can be used as TKey and that typed equality is respected during TryGetValueAsync lookups.
+    /// </summary>
+    [Fact]
+    public async Task ValueTypeKey_ImplementingIEquatable_CanBeUsedAndLooksUpByValueEquality()
+    {
+        // Arrange: use EquatableIntKey — a struct that satisfies both IComparable<T> and IEquatable<T>.
+        var index = new InMemoryStorageIndex<EquatableIntKey, string>();
+        var key = new EquatableIntKey(42);
+
+        // Act
+        await index.SetAsync(key, "hello");
+
+        // Assert: a different instance with the same value must resolve to the stored entry.
+        var sameKey = new EquatableIntKey(42);
+        var (value, found) = await index.TryGetValueAsync(sameKey);
+        Assert.True(found, "Index must find the value using value equality on the struct key.");
+        Assert.Equal("hello", value);
+    }
+
+    /// <summary>
+    /// AC-7.2: Verifies that cancellation tokens are honoured by SetAsync and TryGetValueAsync
+    /// on InMemoryStorageIndex with an already-cancelled token.
+    /// </summary>
+    [Fact]
+    public async Task SetAsync_AndTryGetValueAsync_WithCancelledToken_ThrowsOperationCanceledException()
+    {
+        var index = new InMemoryStorageIndex<int, string>();
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => index.SetAsync(1, "v", cts.Token));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(
+            () => index.TryGetValueAsync(1, cts.Token));
+    }
+
+    /// <summary>
+    /// AC-7.7: InMemoryFileIndex smoke test — stores and retrieves a FileLocation by key,
+    /// confirming it satisfies the IEquatable&lt;TKey&gt; constraint on its base class.
+    /// </summary>
+    [Fact]
+    public async Task InMemoryFileIndex_StoresAndRetrievesFileLocation()
+    {
+        var index = new InMemoryFileIndex<int>();
+        var location = new FileLocation(Offset: 1024L, Count: 256L);
+
+        await index.SetAsync(42, location);
+
+        var (retrieved, found) = await index.TryGetValueAsync(42);
+        Assert.True(found);
+        Assert.Equal(location, retrieved);
+    }
 }

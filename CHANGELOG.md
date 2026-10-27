@@ -1,11 +1,105 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes are documented here using [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0] - 2026-10-26
+
+This section describes the prepared 2.0.0 release. Package availability is determined by
+publication to NuGet; the release tag is created only after the release checks pass.
+
+### Breaking changes
+
+- **Migrate 1.x data by export and re-ingest.** The new persisted formats have no 1.x readers.
+  Export through the old application before upgrading; keep the original data until the
+  new store is verified. See [the migration guide](docs/migration-1x-to-2x.md).
+- **Open LSM engines asynchronously.** `LsmStorageEngine.OpenAsync` completes recovery before
+  returning a writable engine. Default row segments use `.sst`; columnar segments use `.bsct`.
+  A manifest records live segments, and WAL recovery restores unflushed writes.
+- **WAL paths name directories.** The WAL uses rolling segments and group commit with
+  durable flushes, bounded decoding and explicit corruption handling.
+- **Serialization contracts are explicit.** Annotated properties require stable nonzero
+  tags. `[Key]` uses ordered bytes; `[StorageSerializable]` uses tagged wire encoding.
+  Nullable string keys are rejected, and columnar annotations require record types.
+- **Distributed reference types are a separate source assembly.** `Boutquin.Storage.Distributed`
+  is consumed through project references and is not a NuGet package. `SnapshotIsolationStore`
+  implements snapshot isolation, not serializable snapshot isolation. See
+  [the assembly boundaries](src/Distributed/README.md).
+- **Public API baselines are refreshed for the major release.** Renamed and removed APIs are
+  described in [the migration guide](docs/migration-1x-to-2x.md); new changes after this baseline
+  are tracked separately for subsequent releases.
+
+### Added
+
+- Physical segment Bloom configuration for row and columnar formats: explicit capacity and
+  false-positive targets, disabling new filters, and custom factories with versioned persisted
+  state codecs. Reopening restores state without replaying keys; missing codecs fail as
+  configuration errors. See [persisted segment Bloom filters](docs/segment-bloom-filters.md).
+
+- **Storage and recovery:** LSM tombstones, sequence numbers, persisted Bloom filters, sparse
+  indexes, block checksums, configurable compaction, backpressure, asynchronous recovery,
+  range reads, snapshot pinning and optional value-log separation.
+- **Time-series and columnar storage:** row and compressed columnar stores, column projection,
+  zone-map and bitmap filtering, ascending/descending scans, dictionary, delta/VLQ, scaled
+  integer, XOR and run-length encodings, and snapshot isolation across compaction.
+- **Source-generator package:** `Boutquin.Storage.SourceGenerator` ships alongside Domain and
+  Infrastructure, including the missing-tag code fix. It generates tagged serialization,
+  ordered keys and columnar rehydration. Diagnostics BSSG001–BSSG026 cover invalid declarations,
+  annotated-type shapes the generated code cannot honour and unbounded decoded-length
+  allocation; BSSG009 remains reserved. See
+  [supported types and diagnostics](docs/source-generator-type-reference.md) and
+  [the wire format](docs/wire-format-2.0.md).
+- **Schema evolution:** Avro-style field compatibility, versioned serialization, tagged unknown-field
+  skipping and schema-first Protobuf framing with standard Protobuf payloads.
+- **Change capture and projections:** ordered capture, snapshot/tail cursors, compacted topics,
+  atomic state/offset checkpoints, replay-safe sinks, read models and projection rebuilds.
+- **Analytics:** typed column-batch filtering, projection and aggregation, materialized aggregates,
+  multidimensional cubes and columnar reads from object stores.
+- **Text and vector retrieval:** configurable analysis, inverted and positional indexes, TF-IDF,
+  phrase/proximity queries, exact and approximate vector indexes, updates and deletion.
+- **Batch and finite-stream processing:** external merge sort, file shuffle, grouping, joins,
+  task graphs, tumbling/sliding/session windows, watermarks and late-event revisions.
+- **Distributed reference components:** durable Raft logs and snapshots, deterministic fault
+  simulation, leader and leaderless replication, causal sessions, sharding/rebalancing,
+  hot-key mitigation, coordination, fencing and leases. Their transport, durability and
+  availability limits are documented per component.
+- **Transaction and synchronization references:** durable two-phase commit, transactional
+  outbox/inbox effects, point-key locking, offline journals, peer checkpoints, causal
+  counter and observed-remove-set synchronization with cold-reopen tests.
+
+### Changed
+
+- Runtime packages target .NET 10 and depend on the public `Boutquin.Domain` **1.0.0** package.
+  Builds and CI restore directly from nuget.org without a private checkout or dependency key.
+- Build and generator consumers use .NET SDK **10.0.401** or a compatible newer Roslyn host
+  supporting Roslyn **5.9**. Generator and bundled code-fix DLLs share the Storage version.
+- Release verification packs and checks all three packages, verifies their identities and
+  dependency ranges, and restores a fresh consumer that executes generated code.
+- Public exports omit development instructions and internal planning/evidence. Automated
+  export checks detect broken internal links and references to unavailable private documents.
+
+### Fixed
+
+- LSM engine disposal and failed recovery release owned segment filter instances without
+  deleting live segment files.
+- Columnar compaction no longer compares or hashes absent dataset-key bounds. Unknown
+  ranges are explicit metadata and leveled compaction handles them conservatively.
+
+- Engine shutdown now releases the flusher commit lock when disposal races with a background
+  flush, preventing `Dispose` from hanging after the flush task exits.
+- Recovery, compaction and disposal races that could lose tombstones, expose post-snapshot
+  writes, reuse sequence numbers or admit operations after a terminal failure.
+- Corrupt-file decoding paths now bound allocations against payloads and reject invalid
+  lengths, offsets, encodings and checksums before consuming unsafe input.
+- Ordered string keys compare consistently with UTF-8 wire bytes; invalid surrogate strings
+  and unsupported nullable key declarations fail explicitly.
+- Columnar float encoding preserves raw bits, enum values widen consistently, and sort
+  directions use ordinal string comparisons across generated and reflection paths.
+- Documentation now matches asynchronous startup, current segment extensions, available
+  diagnostics and implemented capabilities. Historical benchmark measurements retain their
+  measurement date and are distinguished from current behavior.
 
 ## [1.1.1] - 2026-04-14
 
@@ -140,7 +234,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI workflows (`pr-verify.yml`, `publish.yml`) for PR verification and NuGet publishing.
 - SourceLink and deterministic build support via `Directory.Build.props`.
 - NuGet package metadata (description, tags, readme, icon).
-- `global.json` and project-local `CLAUDE.md`.
+- `global.json` pins the SDK used by contributors and CI.
 
 ### Changed
 - **Sealed 5 pre-existing classes** — `BloomFilter<T>`, `Fnv1aHash`, `Murmur3`, `XxHash32`, `InMemoryStorageIndex<,>` (found by architecture tests).

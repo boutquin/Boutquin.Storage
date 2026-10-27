@@ -47,24 +47,26 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para><b>Complexity (where t = minimum degree, n = number of keys):</b></para>
 /// <para>- <b>Search (TryGetValueAsync, ContainsKeyAsync):</b> O(log_t n) — each level narrows the search by a factor of t.</para>
 /// <para>- <b>Insert (SetAsync):</b> O(log_t n) — descends the tree and may split nodes.</para>
-/// <para>- <b>Delete (RemoveAsync):</b> O(log_t n) — descends the tree and may merge or redistribute nodes.</para>
+/// <para>- <b>Delete (RemoveAsync):</b> not supported — throws <see cref="System.NotSupportedException"/>.
+/// Deletes are tombstone entries in the LSM layer (append-only / tombstone semantics), so the tree
+/// never removes keys.</para>
 /// <para>- <b>GetAllItemsAsync:</b> O(n) — in-order traversal of all keys.</para>
 /// <para>- <b>Space:</b> O(n).</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
 /// section on B-trees. B-trees are the most widely used indexing structure in databases, providing consistent
 /// O(log n) reads and writes by keeping the tree balanced at all times.</para>
 /// </remarks>
 public interface IBTree<TKey, TValue> : IBulkKeyValueStore<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     /// <summary>
-    /// Gets the order (minimum degree) of the B-tree.
+    /// Gets the minimum degree t of the B-tree.
     /// </summary>
     /// <value>
     /// The minimum degree <c>t</c>. Each node can hold between <c>t - 1</c> and <c>2t - 1</c> keys.
     /// </value>
-    int Order { get; }
+    int MinimumDegree { get; }
 
     /// <summary>
     /// Gets the current height of the B-tree.

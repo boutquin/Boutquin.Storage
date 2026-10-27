@@ -182,7 +182,7 @@ public sealed class BTreeTests
         var items = (await tree.GetAllItemsAsync()).ToList();
         items.Should().HaveCount(200);
         items.Select(i => i.Key).Should().BeInAscendingOrder();
-        tree.Order.Should().Be(10);
+        tree.MinimumDegree.Should().Be(10);
     }
 
     /// <summary>
@@ -206,7 +206,7 @@ public sealed class BTreeTests
         var items = (await tree.GetAllItemsAsync()).ToList();
         items.Should().HaveCount(500);
         items.Select(i => i.Key).Should().BeInAscendingOrder();
-        tree.Order.Should().Be(100);
+        tree.MinimumDegree.Should().Be(100);
     }
 
     /// <summary>
@@ -367,9 +367,9 @@ public sealed class BTreeTests
         var tree100 = new BTree<int, string>(100);
 
         // Assert: Order should match the configured minimum degree.
-        tree2.Order.Should().Be(2);
-        tree10.Order.Should().Be(10);
-        tree100.Order.Should().Be(100);
+        tree2.MinimumDegree.Should().Be(2);
+        tree10.MinimumDegree.Should().Be(10);
+        tree100.MinimumDegree.Should().Be(100);
     }
 
     /// <summary>
@@ -499,6 +499,39 @@ public sealed class BTreeTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentNullException>(() => tree.SetBulkAsync(null!));
+    }
+
+    /// <summary>
+    /// SetBulkAsync must reject a default key or value exactly as SetAsync does: the bulk path
+    /// is not a back door around the per-item contract.
+    /// </summary>
+    [Theory]
+    [InlineData(0, 7)]
+    [InlineData(5, 0)]
+    public async Task SetBulkAsync_WithDefaultKeyOrValue_ThrowsArgumentExceptionLikeSetAsync(int key, int value)
+    {
+        var tree = new BTree<int, int>(2);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => tree.SetAsync(key, value));
+        await Assert.ThrowsAsync<ArgumentException>(() => tree.SetBulkAsync([new(key, value)]));
+
+        Assert.Empty(await tree.GetAllItemsAsync());
+    }
+
+    /// <summary>
+    /// SetBulkAsync must reject a null key or value exactly as SetAsync does.
+    /// </summary>
+    [Theory]
+    [InlineData(null, "x")]
+    [InlineData("b", null)]
+    public async Task SetBulkAsync_WithNullKeyOrValue_ThrowsArgumentNullExceptionLikeSetAsync(string key, string value)
+    {
+        var tree = new BTree<string, string>(2);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => tree.SetAsync(key!, value!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => tree.SetBulkAsync([new(key!, value!)]));
+
+        Assert.Empty(await tree.GetAllItemsAsync());
     }
 
     /// <summary>

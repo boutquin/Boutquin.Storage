@@ -6,7 +6,11 @@
     <!-- Suppress CA2007 in test projects: xUnit1030 conflicts with CA2007.
          xUnit wants no ConfigureAwait(false) in tests; CA2007 wants ConfigureAwait everywhere.
          We follow xUnit's guidance and suppress CA2007 here. -->
-    <NoWarn>$(NoWarn);CA2007</NoWarn>
+    <!-- BSSG021 (unbounded decoded-length allocation) is a production-decode-path analyzer that
+         ships in the referenced source-generator assembly. It does not apply to test code: fixtures
+         here deliberately forge corrupt frames and read self-authored (trusted) files to exercise
+         the production bound-guards, so allocating from those "decoded" lengths is by design. -->
+    <NoWarn>$(NoWarn);CA2007;BSSG021;RS0030</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +19,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Moq" />
     <PackageReference Include="System.IO.Abstractions.TestingHelpers" />
@@ -28,10 +33,26 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Distributed\Boutquin.Storage.Distributed.csproj" />
+    <!-- Load the columnar source generator as an analyzer so [ColumnarStorable]-annotated
+         test records (e.g., ColumnarBar) get their ColumnarFieldPlan partial extension
+         emitted. OutputItemType=Analyzer ensures the generator runs against this project;
+         ReferenceOutputAssembly=false prevents the generator DLL from being copied as a
+         runtime dependency. -->
+    <ProjectReference Include="..\..\src\SourceGenerator\Boutquin.Storage.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../../src/Samples/Proto/*.cs" Link="Schemas/Generated/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Samples/ProtoEvolutionDemo.cs" Link="Schemas/ProtoEvolutionDemo.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <EmbeddedResource Include="OssComparison/sqlite-kv-histories.json" LogicalName="StorageOracle.sqlite-kv-histories.json" />
+    <EmbeddedResource Include="OssComparison/columnar-sqlite-oracle.json" LogicalName="StorageOracle.columnar-sqlite-oracle.json" />
   </ItemGroup>
 
 </Project>

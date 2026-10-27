@@ -106,7 +106,7 @@ public sealed class ConcurrentKeyValueStoreTests
         // Act — 100 concurrent writers, each writing a unique key
         for (var i = 0; i < tasks.Length; i++)
         {
-            var key = i;
+            var key = i + 1;
             tasks[i] = Task.Run(async () =>
             {
                 await store.SetAsync(key, $"value-{key}").ConfigureAwait(false);
@@ -118,9 +118,9 @@ public sealed class ConcurrentKeyValueStoreTests
         // Assert — all keys present
         for (var i = 0; i < 100; i++)
         {
-            var (value, found) = await store.TryGetValueAsync(i).ConfigureAwait(true);
+            var (value, found) = await store.TryGetValueAsync(i + 1).ConfigureAwait(true);
             found.Should().BeTrue();
-            value.Should().Be($"value-{i}");
+            value.Should().Be($"value-{i + 1}");
         }
     }
 
@@ -133,7 +133,7 @@ public sealed class ConcurrentKeyValueStoreTests
         var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
         // Seed some data
-        for (var i = 0; i < 50; i++)
+        for (var i = 1; i <= 50; i++)
         {
             await store.SetAsync(i, $"seed-{i}").ConfigureAwait(true);
         }
@@ -141,12 +141,12 @@ public sealed class ConcurrentKeyValueStoreTests
         // Act — concurrent reads and writes
         var writerTask = Task.Run(async () =>
         {
-            var counter = 50;
+            var counter = 51;
             while (!cts.Token.IsCancellationRequested)
             {
                 try
                 {
-                    await store.SetAsync(counter % 200, $"val-{counter}").ConfigureAwait(false);
+                    await store.SetAsync((counter % 200) + 1, $"val-{counter}").ConfigureAwait(false);
                     counter++;
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
@@ -162,7 +162,7 @@ public sealed class ConcurrentKeyValueStoreTests
             {
                 try
                 {
-                    for (var i = 0; i < 200; i++)
+                    for (var i = 1; i <= 200; i++)
                     {
                         await store.TryGetValueAsync(i).ConfigureAwait(false);
                     }
@@ -188,7 +188,7 @@ public sealed class ConcurrentKeyValueStoreTests
 
         for (var i = 0; i < tasks.Length; i++)
         {
-            var val = i;
+            var val = i + 1;
             tasks[i] = Task.Run(async () =>
             {
                 await store.SetAsync("contended-key", val).ConfigureAwait(false);
@@ -200,7 +200,7 @@ public sealed class ConcurrentKeyValueStoreTests
         // Assert — key exists with some valid value (last writer wins)
         var (value, found) = await store.TryGetValueAsync("contended-key").ConfigureAwait(true);
         found.Should().BeTrue();
-        value.Should().BeInRange(0, 49);
+        value.Should().BeInRange(1, 50);
     }
 
     [Fact]
@@ -210,6 +210,54 @@ public sealed class ConcurrentKeyValueStoreTests
 
         await Assert.ThrowsAsync<ArgumentNullException>(
             () => store.SetAsync(null!, "value")).ConfigureAwait(true);
+    }
+
+    [Theory]
+    [InlineData("set")]
+    [InlineData("get")]
+    [InlineData("contains")]
+    [InlineData("remove")]
+    public async Task KeyedMethods_DefaultKey_IsRefusedByTheInterfaceContract(string operation)
+    {
+        IKeyValueStore<int, int> store = new ConcurrentKeyValueStore<int, int>();
+        await store.SetAsync(1, 42).ConfigureAwait(true);
+        Func<Task> invoke = operation switch
+        {
+            "set" => () => store.SetAsync(0, 7),
+            "get" => () => store.TryGetValueAsync(0),
+            "contains" => () => store.ContainsKeyAsync(0),
+            _ => () => store.RemoveAsync(0),
+        };
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(invoke).ConfigureAwait(true);
+
+        error.ParamName.Should().Be("key");
+        (await store.TryGetValueAsync(1).ConfigureAwait(true)).Should().Be((42, true));
+    }
+
+    [Fact]
+    public async Task SetAsync_DefaultValue_IsRefusedWithoutReplacingTheExistingValue()
+    {
+        IKeyValueStore<int, int> store = new ConcurrentKeyValueStore<int, int>();
+        await store.SetAsync(1, 42).ConfigureAwait(true);
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(() => store.SetAsync(1, 0)).ConfigureAwait(true);
+
+        error.ParamName.Should().Be("value");
+        (await store.TryGetValueAsync(1).ConfigureAwait(true)).Should().Be((42, true));
+    }
+
+    private sealed record CacheEnvelope(int Value);
+
+    [Fact]
+    public async Task ReferenceEnvelope_HoldingZero_RemainsAValidCacheValue()
+    {
+        var store = new ConcurrentKeyValueStore<string, CacheEnvelope>();
+        await store.SetAsync("key", new CacheEnvelope(0)).ConfigureAwait(true);
+
+        (await store.TryGetValueAsync("key").ConfigureAwait(true)).Should().Be((new CacheEnvelope(0), true));
+        await store.RemoveAsync("key").ConfigureAwait(true);
+        (await store.ContainsKeyAsync("key").ConfigureAwait(true)).Should().BeFalse();
     }
 
     [Fact]

@@ -42,8 +42,26 @@ public sealed class Program
                 typeof(EntrySerializerBenchmark),
                 typeof(SortedStringTableBenchmark),
                 typeof(BloomFilterBenchmark),
-                typeof(WriteAheadLogBenchmark)
+                typeof(WriteAheadLogBenchmark),
+                typeof(RowVsColumnarBenchmark),
+                typeof(VectorSearchBenchmark),
+                typeof(VectorizedOperatorBenchmark),
+                typeof(StreamingWindowBenchmark)
             };
+            if (args.Contains("--analytics-only", StringComparer.Ordinal))
+            {
+                benchmarks = [typeof(VectorizedOperatorBenchmark)];
+            }
+
+            if (args.Contains("--search-only", StringComparer.Ordinal))
+            {
+                benchmarks = [typeof(VectorSearchBenchmark)];
+            }
+
+            if (args.Contains("--streaming-only", StringComparer.Ordinal))
+            {
+                benchmarks = [typeof(StreamingWindowBenchmark)];
+            }
 
             // Create a temporary config to discover the benchmarks
             var discoveryConfig = ManualConfig.CreateEmpty()
@@ -66,15 +84,16 @@ public sealed class Program
             {
                 customLogger.StartClass(benchmark.Name); // Show which class is running
                 var summary = BenchmarkRunner.Run(benchmark, CreateCustomConfig(customLogger));
-                if (summary != null)
+                if (summary is null || summary.Reports.Length == 0)
                 {
-                    if (!results.TryGetValue(benchmark.Name, out var summaryList))
-                    {
-                        summaryList = new List<Summary>();
-                        results[benchmark.Name] = summaryList;
-                    }
-                    summaryList.Add(summary);
+                    throw new InvalidOperationException($"Benchmark {benchmark.Name} produced no reports.");
                 }
+                if (!results.TryGetValue(benchmark.Name, out var summaryList))
+                {
+                    summaryList = [];
+                    results[benchmark.Name] = summaryList;
+                }
+                summaryList.Add(summary);
             }
 
             // Stop title update timer
@@ -86,6 +105,8 @@ public sealed class Program
         catch (Exception ex)
         {
             LogExceptionToFile(ex);
+            Console.Error.WriteLine(ex.Message);
+            Environment.ExitCode = 1;
         }
     }
 
@@ -96,9 +117,9 @@ public sealed class Program
     /// <returns>A configured IConfig instance.</returns>
     private static IConfig CreateCustomConfig(ILogger logger)
     {
-        // Locate the solution root by walking up from the assembly location until we find the .sln file
+        // Anchor artifacts to the repository even when launched from a generated benchmark directory.
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Boutquin.Storage.sln")))
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Boutquin.Storage.slnx")))
         {
             dir = dir.Parent;
         }
@@ -143,9 +164,13 @@ public sealed class Program
                     var metrics = report.ResultStatistics;
 
                     logger.WriteLine(LogKind.Default, $"    Parameters: {parameters.DisplayInfo}");
-                    logger.WriteLine(LogKind.Default, $"      Mean: {metrics!.Mean} ms");
-                    logger.WriteLine(LogKind.Default, $"      Error: {metrics.StandardError} ms");
-                    logger.WriteLine(LogKind.Default, $"      StdDev: {metrics.StandardDeviation} ms");
+                    if (metrics is null)
+                    {
+                        throw new InvalidOperationException($"Benchmark {benchmarkCase.DisplayInfo} produced no measurements.");
+                    }
+                    logger.WriteLine(LogKind.Default, $"      Mean: {metrics.Mean} ns");
+                    logger.WriteLine(LogKind.Default, $"      Standard error: {metrics.StandardError} ns");
+                    logger.WriteLine(LogKind.Default, $"      StdDev: {metrics.StandardDeviation} ns");
                 }
                 logger.WriteLine();
             }
@@ -159,16 +184,14 @@ public sealed class Program
     private static void LogExceptionToFile(Exception ex)
     {
         var logFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error.log");
-        using (var writer = new StreamWriter(logFilePath, true))
+        using var writer = new StreamWriter(logFilePath, true);
+        writer.WriteLine($"[{DateTime.Now}] Exception: {ex.Message}");
+        writer.WriteLine(ex.StackTrace);
+        if (ex.InnerException != null)
         {
-            writer.WriteLine($"[{DateTime.Now}] Exception: {ex.Message}");
-            writer.WriteLine(ex.StackTrace);
-            if (ex.InnerException != null)
-            {
-                writer.WriteLine($"Inner Exception: {ex.InnerException.Message}");
-                writer.WriteLine(ex.InnerException.StackTrace);
-            }
-            writer.WriteLine();
+            writer.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+            writer.WriteLine(ex.InnerException.StackTrace);
         }
+        writer.WriteLine();
     }
 }

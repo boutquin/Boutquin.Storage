@@ -33,7 +33,10 @@ namespace Boutquin.Storage.Infrastructure.KeyValueStore;
 /// throws <see cref="NotSupportedException"/> (append-only MemTable semantics), this store supports
 /// removal — caches must evict entries.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
+/// <para>Keys and values must be non-null and differ from their type's default value,
+/// matching the shared <see cref="IKeyValueStore{TKey,TValue}"/> contract.</para>
+///
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
 /// Ch. 4 — "Keeping Everything in Memory": in-memory databases avoid disk encoding overhead;
 /// the performance advantage comes from native in-memory data structures, not from avoiding disk reads.</para>
 /// </summary>
@@ -47,8 +50,8 @@ public sealed class ConcurrentKeyValueStore<TKey, TValue> : IKeyValueStore<TKey,
     /// <inheritdoc />
     public Task SetAsync(TKey key, TValue value, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentNullException.ThrowIfNull(value);
+        Guard.AgainstNullOrDefault(() => key);
+        Guard.AgainstNullOrDefault(() => value);
         cancellationToken.ThrowIfCancellationRequested();
 
         _store[key] = value;
@@ -58,7 +61,7 @@ public sealed class ConcurrentKeyValueStore<TKey, TValue> : IKeyValueStore<TKey,
     /// <inheritdoc />
     public Task<(TValue Value, bool Found)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(key);
+        Guard.AgainstNullOrDefault(() => key);
         cancellationToken.ThrowIfCancellationRequested();
 
         var found = _store.TryGetValue(key, out var value);
@@ -68,7 +71,7 @@ public sealed class ConcurrentKeyValueStore<TKey, TValue> : IKeyValueStore<TKey,
     /// <inheritdoc />
     public Task<bool> ContainsKeyAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(key);
+        Guard.AgainstNullOrDefault(() => key);
         cancellationToken.ThrowIfCancellationRequested();
 
         return Task.FromResult(_store.ContainsKey(key));
@@ -77,7 +80,7 @@ public sealed class ConcurrentKeyValueStore<TKey, TValue> : IKeyValueStore<TKey,
     /// <inheritdoc />
     public Task RemoveAsync(TKey key, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(key);
+        Guard.AgainstNullOrDefault(() => key);
         cancellationToken.ThrowIfCancellationRequested();
 
         _store.TryRemove(key, out _);

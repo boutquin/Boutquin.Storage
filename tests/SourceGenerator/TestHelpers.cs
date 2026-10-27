@@ -20,6 +20,51 @@ namespace Boutquin.Storage.SourceGenerator.Tests;
 /// </summary>
 internal static class TestHelpers
 {
+    // Static constructor registers Verify scrubbers that every snapshot-based test depends
+    // on. Chosen over [ModuleInitializer] because the generator project bakes a Polyfill
+    // copy of ModuleInitializerAttribute into its DLL, which conflicts with net10's built-in
+    // definition when the generator is ProjectReference'd from this test project. Every
+    // snapshot test routes through TestHelpers.RunGenerator, so the static ctor fires before
+    // any Verify comparison runs.
+    private static readonly System.Text.RegularExpressions.Regex s_copyrightYear =
+        new(
+            @"Copyright \(c\) 2024-\d{4}",
+            System.Text.RegularExpressions.RegexOptions.Compiled
+                | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    static TestHelpers()
+    {
+        // Verify scrubs object property values before writing their names, so a rendered
+        // "FilePath: ..." regex never sees the path in object snapshots. Convert this typed
+        // metadata member instead; ordinary strings and generated C# stay byte-checked.
+        VerifyTests.VerifierSettings.MemberConverter<SyntaxTree, string>(
+            tree => tree.FilePath, path => path?.Replace('\\', '/'));
+
+        VerifyTests.VerifierSettings.AddScrubber(sb =>
+        {
+            var current = sb.ToString();
+            var scrubbed = NormalizeSnapshotMetadata(s_copyrightYear.Replace(current, "Copyright (c) 2024-YYYY"));
+            if (!ReferenceEquals(current, scrubbed))
+            {
+                sb.Clear();
+                sb.Append(scrubbed);
+            }
+        });
+
+        // Force-load Boutquin.Storage.Domain into the AppDomain so GetAssemblies() picks it up
+        // when building reference lists for generator test compilations. The Phase 2 tagged-
+        // wire emitter calls Boutquin.Storage.Domain.Helpers.VarintHelpers at runtime; if the
+        // assembly is not yet loaded when a test fires, the test compilation cannot resolve it.
+        _ = typeof(Boutquin.Storage.Domain.Helpers.VarintHelpers).FullName;
+        _ = typeof(Boutquin.Storage.Domain.Exceptions.UnsupportedFormatVersionException).FullName;
+    }
+
+    // Roslyn composes a generated tree's FilePath with the host directory separator.
+    // Normalize only this metadata field: generated C# string literals must stay byte-checked.
+    internal static string NormalizeSnapshotMetadata(string snapshot) =>
+        System.Text.RegularExpressions.Regex.Replace(snapshot, @"(?m)^(\s*FilePath: )([^\r\n,]+)",
+            match => match.Groups[1].Value + match.Groups[2].Value.Replace('\\', '/'));
+
     // Attributes source injected into every test compilation so the generator can find them.
     // In real consumer projects these come from the Domain assembly reference.
     private const string AttributeSource = """
@@ -39,6 +84,40 @@ internal static class TestHelpers
             public sealed class StorageDefaultsAttribute : Attribute
             {
                 public bool GenerateComparisonOperators { get; set; } = true;
+            }
+
+            // Phase 2 attributes — the generator discovers them by fully-qualified metadata name
+            // via ForAttributeWithMetadataName, so the Domain-project declarations are what the
+            // semantic model sees. Mirror them here so tests can instantiate annotated types.
+            [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
+            [Conditional("BOUTQUIN_STORAGE_GENERATOR")]
+            public sealed class TagAttribute : Attribute
+            {
+                public int Number { get; }
+                public TagAttribute(int number) => Number = number;
+            }
+
+            [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = true)]
+            [Conditional("BOUTQUIN_STORAGE_GENERATOR")]
+            public sealed class ReservedTagAttribute : Attribute
+            {
+                public int Number { get; }
+                public ReservedTagAttribute(int number) => Number = number;
+            }
+
+            // Phase F — packed / unpacked collection encoding opt-ins. Default-on for Tier-1
+            // fixed-width + bool collections; [Unpacked] overrides to one tag-varint per element,
+            // [Packed] is an explicit-intent no-op when already defaulted on.
+            [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
+            [Conditional("BOUTQUIN_STORAGE_GENERATOR")]
+            public sealed class PackedAttribute : Attribute
+            {
+            }
+
+            [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter, Inherited = false, AllowMultiple = false)]
+            [Conditional("BOUTQUIN_STORAGE_GENERATOR")]
+            public sealed class UnpackedAttribute : Attribute
+            {
             }
         }
         namespace Boutquin.Storage.Domain.Interfaces

@@ -18,20 +18,24 @@ namespace Boutquin.Storage.Domain.Enums;
 /// <summary>
 /// Defines the schema compatibility mode used when evolving schemas in a registry.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": forward and backward compatibility in schema evolution.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": forward and backward compatibility in schema evolution.</para>
 /// </summary>
 public enum CompatibilityMode
 {
     /// <summary>
-    /// New schema can read data written by old schema. New fields must be optional;
-    /// required fields cannot be removed.
+    /// New schema can read data written by old schema. Added fields must be optional (old data
+    /// carries no value for them, and a required reader has no default to fall back on), and a
+    /// retained field may not flip from optional to required. Removing a field — required or
+    /// not — is always backward-safe: the new reader simply ignores the extra field in old data.
     /// </summary>
     Backward,
 
     /// <summary>
-    /// Old schema can read data written by new schema. Old fields must be optional;
-    /// new required fields cannot be added.
+    /// Old schema can read data written by new schema. Removed fields must have been optional
+    /// (the old reader falls back to their default), and a retained field may not flip from
+    /// required to optional. Adding a field — required or not — is always forward-safe: the old
+    /// reader skips fields it does not know.
     /// </summary>
     Forward,
 

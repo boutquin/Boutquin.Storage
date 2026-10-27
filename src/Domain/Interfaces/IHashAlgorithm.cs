@@ -24,8 +24,8 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <b>ComputeHash:</b> O(n) where n = input length in bytes. The algorithm makes a single pass over the input data.</para>
 /// <para>- <b>Space:</b> O(1) — constant auxiliary space regardless of input size.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — hash functions
-/// underpin hash indexes, Bloom filters, and data integrity checks (CRC32 in WriteAheadLog records) throughout
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — hash functions
+/// underpin hash indexes, Bloom filters, and data integrity checks (CRC32C in WriteAheadLog records) throughout
 /// storage engine implementations.</para>
 /// </remarks>
 public interface IHashAlgorithm

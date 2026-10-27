@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.ValueObjects;
 /// <summary>
 /// A single change event in a CDC stream.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing": change records as the unit of a CDC stream.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing": change records as the unit of a CDC stream.</para>
 /// </summary>
 /// <typeparam name="TKey">The key type.</typeparam>
 /// <typeparam name="TValue">The value type.</typeparam>

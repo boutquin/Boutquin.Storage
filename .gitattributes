@@ -4,6 +4,26 @@
 * text=auto
 
 ###############################################################################
+# Exclude private files from git archive (used for public repo squash push)
+###############################################################################
+CLAUDE.md export-ignore
+AGENTS.md export-ignore
+CLAUDE.local.md export-ignore
+.claude/ export-ignore
+.claude/** export-ignore
+specs/ export-ignore
+specs/** export-ignore
+# Arena run evidence: versioned and shared, but never in a `git archive`
+# (public release / squash push) — same treatment as specs/ and .claude/.
+.code-arena/ export-ignore
+.code-arena/** export-ignore
+_local/ export-ignore
+_local/** export-ignore
+hooks/ export-ignore
+hooks/** export-ignore
+review-accepted.yaml export-ignore
+
+###############################################################################
 # Set default behavior for command prompt diff.
 #
 # This is need for earlier builds of msysgit that does not have it on by

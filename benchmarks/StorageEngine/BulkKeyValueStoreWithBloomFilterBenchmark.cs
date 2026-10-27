@@ -43,10 +43,12 @@ public class BulkKeyValueStoreWithBloomFilterBenchmark : StorageEngineBenchmark<
 
         var expectedElements = 1000;
         var falsePositiveProbability = 0.01;
-        var bloomFilter = new BloomFilter<SerializableWrapper<int>>(expectedElements, falsePositiveProbability);
+        var bloomFilter = BloomFilter.ForSerializable<SerializableWrapper<int>>(expectedElements, falsePositiveProbability);
 
-        SetStore(new BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>(
+        // Benchmark construction is synchronous by BenchmarkDotNet convention; CreateAsync's
+        // seeding pass completes synchronously here because the fresh inner store is empty.
+        SetStore(BulkKeyValueStoreWithBloomFilter<SerializableWrapper<int>, SerializableWrapper<string>>.CreateAsync(
             innerStore,
-            bloomFilter));
+            bloomFilter).GetAwaiter().GetResult());
     }
 }

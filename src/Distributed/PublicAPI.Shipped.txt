@@ -1,0 +1,925 @@
+#nullable enable
+Boutquin.Storage.Distributed.Cdc.SingleLeaderCdcSource<TKey, TValue>
+Boutquin.Storage.Distributed.Cdc.SingleLeaderCdcSource<TKey, TValue>.CaptureSnapshotAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<Boutquin.Storage.Domain.ValueObjects.CdcSnapshot<TKey, TValue>!>
+Boutquin.Storage.Distributed.Cdc.SingleLeaderCdcSource<TKey, TValue>.ReadChangesAsync(long position, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Boutquin.Storage.Domain.ValueObjects.ChangeRecord<TKey, TValue>!>!
+Boutquin.Storage.Distributed.Cdc.SingleLeaderCdcSource<TKey, TValue>.SingleLeaderCdcSource(Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>! leader) -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>.Append((long Term, TCommand Command) entry) -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>.Count.get -> int
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>.Dispose() -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>.FileRaftLog(string! path, System.Func<TCommand, byte[]!>! serialize, System.Func<byte[]!, TCommand>! deserialize) -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>.GetEntry(int index) -> (long Term, TCommand Command)
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>.GetRange(int startIndex, int count) -> System.Collections.Generic.IReadOnlyList<(long Term, TCommand Command)>!
+Boutquin.Storage.Distributed.Consensus.FileRaftLog<TCommand>.TruncateFrom(int fromIndex) -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftPersistentState
+Boutquin.Storage.Distributed.Consensus.FileRaftPersistentState.CurrentTerm.get -> long
+Boutquin.Storage.Distributed.Consensus.FileRaftPersistentState.CurrentTerm.set -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftPersistentState.FileRaftPersistentState(string! path) -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftPersistentState.SetTermAndVote(long term, string? votedFor) -> void
+Boutquin.Storage.Distributed.Consensus.FileRaftPersistentState.VotedFor.get -> string?
+Boutquin.Storage.Distributed.Consensus.FileRaftPersistentState.VotedFor.set -> void
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftLog<TCommand>
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftLog<TCommand>.Append((long Term, TCommand Command) entry) -> void
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftLog<TCommand>.Count.get -> int
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftLog<TCommand>.GetEntry(int index) -> (long Term, TCommand Command)
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftLog<TCommand>.GetRange(int startIndex, int count) -> System.Collections.Generic.IReadOnlyList<(long Term, TCommand Command)>!
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftLog<TCommand>.InMemoryRaftLog() -> void
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftLog<TCommand>.TruncateFrom(int fromIndex) -> void
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftPersistentState
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftPersistentState.CurrentTerm.get -> long
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftPersistentState.CurrentTerm.set -> void
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftPersistentState.InMemoryRaftPersistentState() -> void
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftPersistentState.SetTermAndVote(long term, string? votedFor) -> void
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftPersistentState.VotedFor.get -> string?
+Boutquin.Storage.Distributed.Consensus.InMemoryRaftPersistentState.VotedFor.set -> void
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>.AddNode(Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>! node) -> void
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>.GetLeader() -> Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>?
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>.GetNodes() -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>!>!
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>.RaftCluster() -> void
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>.RaftCluster(System.Collections.Generic.IEnumerable<string!>! restoredMemberIds) -> void
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>.TickAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Consensus.RaftCluster<TCommand>.TriggerElectionAsync(string! nodeId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.CurrentTerm.get -> long
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.GetCommittedLog() -> System.Collections.Generic.IReadOnlyList<(long Term, TCommand Command)>!
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.LeaderId.get -> string?
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.NodeId.get -> string!
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.ProposeAsync(TCommand command, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.RaftNode(string! nodeId, Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftLog<TCommand>? log = null, Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftPersistentState? persistentState = null) -> void
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.State.get -> Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>.VotedFor.get -> string?
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.<Clone>$() -> Boutquin.Storage.Distributed.Coordination.CompareExchangeResult!
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.CompareExchangeResult(bool Exchanged, Boutquin.Storage.Distributed.Coordination.CoordinationValue? Current) -> void
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.Current.get -> Boutquin.Storage.Distributed.Coordination.CoordinationValue?
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.Current.init -> void
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.Deconstruct(out bool Exchanged, out Boutquin.Storage.Distributed.Coordination.CoordinationValue? Current) -> void
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.Equals(Boutquin.Storage.Distributed.Coordination.CompareExchangeResult? other) -> bool
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.Exchanged.get -> bool
+Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.Exchanged.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationCommand
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.<Clone>$() -> Boutquin.Storage.Distributed.Coordination.CoordinationEvent!
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.CoordinationEvent(long Revision, string! Path, Boutquin.Storage.Distributed.Coordination.CoordinationEventKind Kind, Boutquin.Storage.Distributed.Coordination.CoordinationValue? Value) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Deconstruct(out long Revision, out string! Path, out Boutquin.Storage.Distributed.Coordination.CoordinationEventKind Kind, out Boutquin.Storage.Distributed.Coordination.CoordinationValue? Value) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Equals(Boutquin.Storage.Distributed.Coordination.CoordinationEvent? other) -> bool
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Kind.get -> Boutquin.Storage.Distributed.Coordination.CoordinationEventKind
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Kind.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Path.get -> string!
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Path.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Revision.get -> long
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Revision.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Value.get -> Boutquin.Storage.Distributed.Coordination.CoordinationValue?
+Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Value.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationEventKind
+Boutquin.Storage.Distributed.Coordination.CoordinationEventKind.Changed = 0 -> Boutquin.Storage.Distributed.Coordination.CoordinationEventKind
+Boutquin.Storage.Distributed.Coordination.CoordinationEventKind.Deleted = 1 -> Boutquin.Storage.Distributed.Coordination.CoordinationEventKind
+Boutquin.Storage.Distributed.Coordination.CoordinationEventKind.LeaseEnded = 2 -> Boutquin.Storage.Distributed.Coordination.CoordinationEventKind
+Boutquin.Storage.Distributed.Coordination.CoordinationLease
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.<Clone>$() -> Boutquin.Storage.Distributed.Coordination.CoordinationLease!
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.CoordinationLease(long Id, string! Resource, string! Owner, long FencingToken, long ExpiresAt) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Deconstruct(out long Id, out string! Resource, out string! Owner, out long FencingToken, out long ExpiresAt) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Equals(Boutquin.Storage.Distributed.Coordination.CoordinationLease? other) -> bool
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.ExpiresAt.get -> long
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.ExpiresAt.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.FencingToken.get -> long
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.FencingToken.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Id.get -> long
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Id.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Owner.get -> string!
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Owner.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Resource.get -> string!
+Boutquin.Storage.Distributed.Coordination.CoordinationLease.Resource.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationRead
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.<Clone>$() -> Boutquin.Storage.Distributed.Coordination.CoordinationRead!
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.CoordinationRead(Boutquin.Storage.Distributed.Coordination.CoordinationValue? Value, long Revision) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.Deconstruct(out Boutquin.Storage.Distributed.Coordination.CoordinationValue? Value, out long Revision) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.Equals(Boutquin.Storage.Distributed.Coordination.CoordinationRead? other) -> bool
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.Revision.get -> long
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.Revision.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.Value.get -> Boutquin.Storage.Distributed.Coordination.CoordinationValue?
+Boutquin.Storage.Distributed.Coordination.CoordinationRead.Value.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationValue
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.<Clone>$() -> Boutquin.Storage.Distributed.Coordination.CoordinationValue!
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.CoordinationValue(string! Value, long Revision, long? LeaseId) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.Deconstruct(out string! Value, out long Revision, out long? LeaseId) -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.Equals(Boutquin.Storage.Distributed.Coordination.CoordinationValue? other) -> bool
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.LeaseId.get -> long?
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.LeaseId.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.Revision.get -> long
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.Revision.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.Value.get -> string!
+Boutquin.Storage.Distributed.Coordination.CoordinationValue.Value.init -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationWatch
+Boutquin.Storage.Distributed.Coordination.CoordinationWatch.Dispose() -> void
+Boutquin.Storage.Distributed.Coordination.CoordinationWatch.ReadAllAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<Boutquin.Storage.Distributed.Coordination.CoordinationEvent!>!
+Boutquin.Storage.Distributed.Coordination.CoordinationWatch.TryRead(out Boutquin.Storage.Distributed.Coordination.CoordinationEvent? change) -> bool
+Boutquin.Storage.Distributed.Coordination.FencingTokenService
+Boutquin.Storage.Distributed.Coordination.FencingTokenService.FencingTokenService(Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService! service) -> void
+Boutquin.Storage.Distributed.Coordination.FencingTokenService.NextAsync(string! resource, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Coordination.LinearizableIdGenerator
+Boutquin.Storage.Distributed.Coordination.LinearizableIdGenerator.LinearizableIdGenerator(Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService! service) -> void
+Boutquin.Storage.Distributed.Coordination.LinearizableIdGenerator.NextAsync(string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Coordination.LinearizableRegister<TKey, TValue>
+Boutquin.Storage.Distributed.Coordination.LinearizableRegister<TKey, TValue>.CompareExchangeAsync(TKey key, long expectedRevision, TValue value, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Coordination.LinearizableRegister<TKey, TValue>.LinearizableRegister(Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService! service, string! prefix) -> void
+Boutquin.Storage.Distributed.Coordination.LinearizableRegister<TKey, TValue>.ReadAsync(TKey key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>!>!
+Boutquin.Storage.Distributed.Coordination.LinearizableRegister<TKey, TValue>.SetAsync(TKey key, TValue value, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.AcquireLeaseAsync(string! resource, string! owner, long durationTicks, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationLease?>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.AllocateSequenceAsync(string! scope, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.CompareExchangeAsync(string! path, long expectedRevision, string? value, string! requestId, long? leaseId = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CompareExchangeResult!>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.Dispose() -> void
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.RaftBackedCoordinationService(Boutquin.Storage.Distributed.Consensus.RaftNode<Boutquin.Storage.Distributed.Coordination.CoordinationCommand!>! node, Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime! runtime, System.Action! pump, long operationTimeoutTicks = 100, long heartbeatTicks = 5) -> void
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.ReadAsync(string! path, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationRead!>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.ReadLeaseAsync(string! resource, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationLease?>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.ReleaseLeaseAsync(long leaseId, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.RenewLeaseAsync(long leaseId, long durationTicks, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.SetAsync(string! path, string! value, string! requestId, long? leaseId = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationValue!>!
+Boutquin.Storage.Distributed.Coordination.RaftBackedCoordinationService.WatchAsync(string! path, long afterRevision = 0, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationWatch!>!
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.<Clone>$() -> Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>!
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Deconstruct(out bool Exists, out TValue? Value, out long Revision) -> void
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Equals(Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>? other) -> bool
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Exists.get -> bool
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Exists.init -> void
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.RegisterValue(bool Exists, TValue? Value, long Revision) -> void
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Revision.get -> long
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Revision.init -> void
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Value.get -> TValue?
+Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Value.init -> void
+Boutquin.Storage.Distributed.DistributedSystems.GCounter
+Boutquin.Storage.Distributed.DistributedSystems.GCounter.GCounter() -> void
+Boutquin.Storage.Distributed.DistributedSystems.GCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Distributed.DistributedSystems.GCounter.Merge(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<long>! other) -> Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<long>!
+Boutquin.Storage.Distributed.DistributedSystems.GCounter.Value.get -> long
+Boutquin.Storage.Distributed.DistributedSystems.GSet<T>
+Boutquin.Storage.Distributed.DistributedSystems.GSet<T>.Add(T item) -> void
+Boutquin.Storage.Distributed.DistributedSystems.GSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Distributed.DistributedSystems.GSet<T>.GSet() -> void
+Boutquin.Storage.Distributed.DistributedSystems.GSet<T>.Merge(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>! other) -> Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>!
+Boutquin.Storage.Distributed.DistributedSystems.GSet<T>.Value.get -> System.Collections.Generic.IReadOnlySet<T>!
+Boutquin.Storage.Distributed.DistributedSystems.GossipProtocol<TNodeId, TState>
+Boutquin.Storage.Distributed.DistributedSystems.GossipProtocol<TNodeId, TState>.GetClusterState() -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Distributed.DistributedSystems.GossipProtocol<TNodeId, TState>.GossipProtocol() -> void
+Boutquin.Storage.Distributed.DistributedSystems.GossipProtocol<TNodeId, TState>.PrepareSyncMessage() -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Distributed.DistributedSystems.GossipProtocol<TNodeId, TState>.ProcessSyncMessage(System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>! remoteState) -> void
+Boutquin.Storage.Distributed.DistributedSystems.GossipProtocol<TNodeId, TState>.UpdateLocalState(TNodeId nodeId, TState state) -> void
+Boutquin.Storage.Distributed.DistributedSystems.LamportTimestamp
+Boutquin.Storage.Distributed.DistributedSystems.LamportTimestamp.GetCurrentTimestamp() -> long
+Boutquin.Storage.Distributed.DistributedSystems.LamportTimestamp.Increment() -> long
+Boutquin.Storage.Distributed.DistributedSystems.LamportTimestamp.LamportTimestamp(string! nodeId, long initialCounter = 0) -> void
+Boutquin.Storage.Distributed.DistributedSystems.LamportTimestamp.NodeId.get -> string!
+Boutquin.Storage.Distributed.DistributedSystems.LamportTimestamp.Update(long receivedTimestamp) -> long
+Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>
+Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>.Add(string! nodeId, T item) -> void
+Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>.Merge(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>! other) -> Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<System.Collections.Generic.IReadOnlySet<T>!>!
+Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>.ORSet() -> void
+Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>.Remove(T item) -> void
+Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>.Value.get -> System.Collections.Generic.IReadOnlySet<T>!
+Boutquin.Storage.Distributed.DistributedSystems.PNCounter
+Boutquin.Storage.Distributed.DistributedSystems.PNCounter.Decrement(string! nodeId) -> void
+Boutquin.Storage.Distributed.DistributedSystems.PNCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Distributed.DistributedSystems.PNCounter.Merge(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<long>! other) -> Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<long>!
+Boutquin.Storage.Distributed.DistributedSystems.PNCounter.PNCounter() -> void
+Boutquin.Storage.Distributed.DistributedSystems.PNCounter.Value.get -> long
+Boutquin.Storage.Distributed.DistributedSystems.VectorClock
+Boutquin.Storage.Distributed.DistributedSystems.VectorClock.CompareCausally(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock! other) -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Distributed.DistributedSystems.VectorClock.GetClock() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Distributed.DistributedSystems.VectorClock.Increment(string! nodeId) -> void
+Boutquin.Storage.Distributed.DistributedSystems.VectorClock.Merge(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock! other) -> Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock!
+Boutquin.Storage.Distributed.DistributedSystems.VectorClock.VectorClock() -> void
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftCluster<TCommand>
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftCluster<TCommand>.AddNode(Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>! node) -> void
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftCluster<TCommand>.GetLeader() -> Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>?
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftCluster<TCommand>.GetNodes() -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>!>!
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftCluster<TCommand>.TickAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftCluster<TCommand>.TriggerElectionAsync(string! nodeId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftLog<TCommand>
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftLog<TCommand>.Append((long Term, TCommand Command) entry) -> void
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftLog<TCommand>.Count.get -> int
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftLog<TCommand>.GetEntry(int index) -> (long Term, TCommand Command)
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftLog<TCommand>.GetRange(int startIndex, int count) -> System.Collections.Generic.IReadOnlyList<(long Term, TCommand Command)>!
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftLog<TCommand>.TruncateFrom(int fromIndex) -> void
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>.CurrentTerm.get -> long
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>.GetCommittedLog() -> System.Collections.Generic.IReadOnlyList<(long Term, TCommand Command)>!
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>.LeaderId.get -> string?
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>.NodeId.get -> string!
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>.ProposeAsync(TCommand command, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>.State.get -> Boutquin.Storage.Domain.Enums.RaftNodeState
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftNode<TCommand>.VotedFor.get -> string?
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftPersistentState
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftPersistentState.CurrentTerm.get -> long
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftPersistentState.CurrentTerm.set -> void
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftPersistentState.SetTermAndVote(long term, string? votedFor) -> void
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftPersistentState.VotedFor.get -> string?
+Boutquin.Storage.Distributed.Interfaces.Consensus.IRaftPersistentState.VotedFor.set -> void
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.AcquireLeaseAsync(string! resource, string! owner, long durationTicks, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationLease?>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.AllocateSequenceAsync(string! scope, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.CompareExchangeAsync(string! path, long expectedRevision, string? value, string! requestId, long? leaseId = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CompareExchangeResult!>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.ReadAsync(string! path, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationRead!>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.ReadLeaseAsync(string! resource, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationLease?>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.ReleaseLeaseAsync(long leaseId, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.RenewLeaseAsync(long leaseId, long durationTicks, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.SetAsync(string! path, string! value, string! requestId, long? leaseId = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationValue!>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ICoordinationService.WatchAsync(string! path, long afterRevision = 0, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.CoordinationWatch!>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.IFencingTokenService
+Boutquin.Storage.Distributed.Interfaces.Coordination.IFencingTokenService.NextAsync(string! resource, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ILinearizableIdGenerator
+Boutquin.Storage.Distributed.Interfaces.Coordination.ILinearizableIdGenerator.NextAsync(string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ILinearizableRegister<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Coordination.ILinearizableRegister<TKey, TValue>.CompareExchangeAsync(TKey key, long expectedRevision, TValue value, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ILinearizableRegister<TKey, TValue>.ReadAsync(TKey key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>!>!
+Boutquin.Storage.Distributed.Interfaces.Coordination.ILinearizableRegister<TKey, TValue>.SetAsync(TKey key, TValue value, string! requestId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<T>
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<T>.Merge(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<T>! other) -> Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<T>!
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ICrdt<T>.Value.get -> T
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGCounter
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGSet<T>
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGSet<T>.Add(T item) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGossipProtocol<TNodeId, TState>
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGossipProtocol<TNodeId, TState>.GetClusterState() -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGossipProtocol<TNodeId, TState>.PrepareSyncMessage() -> System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>!
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGossipProtocol<TNodeId, TState>.ProcessSyncMessage(System.Collections.Generic.IReadOnlyDictionary<TNodeId, (TState State, long Version)>! remoteState) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IGossipProtocol<TNodeId, TState>.UpdateLocalState(TNodeId nodeId, TState state) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ILamportTimestamp
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ILamportTimestamp.GetCurrentTimestamp() -> long
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ILamportTimestamp.Increment() -> long
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ILamportTimestamp.NodeId.get -> string!
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.ILamportTimestamp.Update(long receivedTimestamp) -> long
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IORSet<T>
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IORSet<T>.Add(string! nodeId, T item) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IORSet<T>.Contains(T item) -> bool
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IORSet<T>.Remove(T item) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IPNCounter
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IPNCounter.Decrement(string! nodeId) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IPNCounter.Increment(string! nodeId) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock.CompareCausally(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock! other) -> Boutquin.Storage.Domain.Enums.VectorClockComparison
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock.GetClock() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock.Increment(string! nodeId) -> void
+Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock.Merge(Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock! other) -> Boutquin.Storage.Distributed.Interfaces.DistributedSystems.IVectorClock!
+Boutquin.Storage.Distributed.Interfaces.Merkle.IMerkleTree
+Boutquin.Storage.Distributed.Interfaces.Merkle.IMerkleTree.Build(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> void
+Boutquin.Storage.Distributed.Interfaces.Merkle.IMerkleTree.GetProof(int leafIndex) -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+Boutquin.Storage.Distributed.Interfaces.Merkle.IMerkleTree.HashLeaf(byte[]! data) -> byte[]!
+Boutquin.Storage.Distributed.Interfaces.Merkle.IMerkleTree.RootHash.get -> byte[]!
+Boutquin.Storage.Distributed.Interfaces.Merkle.IMerkleTree.Verify(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> bool
+Boutquin.Storage.Distributed.Interfaces.Merkle.IMerkleTree.VerifyProof(byte[]! leafHash, System.Collections.Generic.IReadOnlyList<byte[]!>! proof, byte[]! rootHash, int leafIndex) -> bool
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IConsistentHashRing<TNode>
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IConsistentHashRing<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IConsistentHashRing<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IConsistentHashRing<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IConsistentHashRing<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IPartitioner<TKey>
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IPartitioner<TKey>.GetPartition(TKey key) -> int
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IPartitioner<TKey>.PartitionCount.get -> int
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRangePartitioner<TKey>
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRangePartitioner<TKey>.GetBoundaries() -> System.Collections.Generic.IReadOnlyList<TKey>!
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRangePartitioner<TKey>.GetPartitionRange(TKey startKey, TKey endKey) -> (int StartPartition, int EndPartition)
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRendezvousHash<TNode>
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRendezvousHash<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRendezvousHash<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRendezvousHash<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Distributed.Interfaces.Partitioning.IRendezvousHash<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Distributed.Interfaces.Replication.IConflictResolver<T>
+Boutquin.Storage.Distributed.Interfaces.Replication.IConflictResolver<T>.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>!>! versions) -> System.Collections.Generic.IReadOnlyList<T>!
+Boutquin.Storage.Distributed.Interfaces.Replication.IMultiLeaderReplication<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Replication.IMultiLeaderReplication<TKey, TValue>.Capture(string! replica) -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Replication.ReplicationOperation<TKey, TValue>!>!
+Boutquin.Storage.Distributed.Interfaces.Replication.IMultiLeaderReplication<TKey, TValue>.Deliver(string! replica, Boutquin.Storage.Distributed.Replication.ReplicationOperation<TKey, TValue>! operation) -> void
+Boutquin.Storage.Distributed.Interfaces.Replication.IMultiLeaderReplication<TKey, TValue>.Read(string! replica, TKey key, Boutquin.Storage.Distributed.Replication.SessionToken? session = null) -> Boutquin.Storage.Distributed.Replication.ReplicationRead<TValue>!
+Boutquin.Storage.Distributed.Interfaces.Replication.IMultiLeaderReplication<TKey, TValue>.Write(string! replica, TKey key, TValue value, Boutquin.Storage.Distributed.Replication.SessionToken? session = null) -> Boutquin.Storage.Distributed.Replication.SessionToken!
+Boutquin.Storage.Distributed.Interfaces.Replication.IQuorumReplication<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Replication.IQuorumReplication<TKey, TValue>.N.get -> int
+Boutquin.Storage.Distributed.Interfaces.Replication.IQuorumReplication<TKey, TValue>.R.get -> int
+Boutquin.Storage.Distributed.Interfaces.Replication.IQuorumReplication<TKey, TValue>.ReadAsync(TKey key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found, long Version)>!
+Boutquin.Storage.Distributed.Interfaces.Replication.IQuorumReplication<TKey, TValue>.SetReplicaAvailability(string! replicaId, bool isAvailable) -> void
+Boutquin.Storage.Distributed.Interfaces.Replication.IQuorumReplication<TKey, TValue>.W.get -> int
+Boutquin.Storage.Distributed.Interfaces.Replication.IQuorumReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Replication.IReplicationLog<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Replication.IReplicationLog<TKey, TValue>.AppendAsync(TKey key, TValue value, long sequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Replication.IReplicationLog<TKey, TValue>.GetEntriesAfterAsync(long afterSequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(TKey Key, TValue Value, long SequenceNumber)>!>!
+Boutquin.Storage.Distributed.Interfaces.Replication.IReplicationLog<TKey, TValue>.GetLatestSequenceNumber() -> long
+Boutquin.Storage.Distributed.Interfaces.Replication.IReplicationLog<TKey, TValue>.TruncateBelowAsync(long watermark, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Interfaces.Replication.ISingleLeaderReplication<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Replication.ISingleLeaderReplication<TKey, TValue>.AddFollower(string! followerId) -> void
+Boutquin.Storage.Distributed.Interfaces.Replication.ISingleLeaderReplication<TKey, TValue>.GetReplicationLag() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Distributed.Interfaces.Replication.ISingleLeaderReplication<TKey, TValue>.ReadAsync(TKey key, string? preferredReplica = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Distributed.Interfaces.Replication.ISingleLeaderReplication<TKey, TValue>.RemoveFollower(string! followerId) -> void
+Boutquin.Storage.Distributed.Interfaces.Replication.ISingleLeaderReplication<TKey, TValue>.SyncFollowerAsync(string! followerId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Interfaces.Replication.ISingleLeaderReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IHotKeyMitigator<TKey>
+Boutquin.Storage.Distributed.Interfaces.Sharding.IHotKeyMitigator<TKey>.GetReadKeys(TKey key, int saltCount) -> System.Collections.Generic.IReadOnlyList<string!>!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IHotKeyMitigator<TKey>.GetWriteKey(TKey key, int saltCount, ulong requestHash) -> string!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IRebalancer
+Boutquin.Storage.Distributed.Interfaces.Sharding.IRebalancer.CreatePlan(Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot! snapshot) -> Boutquin.Storage.Distributed.Sharding.RebalancePlan!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardAssignmentStore
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardAssignmentStore.LoadAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot?>!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardAssignmentStore.TrySaveAsync(Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot! snapshot, long expectedVersion, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardMap
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardMap.ApplyPlanAsync(Boutquin.Storage.Distributed.Sharding.RebalancePlan! plan, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot!>!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardMap.Resolve(string! shardId) -> Boutquin.Storage.Distributed.Sharding.ShardRoute!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardMap.Snapshot.get -> Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardRouter<TKey>
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardRouter<TKey>.Route(TKey key) -> Boutquin.Storage.Distributed.Sharding.ShardRoute!
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardedSecondaryIndex<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardedSecondaryIndex<TKey, TValue>.QueryAsync(string! indexShardId, string! indexTerm, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>!>!>
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardedSecondaryIndex<TKey, TValue>.RemoveAsync(string! indexShardId, string! indexTerm, TKey primaryKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Boutquin.Storage.Distributed.Interfaces.Sharding.IShardedSecondaryIndex<TKey, TValue>.UpsertAsync(string! indexShardId, string! indexTerm, Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>! entry, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Distributed.Interfaces.Simulation.ISimulationClock
+Boutquin.Storage.Distributed.Interfaces.Simulation.ISimulationClock.AdvanceTo(long time, int maxEvents = 100000) -> void
+Boutquin.Storage.Distributed.Interfaces.Simulation.ISimulationClock.Now.get -> long
+Boutquin.Storage.Distributed.Interfaces.Simulation.ISimulationClock.Schedule(long delay, System.Action! callback) -> void
+Boutquin.Storage.Distributed.Interfaces.Sync.IConflictResolver<TChange, TState>
+Boutquin.Storage.Distributed.Interfaces.Sync.IConflictResolver<TChange, TState>.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>! changes) -> TState
+Boutquin.Storage.Distributed.Interfaces.Sync.IDeviceReplicaIdProvider
+Boutquin.Storage.Distributed.Interfaces.Sync.IDeviceReplicaIdProvider.GetReplicaIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncEngine<TChange, TState>
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncEngine<TChange, TState>.MaterializeAsync(Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>! replica, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TState>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncEngine<TChange, TState>.SynchronizeAsync(Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>! left, Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>! right, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.SyncSession!>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>.AppendLocalAsync(TChange change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>.ApplyAsync(Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>! changeSet, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>.LoadCheckpointAsync(string! peerReplicaId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.SyncCheckpoint!>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>.ReadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>!>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>.ReadChangesAsync(Boutquin.Storage.Distributed.Sync.SyncCheckpoint! checkpoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>!>!
+Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>.ReplicaId.get -> string!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIdempotencyStore
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIdempotencyStore.ExecuteAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, string! intent, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!, Boutquin.Storage.Distributed.Transactions.MessageMutation!>! handler, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IInboxDedupStore
+Boutquin.Storage.Distributed.Interfaces.Transactions.IInboxDedupStore.ProcessAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, string! intent, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!, Boutquin.Storage.Distributed.Transactions.MessageMutation!>! handler, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIsolationComparisonStore<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIsolationComparisonStore<TKey, TValue>.AbortAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIsolationComparisonStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIsolationComparisonStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIsolationComparisonStore<TKey, TValue>.DeleteAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIsolationComparisonStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue? Value, bool Found)>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IIsolationComparisonStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.DeleteAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.MinActiveTransactionId.get -> long
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.PruneBelowAsync(long watermark, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.IMvccStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>.MinActiveCommitTimestamp.get -> long
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>.PruneCommittedBelowAsync(long watermark, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ISnapshotIsolationStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalMessageOutbox
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalMessageOutbox.AcknowledgeAsync(Boutquin.Storage.Distributed.Transactions.RequestId messageId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalMessageOutbox.CommitAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, string! intent, Boutquin.Storage.Distributed.Transactions.MessageMutation! mutation, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalMessageOutbox.PendingMessagesAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Transactions.OutboxMessage!>!>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource.AbortAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.AbortResult>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource.CommitAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.CommitResult>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource.PrepareAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Collections.Generic.IReadOnlyDictionary<string!, string?>! writes, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.PrepareResult>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource.ResourceId.get -> string!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITwoPhaseCommitCoordinator
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITwoPhaseCommitCoordinator.ExecuteAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Transactions.TransactionIntent!>! plan, System.Func<Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource!, System.Threading.CancellationToken, System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource!>!>? reopen = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.CommitResult>!
+Boutquin.Storage.Distributed.Interfaces.Transactions.ITwoPhaseCommitCoordinator.RecoverAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Merkle.MerkleTree
+Boutquin.Storage.Distributed.Merkle.MerkleTree.Build(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> void
+Boutquin.Storage.Distributed.Merkle.MerkleTree.GetProof(int leafIndex) -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+Boutquin.Storage.Distributed.Merkle.MerkleTree.MerkleTree() -> void
+Boutquin.Storage.Distributed.Merkle.MerkleTree.RootHash.get -> byte[]!
+Boutquin.Storage.Distributed.Merkle.MerkleTree.Verify(System.Collections.Generic.IReadOnlyList<byte[]!>! dataBlocks) -> bool
+Boutquin.Storage.Distributed.Partitioning.ConsistentHashRing<TNode>
+Boutquin.Storage.Distributed.Partitioning.ConsistentHashRing<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Distributed.Partitioning.ConsistentHashRing<TNode>.ConsistentHashRing(int virtualNodeCount = 150, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm? hashAlgorithm = null) -> void
+Boutquin.Storage.Distributed.Partitioning.ConsistentHashRing<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Distributed.Partitioning.ConsistentHashRing<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Distributed.Partitioning.ConsistentHashRing<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Distributed.Partitioning.HashPartitioner<TKey>
+Boutquin.Storage.Distributed.Partitioning.HashPartitioner<TKey>.GetPartition(TKey key) -> int
+Boutquin.Storage.Distributed.Partitioning.HashPartitioner<TKey>.HashPartitioner(int partitionCount, Boutquin.Storage.Domain.Interfaces.IHashAlgorithm? hashAlgorithm = null) -> void
+Boutquin.Storage.Distributed.Partitioning.HashPartitioner<TKey>.PartitionCount.get -> int
+Boutquin.Storage.Distributed.Partitioning.JumpConsistentHash
+Boutquin.Storage.Distributed.Partitioning.RangePartitioner<TKey>
+Boutquin.Storage.Distributed.Partitioning.RangePartitioner<TKey>.GetBoundaries() -> System.Collections.Generic.IReadOnlyList<TKey>!
+Boutquin.Storage.Distributed.Partitioning.RangePartitioner<TKey>.GetPartition(TKey key) -> int
+Boutquin.Storage.Distributed.Partitioning.RangePartitioner<TKey>.GetPartitionRange(TKey startKey, TKey endKey) -> (int StartPartition, int EndPartition)
+Boutquin.Storage.Distributed.Partitioning.RangePartitioner<TKey>.PartitionCount.get -> int
+Boutquin.Storage.Distributed.Partitioning.RangePartitioner<TKey>.RangePartitioner(System.Collections.Generic.IReadOnlyList<TKey>! boundaries) -> void
+Boutquin.Storage.Distributed.Partitioning.RendezvousHash<TNode>
+Boutquin.Storage.Distributed.Partitioning.RendezvousHash<TNode>.AddNode(TNode node) -> void
+Boutquin.Storage.Distributed.Partitioning.RendezvousHash<TNode>.GetNode(string! key) -> TNode
+Boutquin.Storage.Distributed.Partitioning.RendezvousHash<TNode>.GetNodes(string! key, int count) -> System.Collections.Generic.IReadOnlyList<TNode>!
+Boutquin.Storage.Distributed.Partitioning.RendezvousHash<TNode>.RemoveNode(TNode node) -> void
+Boutquin.Storage.Distributed.Partitioning.RendezvousHash<TNode>.RendezvousHash(Boutquin.Storage.Domain.Interfaces.IHashAlgorithm? hashAlgorithm = null) -> void
+Boutquin.Storage.Distributed.Replication.Exceptions.FollowerTooFarBehindException
+Boutquin.Storage.Distributed.Replication.Exceptions.FollowerTooFarBehindException.FollowerTooFarBehindException(string! message, long requestedAfterSequenceNumber, long truncationWatermark) -> void
+Boutquin.Storage.Distributed.Replication.Exceptions.FollowerTooFarBehindException.RequestedAfterSequenceNumber.get -> long
+Boutquin.Storage.Distributed.Replication.Exceptions.FollowerTooFarBehindException.TruncationWatermark.get -> long
+Boutquin.Storage.Distributed.Replication.Exceptions.QuorumNotMetException
+Boutquin.Storage.Distributed.Replication.Exceptions.QuorumNotMetException.AvailableReplicas.get -> int
+Boutquin.Storage.Distributed.Replication.Exceptions.QuorumNotMetException.Operation.get -> string!
+Boutquin.Storage.Distributed.Replication.Exceptions.QuorumNotMetException.QuorumNotMetException(string! operation, int availableReplicas, int requiredQuorum) -> void
+Boutquin.Storage.Distributed.Replication.Exceptions.QuorumNotMetException.RequiredQuorum.get -> int
+Boutquin.Storage.Distributed.Replication.Exceptions.SessionConsistencyException
+Boutquin.Storage.Distributed.Replication.Exceptions.SessionConsistencyException.SessionConsistencyException() -> void
+Boutquin.Storage.Distributed.Replication.LastWriteWinsResolver<T>
+Boutquin.Storage.Distributed.Replication.LastWriteWinsResolver<T>.LastWriteWinsResolver() -> void
+Boutquin.Storage.Distributed.Replication.LastWriteWinsResolver<T>.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>!>! versions) -> System.Collections.Generic.IReadOnlyList<T>!
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.Handoff() -> int
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.LeaderlessReplicaSet(System.Collections.Generic.IEnumerable<string!>! homes, System.Collections.Generic.IEnumerable<string!>! spares, Boutquin.Storage.Distributed.Interfaces.Replication.IConflictResolver<TValue>! resolver) -> void
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.PendingHintCount.get -> int
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.Read(TKey key, Boutquin.Storage.Distributed.Replication.ReplicationConsistency consistency, bool sloppy = false, Boutquin.Storage.Distributed.Replication.SessionToken? session = null) -> Boutquin.Storage.Distributed.Replication.ReplicationRead<TValue>!
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.ReadReplica(string! replica, TKey key, Boutquin.Storage.Distributed.Replication.SessionToken? session = null) -> Boutquin.Storage.Distributed.Replication.ReplicationRead<TValue>!
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.Repair(string! first, string! second) -> int
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.SetAvailability(string! replica, bool available) -> void
+Boutquin.Storage.Distributed.Replication.LeaderlessReplicaSet<TKey, TValue>.Write(TKey key, TValue value, Boutquin.Storage.Distributed.Replication.ReplicationConsistency consistency, bool sloppy = false, Boutquin.Storage.Distributed.Replication.SessionToken? session = null) -> Boutquin.Storage.Distributed.Replication.SessionToken!
+Boutquin.Storage.Distributed.Replication.MergeFunctionResolver<T>
+Boutquin.Storage.Distributed.Replication.MergeFunctionResolver<T>.MergeFunctionResolver(System.Func<System.Collections.Generic.IReadOnlyList<T>!, T>! merge) -> void
+Boutquin.Storage.Distributed.Replication.MergeFunctionResolver<T>.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>!>! versions) -> System.Collections.Generic.IReadOnlyList<T>!
+Boutquin.Storage.Distributed.Replication.MultiLeaderReplicaSet<TKey, TValue>
+Boutquin.Storage.Distributed.Replication.MultiLeaderReplicaSet<TKey, TValue>.Capture(string! replica) -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Replication.ReplicationOperation<TKey, TValue>!>!
+Boutquin.Storage.Distributed.Replication.MultiLeaderReplicaSet<TKey, TValue>.Deliver(string! replica, Boutquin.Storage.Distributed.Replication.ReplicationOperation<TKey, TValue>! operation) -> void
+Boutquin.Storage.Distributed.Replication.MultiLeaderReplicaSet<TKey, TValue>.MultiLeaderReplicaSet(System.Collections.Generic.IEnumerable<string!>! replicas, Boutquin.Storage.Distributed.Interfaces.Replication.IConflictResolver<TValue>! resolver) -> void
+Boutquin.Storage.Distributed.Replication.MultiLeaderReplicaSet<TKey, TValue>.Read(string! replica, TKey key, Boutquin.Storage.Distributed.Replication.SessionToken? session = null) -> Boutquin.Storage.Distributed.Replication.ReplicationRead<TValue>!
+Boutquin.Storage.Distributed.Replication.MultiLeaderReplicaSet<TKey, TValue>.Write(string! replica, TKey key, TValue value, Boutquin.Storage.Distributed.Replication.SessionToken? session = null) -> Boutquin.Storage.Distributed.Replication.SessionToken!
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.N.get -> int
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.QuorumReplication(int n, int w, int r) -> void
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.R.get -> int
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.ReadAsync(TKey key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found, long Version)>!
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.SetReplicaAvailability(string! replicaId, bool isAvailable) -> void
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.W.get -> int
+Boutquin.Storage.Distributed.Replication.QuorumReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Replication.ReplicationConsistency
+Boutquin.Storage.Distributed.Replication.ReplicationConsistency.All = 2 -> Boutquin.Storage.Distributed.Replication.ReplicationConsistency
+Boutquin.Storage.Distributed.Replication.ReplicationConsistency.One = 0 -> Boutquin.Storage.Distributed.Replication.ReplicationConsistency
+Boutquin.Storage.Distributed.Replication.ReplicationConsistency.Quorum = 1 -> Boutquin.Storage.Distributed.Replication.ReplicationConsistency
+Boutquin.Storage.Distributed.Replication.ReplicationLog<TKey, TValue>
+Boutquin.Storage.Distributed.Replication.ReplicationLog<TKey, TValue>.AppendAsync(TKey key, TValue value, long sequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Replication.ReplicationLog<TKey, TValue>.GetEntriesAfterAsync(long afterSequenceNumber, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<(TKey Key, TValue Value, long SequenceNumber)>!>!
+Boutquin.Storage.Distributed.Replication.ReplicationLog<TKey, TValue>.GetLatestSequenceNumber() -> long
+Boutquin.Storage.Distributed.Replication.ReplicationLog<TKey, TValue>.ReplicationLog() -> void
+Boutquin.Storage.Distributed.Replication.ReplicationLog<TKey, TValue>.TruncateBelowAsync(long watermark, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Replication.ReplicationLog<TKey, TValue>.TruncationWatermark.get -> long
+Boutquin.Storage.Distributed.Replication.ReplicationOperation<TKey, TValue>
+Boutquin.Storage.Distributed.Replication.ReplicationOperation<TKey, TValue>.Key.get -> TKey
+Boutquin.Storage.Distributed.Replication.ReplicationOperation<TKey, TValue>.Version.get -> Boutquin.Storage.Distributed.Replication.ReplicationVersion<TValue>!
+Boutquin.Storage.Distributed.Replication.ReplicationRead<T>
+Boutquin.Storage.Distributed.Replication.ReplicationRead<T>.Session.get -> Boutquin.Storage.Distributed.Replication.SessionToken!
+Boutquin.Storage.Distributed.Replication.ReplicationRead<T>.Values.get -> System.Collections.Generic.IReadOnlyList<T>!
+Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>
+Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>.Context.get -> Boutquin.Storage.Distributed.Replication.SessionToken!
+Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>.LamportTimestamp.get -> long
+Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>.Origin.get -> string!
+Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>.Sequence.get -> long
+Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>.Value.get -> T
+Boutquin.Storage.Distributed.Replication.SessionToken
+Boutquin.Storage.Distributed.Replication.SessionToken.Counters.get -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Distributed.Replication.SessionToken.Covers(Boutquin.Storage.Distributed.Replication.SessionToken! other) -> bool
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.AddFollower(string! followerId) -> void
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.GetReplicationLag() -> System.Collections.Generic.IReadOnlyDictionary<string!, long>!
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.ReadAsync(TKey key, string? preferredReplica = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.RemoveFollower(string! followerId) -> void
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.SingleLeaderReplication() -> void
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.SyncFollowerAsync(string! followerId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<long>!
+Boutquin.Storage.Distributed.Replication.SingleLeaderReplication<TKey, TValue>.WriteAsync(TKey key, TValue value, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Replication.VersionVectorResolver<T>
+Boutquin.Storage.Distributed.Replication.VersionVectorResolver<T>.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Replication.ReplicationVersion<T>!>! versions) -> System.Collections.Generic.IReadOnlyList<T>!
+Boutquin.Storage.Distributed.Replication.VersionVectorResolver<T>.VersionVectorResolver() -> void
+Boutquin.Storage.Distributed.Sharding.AutomaticRebalancer
+Boutquin.Storage.Distributed.Sharding.AutomaticRebalancer.AutomaticRebalancer(System.Collections.Generic.IReadOnlyCollection<string!>! targetNodeIds) -> void
+Boutquin.Storage.Distributed.Sharding.AutomaticRebalancer.CreatePlan(Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot! snapshot) -> Boutquin.Storage.Distributed.Sharding.RebalancePlan!
+Boutquin.Storage.Distributed.Sharding.GlobalSecondaryIndexRouter<TKey, TValue>
+Boutquin.Storage.Distributed.Sharding.GlobalSecondaryIndexRouter<TKey, TValue>.GetIndexShardId(string! indexTerm) -> string!
+Boutquin.Storage.Distributed.Sharding.GlobalSecondaryIndexRouter<TKey, TValue>.GlobalSecondaryIndexRouter(Boutquin.Storage.Distributed.Interfaces.Sharding.IShardedSecondaryIndex<TKey, TValue>! index, System.Collections.Generic.IReadOnlyList<string!>! globalIndexShardIds, Boutquin.Storage.Distributed.Interfaces.Partitioning.IPartitioner<string!>? termPartitioner = null) -> void
+Boutquin.Storage.Distributed.Sharding.GlobalSecondaryIndexRouter<TKey, TValue>.QueryAsync(string! indexTerm, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>!>!>
+Boutquin.Storage.Distributed.Sharding.GlobalSecondaryIndexRouter<TKey, TValue>.RemoveAsync(string! indexTerm, TKey primaryKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Boutquin.Storage.Distributed.Sharding.GlobalSecondaryIndexRouter<TKey, TValue>.ReplaceAsync(string! previousIndexTerm, string! indexTerm, Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>! entry, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Distributed.Sharding.GlobalSecondaryIndexRouter<TKey, TValue>.UpsertAsync(string! indexTerm, Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>! entry, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Distributed.Sharding.InMemoryShardedSecondaryIndex<TKey, TValue>
+Boutquin.Storage.Distributed.Sharding.InMemoryShardedSecondaryIndex<TKey, TValue>.InMemoryShardedSecondaryIndex() -> void
+Boutquin.Storage.Distributed.Sharding.InMemoryShardedSecondaryIndex<TKey, TValue>.QueryAsync(string! indexShardId, string! indexTerm, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>!>!>
+Boutquin.Storage.Distributed.Sharding.InMemoryShardedSecondaryIndex<TKey, TValue>.RemoveAsync(string! indexShardId, string! indexTerm, TKey primaryKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Boutquin.Storage.Distributed.Sharding.InMemoryShardedSecondaryIndex<TKey, TValue>.UpsertAsync(string! indexShardId, string! indexTerm, Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>! entry, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Distributed.Sharding.JsonFileShardAssignmentStore
+Boutquin.Storage.Distributed.Sharding.JsonFileShardAssignmentStore.JsonFileShardAssignmentStore(string! path) -> void
+Boutquin.Storage.Distributed.Sharding.JsonFileShardAssignmentStore.LoadAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot?>!
+Boutquin.Storage.Distributed.Sharding.JsonFileShardAssignmentStore.Path.get -> string!
+Boutquin.Storage.Distributed.Sharding.JsonFileShardAssignmentStore.TrySaveAsync(Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot! snapshot, long expectedVersion, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Sharding.LocalSecondaryIndexRouter<TKey, TValue>
+Boutquin.Storage.Distributed.Sharding.LocalSecondaryIndexRouter<TKey, TValue>.LocalSecondaryIndexRouter(Boutquin.Storage.Distributed.Interfaces.Sharding.IShardedSecondaryIndex<TKey, TValue>! index) -> void
+Boutquin.Storage.Distributed.Sharding.LocalSecondaryIndexRouter<TKey, TValue>.QueryAsync(string! indexTerm, System.Collections.Generic.IReadOnlyCollection<string!>! shardIds, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>!>!>!
+Boutquin.Storage.Distributed.Sharding.LocalSecondaryIndexRouter<TKey, TValue>.RemoveAsync(string! sourceShardId, string! indexTerm, TKey primaryKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
+Boutquin.Storage.Distributed.Sharding.LocalSecondaryIndexRouter<TKey, TValue>.ReplaceAsync(string! previousIndexTerm, string! indexTerm, Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>! entry, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Distributed.Sharding.LocalSecondaryIndexRouter<TKey, TValue>.UpsertAsync(string! indexTerm, Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>! entry, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Boutquin.Storage.Distributed.Sharding.ManualRebalancer
+Boutquin.Storage.Distributed.Sharding.ManualRebalancer.CreatePlan(Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot! snapshot) -> Boutquin.Storage.Distributed.Sharding.RebalancePlan!
+Boutquin.Storage.Distributed.Sharding.ManualRebalancer.ManualRebalancer(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardMove!>! requestedMoves) -> void
+Boutquin.Storage.Distributed.Sharding.RebalancePlan
+Boutquin.Storage.Distributed.Sharding.RebalancePlan.BaseVersion.get -> long
+Boutquin.Storage.Distributed.Sharding.RebalancePlan.Moves.get -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardMove!>!
+Boutquin.Storage.Distributed.Sharding.RebalancePlan.RebalancePlan(long baseVersion, System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardMove!>! moves) -> void
+Boutquin.Storage.Distributed.Sharding.SaltedHotKeyStrategy<TKey>
+Boutquin.Storage.Distributed.Sharding.SaltedHotKeyStrategy<TKey>.GetReadKeys(TKey key, int saltCount) -> System.Collections.Generic.IReadOnlyList<string!>!
+Boutquin.Storage.Distributed.Sharding.SaltedHotKeyStrategy<TKey>.GetWriteKey(TKey key, int saltCount, ulong requestHash) -> string!
+Boutquin.Storage.Distributed.Sharding.SaltedHotKeyStrategy<TKey>.SaltedHotKeyStrategy() -> void
+Boutquin.Storage.Distributed.Sharding.ShardAssignment
+Boutquin.Storage.Distributed.Sharding.ShardAssignment.NodeId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardAssignment.ShardAssignment(string! shardId, string! nodeId) -> void
+Boutquin.Storage.Distributed.Sharding.ShardAssignment.ShardId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardMap
+Boutquin.Storage.Distributed.Sharding.ShardMap.ApplyPlanAsync(Boutquin.Storage.Distributed.Sharding.RebalancePlan! plan, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot!>!
+Boutquin.Storage.Distributed.Sharding.ShardMap.Resolve(string! shardId) -> Boutquin.Storage.Distributed.Sharding.ShardRoute!
+Boutquin.Storage.Distributed.Sharding.ShardMap.ShardMap(Boutquin.Storage.Distributed.Interfaces.Sharding.IShardAssignmentStore! store, Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot! initialSnapshot) -> void
+Boutquin.Storage.Distributed.Sharding.ShardMap.Snapshot.get -> Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot!
+Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot
+Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot.Assignments.get -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardAssignment!>!
+Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot.ShardMapSnapshot(long version, System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sharding.ShardAssignment!>! assignments) -> void
+Boutquin.Storage.Distributed.Sharding.ShardMapSnapshot.Version.get -> long
+Boutquin.Storage.Distributed.Sharding.ShardMove
+Boutquin.Storage.Distributed.Sharding.ShardMove.DestinationNodeId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardMove.ShardId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardMove.ShardMove(string! shardId, string! sourceNodeId, string! destinationNodeId) -> void
+Boutquin.Storage.Distributed.Sharding.ShardMove.SourceNodeId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardRoute
+Boutquin.Storage.Distributed.Sharding.ShardRoute.MapVersion.get -> long
+Boutquin.Storage.Distributed.Sharding.ShardRoute.NodeId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardRoute.ShardId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardRoute.ShardRoute(string! shardId, string! nodeId, long mapVersion) -> void
+Boutquin.Storage.Distributed.Sharding.ShardRouter<TKey>
+Boutquin.Storage.Distributed.Sharding.ShardRouter<TKey>.Route(TKey key) -> Boutquin.Storage.Distributed.Sharding.ShardRoute!
+Boutquin.Storage.Distributed.Sharding.ShardRouter<TKey>.ShardRouter(Boutquin.Storage.Distributed.Interfaces.Partitioning.IPartitioner<TKey>! partitioner, Boutquin.Storage.Distributed.Interfaces.Sharding.IShardMap! shardMap, System.Func<int, string!>? shardIdFactory = null) -> void
+Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>
+Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>.PrimaryKey.get -> TKey
+Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>.ShardedIndexEntry(string! sourceShardId, TKey primaryKey, TValue value) -> void
+Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>.SourceShardId.get -> string!
+Boutquin.Storage.Distributed.Sharding.ShardedIndexEntry<TKey, TValue>.Value.get -> TValue
+Boutquin.Storage.Distributed.Simulation.DeterministicSimulationClock
+Boutquin.Storage.Distributed.Simulation.DeterministicSimulationClock.AdvanceTo(long time, int maxEvents = 100000) -> void
+Boutquin.Storage.Distributed.Simulation.DeterministicSimulationClock.DeterministicSimulationClock() -> void
+Boutquin.Storage.Distributed.Simulation.DeterministicSimulationClock.Now.get -> long
+Boutquin.Storage.Distributed.Simulation.DeterministicSimulationClock.Schedule(long delay, System.Action! callback) -> void
+Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy
+Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.<Clone>$() -> Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy!
+Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.DropProbability.get -> double
+Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.DuplicateProbability.get -> double
+Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.Equals(Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy? other) -> bool
+Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.FaultInjectionPolicy(double dropProbability = 0, double duplicateProbability = 0, int maximumDelay = 0) -> void
+Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.MaximumDelay.get -> int
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.<Clone>$() -> Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>!
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Completed.get -> bool
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Completed.init -> void
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Deconstruct(out long Id, out TInput Input, out TOutput? Output, out long Start, out long? End, out bool Completed) -> void
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.End.get -> long?
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.End.init -> void
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Equals(Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>? other) -> bool
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.HistoryOperation(long Id, TInput Input, TOutput? Output, long Start, long? End, bool Completed) -> void
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Id.get -> long
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Id.init -> void
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Input.get -> TInput
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Input.init -> void
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Output.get -> TOutput?
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Output.init -> void
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Start.get -> long
+Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Start.init -> void
+Boutquin.Storage.Distributed.Simulation.HistoryRecorder<TInput, TOutput>
+Boutquin.Storage.Distributed.Simulation.HistoryRecorder<TInput, TOutput>.Complete(long id, TOutput output) -> void
+Boutquin.Storage.Distributed.Simulation.HistoryRecorder<TInput, TOutput>.HistoryRecorder() -> void
+Boutquin.Storage.Distributed.Simulation.HistoryRecorder<TInput, TOutput>.Invoke(TInput input) -> long
+Boutquin.Storage.Distributed.Simulation.HistoryRecorder<TInput, TOutput>.Reject(long id) -> void
+Boutquin.Storage.Distributed.Simulation.HistoryRecorder<TInput, TOutput>.Snapshot() -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>!>!
+Boutquin.Storage.Distributed.Simulation.InvariantChecker
+Boutquin.Storage.Distributed.Simulation.InvariantChecker.Add(string! name, System.Func<bool>! predicate) -> void
+Boutquin.Storage.Distributed.Simulation.InvariantChecker.Check() -> void
+Boutquin.Storage.Distributed.Simulation.InvariantChecker.InvariantChecker() -> void
+Boutquin.Storage.Distributed.Simulation.JepsenLiteHarness<TInput, TOutput>
+Boutquin.Storage.Distributed.Simulation.JepsenLiteHarness<TInput, TOutput>.History.get -> Boutquin.Storage.Distributed.Simulation.HistoryRecorder<TInput, TOutput>!
+Boutquin.Storage.Distributed.Simulation.JepsenLiteHarness<TInput, TOutput>.JepsenLiteHarness(Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime! runtime) -> void
+Boutquin.Storage.Distributed.Simulation.JepsenLiteHarness<TInput, TOutput>.Schedule(string! client, long delay, TInput input, System.Action<TInput, System.Action<TOutput>!>! operation) -> void
+Boutquin.Storage.Distributed.Simulation.LinearizabilityChecker
+Boutquin.Storage.Distributed.Simulation.LinearizabilityResult
+Boutquin.Storage.Distributed.Simulation.LinearizabilityResult.Inconclusive = 2 -> Boutquin.Storage.Distributed.Simulation.LinearizabilityResult
+Boutquin.Storage.Distributed.Simulation.LinearizabilityResult.Invalid = 1 -> Boutquin.Storage.Distributed.Simulation.LinearizabilityResult
+Boutquin.Storage.Distributed.Simulation.LinearizabilityResult.Valid = 0 -> Boutquin.Storage.Distributed.Simulation.LinearizabilityResult
+Boutquin.Storage.Distributed.Simulation.PropertyTestGenerators
+Boutquin.Storage.Distributed.Simulation.PropertyTestGenerators.Next(int exclusiveMaximum) -> int
+Boutquin.Storage.Distributed.Simulation.PropertyTestGenerators.NextUInt32() -> uint
+Boutquin.Storage.Distributed.Simulation.PropertyTestGenerators.PropertyTestGenerators(uint seed) -> void
+Boutquin.Storage.Distributed.Simulation.RaftSimulation<TCommand>
+Boutquin.Storage.Distributed.Simulation.RaftSimulation<TCommand>.AddNode(Boutquin.Storage.Distributed.Consensus.RaftNode<TCommand>! node) -> void
+Boutquin.Storage.Distributed.Simulation.RaftSimulation<TCommand>.Elect(string! nodeId, long delay = 0) -> void
+Boutquin.Storage.Distributed.Simulation.RaftSimulation<TCommand>.Pump() -> void
+Boutquin.Storage.Distributed.Simulation.RaftSimulation<TCommand>.RaftSimulation(Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime! runtime) -> void
+Boutquin.Storage.Distributed.Simulation.RaftSimulation<TCommand>.RaftSimulation(Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime! runtime, System.Collections.Generic.IEnumerable<string!>! restoredMemberIds) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNetwork
+Boutquin.Storage.Distributed.Simulation.SimulatedNetwork.Policy.get -> Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy!
+Boutquin.Storage.Distributed.Simulation.SimulatedNetwork.Policy.set -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNetwork.Send(string! source, string! target, object! message) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNetwork.SetPartition(string! first, string! second, bool partitioned) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.AddNode(string! nodeId, System.Action<object!>! receive) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.Clock.get -> Boutquin.Storage.Distributed.Simulation.DeterministicSimulationClock!
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.Invariants.get -> Boutquin.Storage.Distributed.Simulation.InvariantChecker!
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.Network.get -> Boutquin.Storage.Distributed.Simulation.SimulatedNetwork!
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.Pause(string! nodeId) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.Resume(string! nodeId) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.RunUntil(long time, int maxEvents = 100000) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.Schedule(string! nodeId, long delay, System.Action! action) -> void
+Boutquin.Storage.Distributed.Simulation.SimulatedNodeRuntime.SimulatedNodeRuntime(uint seed, Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy? policy = null) -> void
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.<Clone>$() -> Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>!
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.ChangeSet(string! SourceReplicaId, long FromPosition, long ToPosition, System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>! Changes) -> void
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.Changes.get -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>!
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.Changes.init -> void
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.Deconstruct(out string! SourceReplicaId, out long FromPosition, out long ToPosition, out System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>! Changes) -> void
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.Equals(Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>? other) -> bool
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.FromPosition.get -> long
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.FromPosition.init -> void
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.SourceReplicaId.get -> string!
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.SourceReplicaId.init -> void
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.ToPosition.get -> long
+Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.ToPosition.init -> void
+Boutquin.Storage.Distributed.Sync.FileDeviceReplicaIdProvider
+Boutquin.Storage.Distributed.Sync.FileDeviceReplicaIdProvider.FileDeviceReplicaIdProvider(string! path) -> void
+Boutquin.Storage.Distributed.Sync.FileDeviceReplicaIdProvider.GetReplicaIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Sync.FixedDeviceReplicaIdProvider
+Boutquin.Storage.Distributed.Sync.FixedDeviceReplicaIdProvider.FixedDeviceReplicaIdProvider(string! replicaId) -> void
+Boutquin.Storage.Distributed.Sync.FixedDeviceReplicaIdProvider.GetReplicaIdAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Sync.GCounterSyncAdapter
+Boutquin.Storage.Distributed.Sync.GCounterSyncAdapter.GCounterSyncAdapter() -> void
+Boutquin.Storage.Distributed.Sync.GCounterSyncAdapter.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<Boutquin.Storage.Distributed.DistributedSystems.GCounter!>!>! changes) -> long
+Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>
+Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>.AppendLocalAsync(TChange change, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>!
+Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>.ApplyAsync(Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>! changeSet, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>.LoadCheckpointAsync(string! peerReplicaId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.SyncCheckpoint!>!
+Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>.ReadAllAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!>!>!
+Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>.ReadChangesAsync(Boutquin.Storage.Distributed.Sync.SyncCheckpoint! checkpoint, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>!>!
+Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>.ReplicaId.get -> string!
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.<Clone>$() -> Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>!
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.Deconstruct(out TKey Key, out TValue? Value, out long LogicalTimestamp, out bool IsDeleted) -> void
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.Equals(Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>? other) -> bool
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.IsDeleted.get -> bool
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.IsDeleted.init -> void
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.Key.get -> TKey
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.Key.init -> void
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.KeyValueSyncChange(TKey Key, TValue? Value, long LogicalTimestamp, bool IsDeleted) -> void
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.LogicalTimestamp.get -> long
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.LogicalTimestamp.init -> void
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.Value.get -> TValue?
+Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.Value.init -> void
+Boutquin.Storage.Distributed.Sync.LastWriterWinsConflictResolver<TKey, TValue>
+Boutquin.Storage.Distributed.Sync.LastWriterWinsConflictResolver<TKey, TValue>.LastWriterWinsConflictResolver() -> void
+Boutquin.Storage.Distributed.Sync.LastWriterWinsConflictResolver<TKey, TValue>.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>!>!>! changes) -> System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>!
+Boutquin.Storage.Distributed.Sync.ORSetSyncAdapter<T>
+Boutquin.Storage.Distributed.Sync.ORSetSyncAdapter<T>.ORSetSyncAdapter() -> void
+Boutquin.Storage.Distributed.Sync.ORSetSyncAdapter<T>.Resolve(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Sync.SyncChange<Boutquin.Storage.Distributed.DistributedSystems.ORSet<T>!>!>! changes) -> System.Collections.Generic.IReadOnlySet<T>!
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.<Clone>$() -> Boutquin.Storage.Distributed.Sync.SyncChange<TChange>!
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.ChangeId.get -> string!
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.ChangeId.init -> void
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.Deconstruct(out string! ChangeId, out string! OriginReplicaId, out long OriginSequence, out TChange Value) -> void
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.Equals(Boutquin.Storage.Distributed.Sync.SyncChange<TChange>? other) -> bool
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.OriginReplicaId.get -> string!
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.OriginReplicaId.init -> void
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.OriginSequence.get -> long
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.OriginSequence.init -> void
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.SyncChange(string! ChangeId, string! OriginReplicaId, long OriginSequence, TChange Value) -> void
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.Value.get -> TChange
+Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.Value.init -> void
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.<Clone>$() -> Boutquin.Storage.Distributed.Sync.SyncCheckpoint!
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.Deconstruct(out string! ReplicaId, out long Position) -> void
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.Equals(Boutquin.Storage.Distributed.Sync.SyncCheckpoint? other) -> bool
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.Position.get -> long
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.Position.init -> void
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.ReplicaId.get -> string!
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.ReplicaId.init -> void
+Boutquin.Storage.Distributed.Sync.SyncCheckpoint.SyncCheckpoint(string! ReplicaId, long Position) -> void
+Boutquin.Storage.Distributed.Sync.SyncEngine<TChange, TState>
+Boutquin.Storage.Distributed.Sync.SyncEngine<TChange, TState>.MaterializeAsync(Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>! replica, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TState>!
+Boutquin.Storage.Distributed.Sync.SyncEngine<TChange, TState>.SyncEngine(Boutquin.Storage.Distributed.Interfaces.Sync.IConflictResolver<TChange, TState>! resolver) -> void
+Boutquin.Storage.Distributed.Sync.SyncEngine<TChange, TState>.SynchronizeAsync(Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>! left, Boutquin.Storage.Distributed.Interfaces.Sync.ISyncReplica<TChange>! right, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.SyncSession!>!
+Boutquin.Storage.Distributed.Sync.SyncSession
+Boutquin.Storage.Distributed.Sync.SyncSession.<Clone>$() -> Boutquin.Storage.Distributed.Sync.SyncSession!
+Boutquin.Storage.Distributed.Sync.SyncSession.AppliedToLeft.get -> int
+Boutquin.Storage.Distributed.Sync.SyncSession.AppliedToLeft.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.AppliedToRight.get -> int
+Boutquin.Storage.Distributed.Sync.SyncSession.AppliedToRight.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.Deconstruct(out string! LeftReplicaId, out string! RightReplicaId, out long LeftReadFrom, out long RightReadFrom, out int LeftSent, out int RightSent, out int AppliedToLeft, out int AppliedToRight, out Boutquin.Storage.Distributed.Sync.SyncCheckpoint! LeftCheckpointForRight, out Boutquin.Storage.Distributed.Sync.SyncCheckpoint! RightCheckpointForLeft) -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.Equals(Boutquin.Storage.Distributed.Sync.SyncSession? other) -> bool
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftCheckpointForRight.get -> Boutquin.Storage.Distributed.Sync.SyncCheckpoint!
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftCheckpointForRight.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftReadFrom.get -> long
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftReadFrom.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftReplicaId.get -> string!
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftReplicaId.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftSent.get -> int
+Boutquin.Storage.Distributed.Sync.SyncSession.LeftSent.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.RightCheckpointForLeft.get -> Boutquin.Storage.Distributed.Sync.SyncCheckpoint!
+Boutquin.Storage.Distributed.Sync.SyncSession.RightCheckpointForLeft.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.RightReadFrom.get -> long
+Boutquin.Storage.Distributed.Sync.SyncSession.RightReadFrom.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.RightReplicaId.get -> string!
+Boutquin.Storage.Distributed.Sync.SyncSession.RightReplicaId.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.RightSent.get -> int
+Boutquin.Storage.Distributed.Sync.SyncSession.RightSent.init -> void
+Boutquin.Storage.Distributed.Sync.SyncSession.SyncSession(string! LeftReplicaId, string! RightReplicaId, long LeftReadFrom, long RightReadFrom, int LeftSent, int RightSent, int AppliedToLeft, int AppliedToRight, Boutquin.Storage.Distributed.Sync.SyncCheckpoint! LeftCheckpointForRight, Boutquin.Storage.Distributed.Sync.SyncCheckpoint! RightCheckpointForLeft) -> void
+Boutquin.Storage.Distributed.Transactions.AbortResult
+Boutquin.Storage.Distributed.Transactions.AbortResult.Aborted = 0 -> Boutquin.Storage.Distributed.Transactions.AbortResult
+Boutquin.Storage.Distributed.Transactions.AbortResult.AlreadyCommitted = 1 -> Boutquin.Storage.Distributed.Transactions.AbortResult
+Boutquin.Storage.Distributed.Transactions.CommitResult
+Boutquin.Storage.Distributed.Transactions.CommitResult.Aborted = 1 -> Boutquin.Storage.Distributed.Transactions.CommitResult
+Boutquin.Storage.Distributed.Transactions.CommitResult.Committed = 0 -> Boutquin.Storage.Distributed.Transactions.CommitResult
+Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource
+Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource.AbortAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.AbortResult>!
+Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource.CommitAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.CommitResult>!
+Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource.Dispose() -> void
+Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource.PrepareAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Collections.Generic.IReadOnlyDictionary<string!, string?>! writes, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.PrepareResult>!
+Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource.ReadAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource.ResourceId.get -> string!
+Boutquin.Storage.Distributed.Transactions.MessageMutation
+Boutquin.Storage.Distributed.Transactions.MessageMutation.MessageMutation(System.Collections.Generic.IReadOnlyDictionary<string!, string?>! writes, System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Transactions.OutboxMessage!>! messages, string! result) -> void
+Boutquin.Storage.Distributed.Transactions.MessageMutation.Messages.get -> System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Transactions.OutboxMessage!>!
+Boutquin.Storage.Distributed.Transactions.MessageMutation.Result.get -> string!
+Boutquin.Storage.Distributed.Transactions.MessageMutation.Writes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>!
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.DeleteAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.MinActiveTransactionId.get -> long
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.MvccStore() -> void
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.PruneBelowAsync(long watermark, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Distributed.Transactions.MvccStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.OutboxMessage
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.<Clone>$() -> Boutquin.Storage.Distributed.Transactions.OutboxMessage!
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Deconstruct(out Boutquin.Storage.Distributed.Transactions.RequestId Id, out string! Topic, out string! Payload) -> void
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Equals(Boutquin.Storage.Distributed.Transactions.OutboxMessage? other) -> bool
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Id.get -> Boutquin.Storage.Distributed.Transactions.RequestId
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Id.init -> void
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.OutboxMessage(Boutquin.Storage.Distributed.Transactions.RequestId Id, string! Topic, string! Payload) -> void
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Payload.get -> string!
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Payload.init -> void
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Topic.get -> string!
+Boutquin.Storage.Distributed.Transactions.OutboxMessage.Topic.init -> void
+Boutquin.Storage.Distributed.Transactions.PrepareResult
+Boutquin.Storage.Distributed.Transactions.PrepareResult.Committed = 2 -> Boutquin.Storage.Distributed.Transactions.PrepareResult
+Boutquin.Storage.Distributed.Transactions.PrepareResult.Prepared = 0 -> Boutquin.Storage.Distributed.Transactions.PrepareResult
+Boutquin.Storage.Distributed.Transactions.PrepareResult.Rejected = 1 -> Boutquin.Storage.Distributed.Transactions.PrepareResult
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.AbortAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.DeleteAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue? Value, bool Found)>!
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.ReadCommittedStore() -> void
+Boutquin.Storage.Distributed.Transactions.ReadCommittedStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.RequestId
+Boutquin.Storage.Distributed.Transactions.RequestId.Equals(Boutquin.Storage.Distributed.Transactions.RequestId other) -> bool
+Boutquin.Storage.Distributed.Transactions.RequestId.RequestId() -> void
+Boutquin.Storage.Distributed.Transactions.RequestId.RequestId(string! value) -> void
+Boutquin.Storage.Distributed.Transactions.RequestId.Value.get -> string!
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.AbortTransaction(long transactionId) -> void
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.MinActiveCommitTimestamp.get -> long
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.PruneCommittedBelowAsync(long watermark, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<int>!
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue Value, bool Found)>!
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.SnapshotIsolationStore() -> void
+Boutquin.Storage.Distributed.Transactions.SnapshotIsolationStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.AbortAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.BeginTransaction() -> long
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.CommitAsync(long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.DeleteAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.Dispose() -> void
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.ReadAsync(TKey key, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<(TValue? Value, bool Found)>!
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.StrictTwoPhaseLockingStore() -> void
+Boutquin.Storage.Distributed.Transactions.StrictTwoPhaseLockingStore<TKey, TValue>.WriteAsync(TKey key, TValue value, long transactionId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.TransactionDeadlockException
+Boutquin.Storage.Distributed.Transactions.TransactionDeadlockException.TransactionDeadlockException(long transactionId) -> void
+Boutquin.Storage.Distributed.Transactions.TransactionDeadlockException.TransactionId.get -> long
+Boutquin.Storage.Distributed.Transactions.TransactionDeliveryException
+Boutquin.Storage.Distributed.Transactions.TransactionDeliveryException.Decision.get -> Boutquin.Storage.Distributed.Transactions.CommitResult
+Boutquin.Storage.Distributed.Transactions.TransactionDeliveryException.TransactionId.get -> string!
+Boutquin.Storage.Distributed.Transactions.TransactionDeliveryException.UndeliveredResourceIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Boutquin.Storage.Distributed.Transactions.TransactionIntent
+Boutquin.Storage.Distributed.Transactions.TransactionIntent.ResourceId.get -> string!
+Boutquin.Storage.Distributed.Transactions.TransactionIntent.TransactionIntent(string! resourceId, System.Collections.Generic.IReadOnlyDictionary<string!, string?>! writes) -> void
+Boutquin.Storage.Distributed.Transactions.TransactionIntent.Writes.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string?>!
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.AcknowledgeAsync(Boutquin.Storage.Distributed.Transactions.RequestId messageId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.CommitAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, string! intent, Boutquin.Storage.Distributed.Transactions.MessageMutation! mutation, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.Dispose() -> void
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.ExecuteAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, string! intent, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!, Boutquin.Storage.Distributed.Transactions.MessageMutation!>! handler, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.PendingMessagesAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Transactions.OutboxMessage!>!>!
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.ProcessAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, string! intent, System.Func<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!, Boutquin.Storage.Distributed.Transactions.MessageMutation!>! handler, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string!>!
+Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.ReadAsync(string! key, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<string?>!
+Boutquin.Storage.Distributed.Transactions.TwoPhaseCommitCoordinator
+Boutquin.Storage.Distributed.Transactions.TwoPhaseCommitCoordinator.Dispose() -> void
+Boutquin.Storage.Distributed.Transactions.TwoPhaseCommitCoordinator.ExecuteAsync(Boutquin.Storage.Distributed.Transactions.RequestId id, System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Transactions.TransactionIntent!>! plan, System.Func<Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource!, System.Threading.CancellationToken, System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource!>!>? reopen = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.CommitResult>!
+Boutquin.Storage.Distributed.Transactions.TwoPhaseCommitCoordinator.RecoverAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+override Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.ToString() -> string!
+override Boutquin.Storage.Distributed.Coordination.CoordinationEvent.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Coordination.CoordinationEvent.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Coordination.CoordinationEvent.ToString() -> string!
+override Boutquin.Storage.Distributed.Coordination.CoordinationLease.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Coordination.CoordinationLease.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Coordination.CoordinationLease.ToString() -> string!
+override Boutquin.Storage.Distributed.Coordination.CoordinationRead.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Coordination.CoordinationRead.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Coordination.CoordinationRead.ToString() -> string!
+override Boutquin.Storage.Distributed.Coordination.CoordinationValue.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Coordination.CoordinationValue.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Coordination.CoordinationValue.ToString() -> string!
+override Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.ToString() -> string!
+override Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.ToString() -> string!
+override Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.ToString() -> string!
+override Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.ToString() -> string!
+override Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.ToString() -> string!
+override Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.ToString() -> string!
+override Boutquin.Storage.Distributed.Sync.SyncCheckpoint.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Sync.SyncCheckpoint.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Sync.SyncCheckpoint.ToString() -> string!
+override Boutquin.Storage.Distributed.Sync.SyncSession.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Sync.SyncSession.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Sync.SyncSession.ToString() -> string!
+override Boutquin.Storage.Distributed.Transactions.OutboxMessage.Equals(object? obj) -> bool
+override Boutquin.Storage.Distributed.Transactions.OutboxMessage.GetHashCode() -> int
+override Boutquin.Storage.Distributed.Transactions.OutboxMessage.ToString() -> string!
+override Boutquin.Storage.Distributed.Transactions.RequestId.GetHashCode() -> int
+static Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.operator !=(Boutquin.Storage.Distributed.Coordination.CompareExchangeResult? left, Boutquin.Storage.Distributed.Coordination.CompareExchangeResult? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CompareExchangeResult.operator ==(Boutquin.Storage.Distributed.Coordination.CompareExchangeResult? left, Boutquin.Storage.Distributed.Coordination.CompareExchangeResult? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationEvent.operator !=(Boutquin.Storage.Distributed.Coordination.CoordinationEvent? left, Boutquin.Storage.Distributed.Coordination.CoordinationEvent? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationEvent.operator ==(Boutquin.Storage.Distributed.Coordination.CoordinationEvent? left, Boutquin.Storage.Distributed.Coordination.CoordinationEvent? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationLease.operator !=(Boutquin.Storage.Distributed.Coordination.CoordinationLease? left, Boutquin.Storage.Distributed.Coordination.CoordinationLease? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationLease.operator ==(Boutquin.Storage.Distributed.Coordination.CoordinationLease? left, Boutquin.Storage.Distributed.Coordination.CoordinationLease? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationRead.operator !=(Boutquin.Storage.Distributed.Coordination.CoordinationRead? left, Boutquin.Storage.Distributed.Coordination.CoordinationRead? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationRead.operator ==(Boutquin.Storage.Distributed.Coordination.CoordinationRead? left, Boutquin.Storage.Distributed.Coordination.CoordinationRead? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationValue.operator !=(Boutquin.Storage.Distributed.Coordination.CoordinationValue? left, Boutquin.Storage.Distributed.Coordination.CoordinationValue? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.CoordinationValue.operator ==(Boutquin.Storage.Distributed.Coordination.CoordinationValue? left, Boutquin.Storage.Distributed.Coordination.CoordinationValue? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.operator !=(Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>? left, Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>? right) -> bool
+static Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>.operator ==(Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>? left, Boutquin.Storage.Distributed.Coordination.RegisterValue<TValue>? right) -> bool
+static Boutquin.Storage.Distributed.DistributedSystems.LamportTimestamp.CompareEvents(long timestamp1, string! nodeId1, long timestamp2, string! nodeId2) -> int
+static Boutquin.Storage.Distributed.Merkle.MerkleTree.HashLeaf(byte[]! data) -> byte[]!
+static Boutquin.Storage.Distributed.Merkle.MerkleTree.VerifyProof(byte[]! leafHash, System.Collections.Generic.IReadOnlyList<byte[]!>! proof, byte[]! rootHash, int leafIndex) -> bool
+static Boutquin.Storage.Distributed.Partitioning.JumpConsistentHash.GetBucket(ulong keyHash, int bucketCount) -> int
+static Boutquin.Storage.Distributed.Replication.SessionToken.Empty.get -> Boutquin.Storage.Distributed.Replication.SessionToken!
+static Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.operator !=(Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy? left, Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy? right) -> bool
+static Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy.operator ==(Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy? left, Boutquin.Storage.Distributed.Simulation.FaultInjectionPolicy? right) -> bool
+static Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.operator !=(Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>? left, Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>? right) -> bool
+static Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>.operator ==(Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>? left, Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>? right) -> bool
+static Boutquin.Storage.Distributed.Simulation.LinearizabilityChecker.Check<TInput, TOutput, TState>(System.Collections.Generic.IReadOnlyList<Boutquin.Storage.Distributed.Simulation.HistoryOperation<TInput, TOutput>!>! history, TState initialState, System.Func<TState, TInput, TOutput, (bool Allowed, TState State)>! transition, int maxSearchSteps = 100000) -> Boutquin.Storage.Distributed.Simulation.LinearizabilityResult
+static Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.operator !=(Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>? left, Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>? right) -> bool
+static Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>.operator ==(Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>? left, Boutquin.Storage.Distributed.Sync.ChangeSet<TChange>? right) -> bool
+static Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>.CreateAsync(string! path, Boutquin.Storage.Distributed.Interfaces.Sync.IDeviceReplicaIdProvider! idProvider, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Sync.JsonFileSyncReplica<TChange>!>!
+static Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.operator !=(Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>? left, Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>? right) -> bool
+static Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>.operator ==(Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>? left, Boutquin.Storage.Distributed.Sync.KeyValueSyncChange<TKey, TValue>? right) -> bool
+static Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.operator !=(Boutquin.Storage.Distributed.Sync.SyncChange<TChange>? left, Boutquin.Storage.Distributed.Sync.SyncChange<TChange>? right) -> bool
+static Boutquin.Storage.Distributed.Sync.SyncChange<TChange>.operator ==(Boutquin.Storage.Distributed.Sync.SyncChange<TChange>? left, Boutquin.Storage.Distributed.Sync.SyncChange<TChange>? right) -> bool
+static Boutquin.Storage.Distributed.Sync.SyncCheckpoint.operator !=(Boutquin.Storage.Distributed.Sync.SyncCheckpoint? left, Boutquin.Storage.Distributed.Sync.SyncCheckpoint? right) -> bool
+static Boutquin.Storage.Distributed.Sync.SyncCheckpoint.operator ==(Boutquin.Storage.Distributed.Sync.SyncCheckpoint? left, Boutquin.Storage.Distributed.Sync.SyncCheckpoint? right) -> bool
+static Boutquin.Storage.Distributed.Sync.SyncSession.operator !=(Boutquin.Storage.Distributed.Sync.SyncSession? left, Boutquin.Storage.Distributed.Sync.SyncSession? right) -> bool
+static Boutquin.Storage.Distributed.Sync.SyncSession.operator ==(Boutquin.Storage.Distributed.Sync.SyncSession? left, Boutquin.Storage.Distributed.Sync.SyncSession? right) -> bool
+static Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource.CreateAsync(string! resourceId, string! path, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.DurableTransactionalResource!>!
+static Boutquin.Storage.Distributed.Transactions.OutboxMessage.operator !=(Boutquin.Storage.Distributed.Transactions.OutboxMessage? left, Boutquin.Storage.Distributed.Transactions.OutboxMessage? right) -> bool
+static Boutquin.Storage.Distributed.Transactions.OutboxMessage.operator ==(Boutquin.Storage.Distributed.Transactions.OutboxMessage? left, Boutquin.Storage.Distributed.Transactions.OutboxMessage? right) -> bool
+static Boutquin.Storage.Distributed.Transactions.RequestId.operator !=(Boutquin.Storage.Distributed.Transactions.RequestId left, Boutquin.Storage.Distributed.Transactions.RequestId right) -> bool
+static Boutquin.Storage.Distributed.Transactions.RequestId.operator ==(Boutquin.Storage.Distributed.Transactions.RequestId left, Boutquin.Storage.Distributed.Transactions.RequestId right) -> bool
+static Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore.CreateAsync(string! path, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.TransactionalMessageStore!>!
+static Boutquin.Storage.Distributed.Transactions.TwoPhaseCommitCoordinator.CreateAsync(string! path, System.Collections.Generic.IEnumerable<Boutquin.Storage.Distributed.Interfaces.Transactions.ITransactionalResource!>! resources, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Boutquin.Storage.Distributed.Transactions.TwoPhaseCommitCoordinator!>!
+~override Boutquin.Storage.Distributed.Transactions.RequestId.Equals(object obj) -> bool
+~override Boutquin.Storage.Distributed.Transactions.RequestId.ToString() -> string

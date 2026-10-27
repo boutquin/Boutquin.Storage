@@ -20,7 +20,12 @@ namespace Boutquin.Storage.Domain.Interfaces;
 ///
 /// <para>A counting Bloom filter replaces the single-bit positions in a standard Bloom filter with counters.
 /// Each position maintains a count of how many elements have been hashed to that location. This enables
-/// removal of elements (by decrementing counters) without causing false negatives for other elements.</para>
+/// removal of elements (by decrementing counters) without causing false negatives for other elements —
+/// <b>provided the caller removes only elements that were previously added, at most as many times as they
+/// were added</b>. That precondition is part of the contract: a removal of a key that happens to pass the
+/// membership test as a false positive decrements counters shared with genuine members, and enough such
+/// removals can produce a false negative. (Removals of keys that fail the membership test are complete
+/// no-ops and cannot corrupt the filter.)</para>
 ///
 /// <para><b>Trade-offs vs standard Bloom filter:</b></para>
 /// <para>- <b>Memory:</b> Uses an int[] (32 bits per position) instead of a BitArray (1 bit per position),
@@ -38,7 +43,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <b>Clear:</b> O(m) — resets all counters to 0.</para>
 /// <para>- <b>Space:</b> O(m) — the counter array dominates memory usage.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
 /// section on LSM-tree optimizations. Counting Bloom filters extend the standard Bloom filter concept to support
 /// deletion, useful in scenarios where keys are removed from the dataset and the filter must reflect those removals.</para>
 /// </summary>

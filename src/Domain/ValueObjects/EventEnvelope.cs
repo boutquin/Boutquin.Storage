@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.ValueObjects;
 /// <summary>
 /// Wraps an event with metadata for versioned event sourcing.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing": event envelopes with schema versions and timestamps.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing": event envelopes with schema versions and timestamps.</para>
 /// </summary>
 /// <typeparam name="TKey">The key type.</typeparam>
 /// <typeparam name="TValue">The value type.</typeparam>

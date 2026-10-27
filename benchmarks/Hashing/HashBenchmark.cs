@@ -22,9 +22,7 @@ namespace Boutquin.Storage.BenchMark.Hashing;
 public class HashAlgorithmBenchmark
 {
     // Multiple distinct inputs to measure realistic hash throughput across different data
-    private static readonly byte[][] s_dataSets = Enumerable.Range(0, 500)
-        .Select(i => BitConverter.GetBytes(i).Concat(Guid.NewGuid().ToByteArray()).ToArray())
-        .ToArray();
+    private static readonly byte[][] s_dataSets = [.. Enumerable.Range(0, 500).Select(i => BitConverter.GetBytes(i).Concat(Guid.NewGuid().ToByteArray()).ToArray())];
 
     // Instances of the hash algorithms to be benchmarked
     private readonly IHashAlgorithm _fnvHasher = new Fnv1aHash();

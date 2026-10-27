@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.Enums;
 /// <summary>
 /// Supported field types in a schema definition.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": common wire types in schema-aware encoding formats.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": common wire types in schema-aware encoding formats.</para>
 /// </summary>
 public enum SchemaFieldType
 {

@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Title>Boutquin.Storage.Distributed</Title>
+    <Description>In-process reference implementations of distributed primitives from Designing Data-Intensive Applications — Raft, single-leader and quorum replication, MVCC/SSI, partitioning, CRDTs, vector clocks, gossip, Merkle trees. Educational fidelity to the DDIA chapters; not intended for production deployment. Not published to NuGet.</Description>
+    <PackageTags>storage;distributed-systems;raft;crdt;replication;consensus;merkle-tree;reference;dotnet;csharp</PackageTags>
+    <!-- The assembly is intentionally not published to NuGet so that the "not for
+         production" stance is enforced structurally, not by package-description copy
+         alone. Consumers depend on it via <ProjectReference> only (samples, tests).
+         The DLL still builds and ships in source. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Boutquin.Storage.Domain.csproj" />
+    <!-- The carved partitioning implementations (ConsistentHashRing, HashPartitioner,
+         RendezvousHash) default to Murmur3 / xxHash from Infrastructure.Algorithms when
+         no IHashAlgorithm is injected. Dependency flows Distributed → Infrastructure,
+         never the reverse (see tests/ArchitectureTests/DistributedAssemblyTests.cs). -->
+    <ProjectReference Include="..\Infrastructure\Boutquin.Storage.Infrastructure.csproj" />
+    <!-- Analyzer-only reference to the source generator: it carries the BSSG021
+         UnboundedDecodedLengthAllocation analyzer, which guards this project's file-backed
+         Raft-log replay/decode path (FileRaftLog) against the unbounded-allocation-from-
+         untrusted-length defect class. The generator's serialization generators are a no-op
+         here — this project applies none of the storage attributes. -->
+    <ProjectReference Include="..\SourceGenerator\Boutquin.Storage.SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Public API surface tracking — baseline locked at each shipped release.
+       Additions/removals must land in PublicAPI.Unshipped.txt until release. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
+    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <!-- Tests under tests/Infrastructure reach into internal Raft message records to assert
+       wire-level invariants (term monotonicity, vote-response shape). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Boutquin.Storage.Infrastructure.Tests" />
+  </ItemGroup>
+
+</Project>

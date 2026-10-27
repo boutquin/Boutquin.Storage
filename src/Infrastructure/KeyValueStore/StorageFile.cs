@@ -21,13 +21,16 @@ namespace Boutquin.Storage.Infrastructure.KeyValueStore;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why two levels of semaphores?</b> This class uses a two-tier locking strategy:
-/// (1) A static <see cref="ConcurrentDictionary{TKey, TValue}"/> of <see cref="SemaphoreSlim"/>
-/// keyed by file path protects cross-instance access to the same physical file — multiple
-/// <see cref="StorageFile"/> instances pointing to the same path won't corrupt each other.
-/// (2) An instance-level <c>_semaphore</c> protects the <c>_fileStream</c> field from concurrent
-/// access within a single instance. The static dictionary prevents file-level races; the instance
-/// semaphore prevents stream-level races.
+/// <b>Why one per-path semaphore?</b> A single static <see cref="ConcurrentDictionary{TKey, TValue}"/>
+/// of <see cref="SemaphoreSlim"/> keyed by file path is the ONE lock that protects both
+/// cross-instance access to the same physical file (multiple <see cref="StorageFile"/> instances
+/// pointing to the same path won't corrupt each other) AND the <c>_fileStream</c> field. Every
+/// method that mutates <c>_fileStream</c> — <c>Open</c>, <c>Close</c>, <c>Create</c>, the
+/// <c>WriteAllBytes…</c> atomic-replace paths, and <c>Dispose</c> — holds this same per-path
+/// semaphore, so the stream field is never read or disposed under one lock while mutated under
+/// another. (An earlier design used a second instance-level semaphore for <c>Open</c>/<c>Close</c>,
+/// which left <c>_fileStream</c> guarded by two different locks — a race where a just-opened stream
+/// could be disposed out from under its user. Collapsing to the single per-path semaphore fixes it.)
 /// </para>
 /// <para>
 /// <b>Why SemaphoreSlim(1,1) not lock/Monitor?</b> <see cref="SemaphoreSlim"/> supports async
@@ -59,9 +62,30 @@ public sealed class StorageFile : IStorageFile, IDisposable
     private static readonly TimeSpan s_semaphoreTimeout = TimeSpan.FromSeconds(30);
 
     private FileStream? _fileStream;
-    private static readonly ConcurrentDictionary<string, SemaphoreSlim> s_fileSemaphores = new ConcurrentDictionary<string, SemaphoreSlim>();
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-    private bool _disposed;
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> s_fileSemaphores = new();
+    private int _disposed; // 0 = live, 1 = disposed; use Interlocked.Exchange to set atomically.
+
+    // Cached on-disk size. DR-9: this field inherits StorageFile's EXISTING concurrency model — it is
+    // read and written only under the same per-path semaphore (s_fileSemaphores) that already guards
+    // every mutation of the file and of _fileStream. No new unsynchronised shared field is introduced.
+    // It is updated precisely by every StorageFile-tracked write/append/delete and otherwise lazily
+    // (re)stat'd by the FileSize getter when the cache is stale (see _cachedSizeStale), replacing the
+    // prior unconditional per-access `new FileInfo(FilePath).Length` stat on the steady-state path.
+    private long _fileSize;
+
+    // True when the cached size cannot be vouched for without consulting disk — set after construction
+    // and after every Open(...) (a handed-out stream may write through it), and crucially the default,
+    // because StorageFile is NOT the exclusive writer of its path: other components (e.g. the SSTable
+    // writer) atomically replace the file out-of-band, which StorageFile cannot observe. While stale,
+    // FileSize stats and STAYS stale, so a foreign replace is always caught. Only a StorageFile-tracked
+    // write (append/atomic-write/delete) — which updates _fileSize precisely — clears it, so back-to-back
+    // FileSize reads immediately after such a write serve from cache. Set/cleared only under the
+    // per-path semaphore (DR-9).
+    private bool _cachedSizeStale = true;
+
+    // Directory fsyncs this instance has issued for directory-entry mutations (file create/delete,
+    // directory creation). Observable by tests, mirroring FileSystemObjectStore's delete-fsync count.
+    internal int _directoryFsyncCount;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StorageFile"/> class.
@@ -70,6 +94,13 @@ public sealed class StorageFile : IStorageFile, IDisposable
     /// <param name="fileName">The name of the file.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="fileLocation"/> or <paramref name="fileName"/> is null, empty, or whitespace.</exception>
     public StorageFile(string fileLocation, string fileName)
+        : this(fileLocation, fileName, createIfMissing: true)
+    {
+    }
+
+    // Immutable-table construction must distinguish an absent output from a corrupt empty file.
+    // It publishes its own complete bytes atomically rather than creating an empty placeholder.
+    internal StorageFile(string fileLocation, string fileName, bool createIfMissing)
     {
         Guard.AgainstNullOrWhiteSpace(() => fileLocation); // Validate the file location to ensure it is not null, empty, or whitespace.
         Guard.AgainstNullOrWhiteSpace(() => fileName); // Validate the file name to ensure it is not null, empty, or whitespace.
@@ -81,8 +112,10 @@ public sealed class StorageFile : IStorageFile, IDisposable
         // Ensure the directory exists.
         EnsureDirectoryExists(fileLocation);
 
-        // Ensure the file exists.
-        Create(FileExistenceHandling.DoNothingIfExists);
+        if (createIfMissing)
+        {
+            Create(FileExistenceHandling.DoNothingIfExists);
+        }
     }
 
     /// <summary>
@@ -95,7 +128,58 @@ public sealed class StorageFile : IStorageFile, IDisposable
     /// Console.WriteLine($"File size: {fileSize} bytes");
     /// </code>
     /// </example>
-    public long FileSize => new FileInfo(FilePath).Length;
+    public long FileSize
+    {
+        get
+        {
+            var semaphore = s_fileSemaphores.GetOrAdd(FilePath, _ => new SemaphoreSlim(1, 1));
+            WaitWithTimeout(semaphore);
+            try
+            {
+                // When stale (the default, and after any Open or a possible out-of-band replace), stat
+                // to get the true size — and STAY stale, so a later foreign write is caught too. A
+                // StorageFile-tracked write clears the flag and seeds _fileSize precisely, so the
+                // common "write-then-read-size" pair on the tracked path serves the read from cache.
+                if (_cachedSizeStale)
+                {
+                    RefreshCachedFileSize();
+                }
+
+                return _fileSize;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the cached file size from disk. MUST be called while holding the per-path semaphore;
+    /// every mutating path (create, atomic replace, append, delete) calls this after the write lands
+    /// so the cache stays consistent with the on-disk size under the type's existing write discipline.
+    /// </summary>
+    private void RefreshCachedFileSize()
+        => _fileSize = File.Exists(FilePath) ? new FileInfo(FilePath).Length : 0;
+
+    /// <summary>
+    /// Fsyncs the containing directory when the operation just performed created or removed this
+    /// file's directory entry. A file fsync does not persist the entry itself
+    /// (Pillai et al. 2014 §3), so without this a crash can drop a newly created file with every
+    /// acknowledged write in it, or resurrect a deleted one. POSIX only; Windows skips the
+    /// directory barrier and its power-loss persistence requires separate qualification,
+    /// matching <c>DurableFile.AtomicReplace</c>. MUST be called while holding the per-path semaphore.
+    /// </summary>
+    private void FsyncDirectoryIfEntryChanged(bool existedBefore)
+    {
+        if (OperatingSystem.IsWindows() || existedBefore == File.Exists(FilePath))
+        {
+            return;
+        }
+
+        DurableFile.FsyncDirectory(FilePath);
+        Interlocked.Increment(ref _directoryFsyncCount);
+    }
 
     /// <summary>
     /// Gets the name of the file.
@@ -153,6 +237,7 @@ public sealed class StorageFile : IStorageFile, IDisposable
         WaitWithTimeout(semaphore);
         try
         {
+            var existed = File.Exists(FilePath);
             switch (existenceHandling)
             {
                 case FileExistenceHandling.Overwrite:
@@ -178,6 +263,13 @@ public sealed class StorageFile : IStorageFile, IDisposable
                     _fileStream.Dispose();
                     break;
             }
+
+            // Leave the cache stale after Create: the first FileSize read will stat the true size.
+            // Create does not seed-and-trust the cache because the file may subsequently be replaced
+            // out-of-band (e.g. an SSTable writer renames a fresh segment over this path), which the
+            // stay-stale FileSize read is designed to catch.
+            _cachedSizeStale = true;
+            FsyncDirectoryIfEntryChanged(existed);
         }
         finally
         {
@@ -216,19 +308,42 @@ public sealed class StorageFile : IStorageFile, IDisposable
     /// </example>
     public Stream Open(FileMode mode)
     {
-        WaitWithTimeout(_semaphore);
+        var semaphore = s_fileSemaphores.GetOrAdd(FilePath, _ => new SemaphoreSlim(1, 1));
+        WaitWithTimeout(semaphore);
         try
         {
             DisposeFileStreamIfExists();
+            var existed = File.Exists(FilePath);
             // Why different FileAccess for Append mode? FileMode.Append only supports FileAccess.Write
             // (attempting ReadWrite throws). For all other modes, ReadWrite is used to support both
             // reading and writing through the same stream.
-            _fileStream = new FileStream(FilePath, mode, mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite);
+            //
+            // Why FileShare.None for Append mode? The handed-out append stream captures its write
+            // offset at open time and the caller writes through it AFTER this method releases the
+            // per-path semaphore — so a second writer handle over the same path (another
+            // StorageFile instance in this process, or another process) opened in that window
+            // would capture the same end offset and the two writers would overwrite each other's
+            // committed bytes (the multi-writer stale-offset class fixed in AppendOnlyEventLog,
+            // 2026-07-16). FileShare.None makes the second open fail fast instead: a mandatory
+            // sharing violation on Windows, an exclusive OS flock on Unix — the ONLY share mode
+            // that yields any write exclusion on Unix. Non-append modes keep the historical
+            // FileShare.Read default.
+            _fileStream = mode == FileMode.Append
+                ? new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.None)
+                : new FileStream(FilePath, mode, FileAccess.ReadWrite);
+            // Ownership note: the returned stream is owned by the CALLER for the duration of its use —
+            // the caller writes/reads and disposes it (the append-only and segmented engines do exactly
+            // this under their own serialisation point). StorageFile keeps a reference in _fileStream
+            // only so Close/Dispose/atomic-replace can release any lingering handle; it does NOT track
+            // bytes written through the handed-out stream. Mark the cached size stale so the next
+            // FileSize read resyncs from disk once, covering any out-of-band growth the caller wrote.
+            _cachedSizeStale = true;
+            FsyncDirectoryIfEntryChanged(existed);
             return _fileStream;
         }
         finally
         {
-            _semaphore.Release();
+            semaphore.Release();
         }
     }
 
@@ -243,14 +358,15 @@ public sealed class StorageFile : IStorageFile, IDisposable
     /// </example>
     public void Close()
     {
-        WaitWithTimeout(_semaphore);
+        var semaphore = s_fileSemaphores.GetOrAdd(FilePath, _ => new SemaphoreSlim(1, 1));
+        WaitWithTimeout(semaphore);
         try
         {
             DisposeFileStreamIfExists();
         }
         finally
         {
-            _semaphore.Release();
+            semaphore.Release();
         }
     }
 
@@ -280,7 +396,13 @@ public sealed class StorageFile : IStorageFile, IDisposable
             if (File.Exists(FilePath))
             {
                 File.Delete(FilePath);
+                FsyncDirectoryIfEntryChanged(existedBefore: true);
             }
+
+            // The file is gone. Mark stale so the next FileSize read re-stats (it may be re-created
+            // out-of-band before then); RefreshCachedFileSize handles the missing-file case as size 0.
+            _fileSize = 0;
+            _cachedSizeStale = true;
         }
         finally
         {
@@ -307,12 +429,25 @@ public sealed class StorageFile : IStorageFile, IDisposable
     {
         Guard.AgainstNegative(() => offset); // Validate offset.
         Guard.AgainstNegative(() => count); // Validate count.
+        if (count > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, "count must be between 0 and int.MaxValue.");
+        }
 
         var semaphore = s_fileSemaphores.GetOrAdd(FilePath, _ => new SemaphoreSlim(1, 1));
         WaitWithTimeout(semaphore);
         try
         {
             using var stream = new FileStream(FilePath, FileMode.Open, FileAccess.Read);
+            // A zero-byte read is always satisfiable — reading nothing from an empty (or any) file
+            // returns an empty buffer rather than throwing. This is the legitimate "the log is empty,
+            // read nothing" call (offset 0, count 0 of a freshly-created file): the pre-fix guard
+            // rejected offset >= Length, so 0 >= 0 surfaced an empty store as an error.
+            if (count == 0)
+            {
+                return [];
+            }
+
             if (offset >= stream.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
@@ -320,12 +455,12 @@ public sealed class StorageFile : IStorageFile, IDisposable
 
             stream.Seek(offset, SeekOrigin.Begin);
 
-            var buffer = new byte[count];
-            var bytesRead = stream.Read(buffer, 0, (int)count);
-            if (bytesRead < count)
-            {
-                Array.Resize(ref buffer, bytesRead);
-            }
+            // Loop until the requested span is exhausted or EOF — a single Read call may
+            // legally return fewer bytes than requested, and silently truncating the buffer
+            // hands the caller a partial record it then mis-deserializes.
+            var available = (int)Math.Min(count, stream.Length - offset);
+            var buffer = new byte[available];
+            stream.ReadExactly(buffer, 0, available);
 
             return buffer;
         }
@@ -355,6 +490,10 @@ public sealed class StorageFile : IStorageFile, IDisposable
     {
         Guard.AgainstNegative(() => offset); // Validate offset.
         Guard.AgainstNegative(() => count); // Validate count.
+        if (count > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), count, "count must be between 0 and int.MaxValue.");
+        }
 
         var semaphore = s_fileSemaphores.GetOrAdd(FilePath, _ => new SemaphoreSlim(1, 1));
         await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -362,6 +501,13 @@ public sealed class StorageFile : IStorageFile, IDisposable
         {
             var stream = new FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
             await using var _ = stream.ConfigureAwait(false);
+            // See ReadBytes: a zero-byte read is always satisfiable — the empty-file / empty-store
+            // case returns an empty buffer instead of throwing on offset >= Length.
+            if (count == 0)
+            {
+                return [];
+            }
+
             if (offset >= stream.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(offset), "Offset is greater than the length of the file.");
@@ -369,12 +515,12 @@ public sealed class StorageFile : IStorageFile, IDisposable
 
             stream.Seek(offset, SeekOrigin.Begin);
 
-            var buffer = new byte[(int)count];
-            var bytesRead = await stream.ReadAsync(buffer.AsMemory(0, (int)count), cancellationToken).ConfigureAwait(false);
-            if (bytesRead < count)
-            {
-                Array.Resize(ref buffer, bytesRead);
-            }
+            // Loop until the requested span is exhausted or EOF — a single ReadAsync call
+            // may legally return fewer bytes than requested (more likely than on the sync
+            // path), and silently truncating hands the caller a partial record.
+            var available = (int)Math.Min(count, stream.Length - offset);
+            var buffer = new byte[available];
+            await stream.ReadExactlyAsync(buffer.AsMemory(0, available), cancellationToken).ConfigureAwait(false);
 
             return buffer;
         }
@@ -511,11 +657,102 @@ public sealed class StorageFile : IStorageFile, IDisposable
         WaitWithTimeout(semaphore);
         try
         {
-            File.WriteAllBytes(FilePath, content);
+            AtomicWrite(content);
         }
         finally
         {
             semaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Crash-atomic replace: write <paramref name="content"/> to a sibling temp file, fsync it, then
+    /// rename it over the target. POSIX rename is atomic, so a crash (or any reader that bypasses this
+    /// type's per-path semaphore, e.g. a recovery scan) sees either the whole old file or the whole
+    /// new file — never a truncated/partial one. The fsync makes the new bytes durable before the
+    /// rename publishes them. Callers must hold the per-path semaphore.
+    /// </summary>
+    private void AtomicWrite(byte[] content)
+    {
+        var tempPath = FilePath + ".tmp-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            using (var fs = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write))
+            {
+                fs.Write(content, 0, content.Length);
+                fs.Flush(flushToDisk: true);
+            }
+
+            // Release any open handle on the target so the rename succeeds cross-platform.
+            _fileStream?.Dispose();
+            _fileStream = null;
+            // Route through DurableFile.AtomicReplace (not a bare File.Move) so the containing
+            // directory is fsync'd after the rename — otherwise a crash between the rename returning
+            // and the directory write landing can leave the old entry visible on restart. Every other
+            // atomic-replace site in the durable path uses this helper.
+            DurableFile.AtomicReplace(tempPath, FilePath);
+
+            // The replacement is the whole new file; its size is exactly the content length.
+            // Updated under the caller-held per-path semaphore (DR-9); the tracked write makes the
+            // cache authoritative until the next Open or out-of-band change.
+            _fileSize = content.Length;
+            _cachedSizeStale = false;
+        }
+        catch
+        {
+            TryDeleteTemp(tempPath);
+            throw;
+        }
+    }
+
+    private async Task AtomicWriteAsync(byte[] content, CancellationToken cancellationToken)
+    {
+        var tempPath = FilePath + ".tmp-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            var fs = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write);
+            await using (fs.ConfigureAwait(false))
+            {
+                await fs.WriteAsync(content, cancellationToken).ConfigureAwait(false);
+                fs.Flush(flushToDisk: true);
+            }
+
+            if (_fileStream is not null)
+            {
+                await _fileStream.DisposeAsync().ConfigureAwait(false);
+            }
+
+            _fileStream = null;
+            // Route through DurableFile.AtomicReplace (not a bare File.Move) so the containing
+            // directory is fsync'd after the rename — otherwise a crash between the rename returning
+            // and the directory write landing can leave the old entry visible on restart. Every other
+            // atomic-replace site in the durable path uses this helper.
+            DurableFile.AtomicReplace(tempPath, FilePath);
+
+            // See AtomicWrite — the new file's size is the content length, updated under the
+            // caller-held per-path semaphore (DR-9); the tracked write makes the cache authoritative.
+            _fileSize = content.Length;
+            _cachedSizeStale = false;
+        }
+        catch
+        {
+            TryDeleteTemp(tempPath);
+            throw;
+        }
+    }
+
+    private static void TryDeleteTemp(string tempPath)
+    {
+        try
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup — a leaked temp is harmless (a sibling .tmp-* file), never the target.
         }
     }
 
@@ -538,7 +775,7 @@ public sealed class StorageFile : IStorageFile, IDisposable
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await File.WriteAllBytesAsync(FilePath, content, cancellationToken).ConfigureAwait(false);
+            await AtomicWriteAsync(content, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -564,7 +801,11 @@ public sealed class StorageFile : IStorageFile, IDisposable
         WaitWithTimeout(semaphore);
         try
         {
-            File.WriteAllText(FilePath, content, encoding);
+            // Route through AtomicWrite (temp file + fsync + DurableFile.AtomicReplace) rather than
+            // an in-place File.WriteAllText that truncates the target before the new content lands,
+            // matching WriteAllBytes. A crash mid-write then leaves the prior file intact instead of
+            // a truncated one, and the directory entry is fsync'd so the replacement is durable.
+            AtomicWrite(encoding.GetBytes(content));
         }
         finally
         {
@@ -592,7 +833,8 @@ public sealed class StorageFile : IStorageFile, IDisposable
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await File.WriteAllTextAsync(FilePath, content, encoding, cancellationToken).ConfigureAwait(false);
+            // See WriteAllText: durable, crash-atomic temp-file + AtomicReplace, not in-place.
+            await AtomicWriteAsync(encoding.GetBytes(content), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -617,8 +859,26 @@ public sealed class StorageFile : IStorageFile, IDisposable
         WaitWithTimeout(semaphore);
         try
         {
+            var existed = File.Exists(FilePath);
             using var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.None);
             stream.Write(content, 0, content.Length);
+            // fsync the appended bytes before acknowledging the write — otherwise they linger in
+            // the OS page cache and a crash loses an append the caller believes is durable.
+            stream.Flush(flushToDisk: true);
+            // Make the cache authoritative (DR-9: under the held per-path semaphore). When the
+            // cached base is untrusted (fresh instance / post-Open), growing it would promote a
+            // wrong base to authoritative forever — re-stat instead: the on-disk length already
+            // includes the bytes just appended. A trusted base grows by exactly the appended length.
+            if (_cachedSizeStale)
+            {
+                RefreshCachedFileSize();
+            }
+            else
+            {
+                _fileSize += content.Length;
+            }
+            _cachedSizeStale = false;
+            FsyncDirectoryIfEntryChanged(existed);
         }
         finally
         {
@@ -645,9 +905,26 @@ public sealed class StorageFile : IStorageFile, IDisposable
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var existed = File.Exists(FilePath);
             var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.None);
             await using var _ = stream.ConfigureAwait(false);
             await stream.WriteAsync(content.AsMemory(0, content.Length), cancellationToken).ConfigureAwait(false);
+            // fsync the appended bytes before acknowledging — see AppendAllBytes.
+            stream.Flush(flushToDisk: true);
+            // Make the cache authoritative (DR-9: under the held per-path semaphore). When the
+            // cached base is untrusted (fresh instance / post-Open), growing it would promote a
+            // wrong base to authoritative forever — re-stat instead: the on-disk length already
+            // includes the bytes just appended. A trusted base grows by exactly the appended length.
+            if (_cachedSizeStale)
+            {
+                RefreshCachedFileSize();
+            }
+            else
+            {
+                _fileSize += content.Length;
+            }
+            _cachedSizeStale = false;
+            FsyncDirectoryIfEntryChanged(existed);
         }
         finally
         {
@@ -673,7 +950,27 @@ public sealed class StorageFile : IStorageFile, IDisposable
         WaitWithTimeout(semaphore);
         try
         {
-            File.AppendAllText(FilePath, content, encoding);
+            var existed = File.Exists(FilePath);
+            using var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.None);
+            var bytes = encoding.GetBytes(content);
+            stream.Write(bytes, 0, bytes.Length);
+            // fsync to match AppendAllBytes — the class's append contract is uniform: an
+            // acknowledged append survives a crash regardless of which overload wrote it.
+            stream.Flush(flushToDisk: true);
+            // Make the cache authoritative (DR-9: under the held per-path semaphore). When the
+            // cached base is untrusted (fresh instance / post-Open), growing it would promote a
+            // wrong base to authoritative forever — re-stat instead: the on-disk length already
+            // includes the bytes just appended. A trusted base grows by exactly the appended length.
+            if (_cachedSizeStale)
+            {
+                RefreshCachedFileSize();
+            }
+            else
+            {
+                _fileSize += bytes.Length;
+            }
+            _cachedSizeStale = false;
+            FsyncDirectoryIfEntryChanged(existed);
         }
         finally
         {
@@ -701,7 +998,27 @@ public sealed class StorageFile : IStorageFile, IDisposable
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await File.AppendAllTextAsync(FilePath, content, encoding, cancellationToken).ConfigureAwait(false);
+            var existed = File.Exists(FilePath);
+            var stream = new FileStream(FilePath, FileMode.Append, FileAccess.Write, FileShare.None);
+            await using var _ = stream.ConfigureAwait(false);
+            var bytes = encoding.GetBytes(content);
+            await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
+            // fsync to match AppendAllBytesAsync — see AppendAllText.
+            stream.Flush(flushToDisk: true);
+            // Make the cache authoritative (DR-9: under the held per-path semaphore). When the
+            // cached base is untrusted (fresh instance / post-Open), growing it would promote a
+            // wrong base to authoritative forever — re-stat instead: the on-disk length already
+            // includes the bytes just appended. A trusted base grows by exactly the appended length.
+            if (_cachedSizeStale)
+            {
+                RefreshCachedFileSize();
+            }
+            else
+            {
+                _fileSize += bytes.Length;
+            }
+            _cachedSizeStale = false;
+            FsyncDirectoryIfEntryChanged(existed);
         }
         finally
         {
@@ -720,35 +1037,36 @@ public sealed class StorageFile : IStorageFile, IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (!_disposed)
+        // Atomically claim the dispose slot; bail if another thread beat us here.
+        // The house pattern: Interlocked.Exchange on an int flag (see WriteAheadLog for the
+        // established pattern) prevents two concurrent Dispose calls both entering the body.
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
         {
-            if (disposing)
+            return;
+        }
+
+        if (disposing)
+        {
+            var semaphore = s_fileSemaphores.GetOrAdd(FilePath, _ => new SemaphoreSlim(1, 1));
+            WaitWithTimeout(semaphore);
+            try
             {
-                var semaphore = s_fileSemaphores.GetOrAdd(FilePath, _ => new SemaphoreSlim(1, 1));
-                WaitWithTimeout(semaphore);
-                try
-                {
-                    DisposeFileStreamIfExists();
-                }
-                finally
-                {
-                    semaphore.Release();
-                }
-
-                // Clean up the static semaphore to prevent unbounded growth of the dictionary.
-                // Why TryRemove after Release? The semaphore is released first so no one is
-                // blocked. If another instance for the same path is created concurrently,
-                // GetOrAdd will create a fresh semaphore — this is safe because the file
-                // already exists on disk.
-                if (s_fileSemaphores.TryRemove(FilePath, out var removed))
-                {
-                    removed.Dispose();
-                }
-
-                _semaphore.Dispose();
+                DisposeFileStreamIfExists();
+            }
+            finally
+            {
+                semaphore.Release();
             }
 
-            _disposed = true;
+            // Intentionally do NOT dispose or remove the per-path semaphore from
+            // s_fileSemaphores. A concurrent caller on a different StorageFile instance
+            // for the same path may be mid-AcquireAsync between GetOrAdd and Release;
+            // tearing the semaphore out here would race that caller onto a disposed
+            // object. Per-path semaphores are leaked intentionally: one SemaphoreSlim
+            // plus its kernel handle per unique path ever seen, bounded at ~10,000
+            // unique paths per process for typical workloads. Callers that rotate paths
+            // (per-day segments, per-partition files) should reuse StorageFile instances
+            // rather than instantiate a new one per path.
         }
     }
 
@@ -773,14 +1091,16 @@ public sealed class StorageFile : IStorageFile, IDisposable
     }
 
     /// <summary>
-    /// Ensures that the specified directory exists.
+    /// Ensures that the specified directory exists, making every newly created directory level's
+    /// entry durable so a crash cannot drop the subtree (and the file created inside it).
     /// </summary>
     /// <param name="directoryPath">The path of the directory.</param>
-    private static void EnsureDirectoryExists(string directoryPath)
+    private void EnsureDirectoryExists(string directoryPath)
     {
-        if (!Directory.Exists(directoryPath))
+        var created = DurableFile.CreateDirectoryDurable(directoryPath);
+        if (!OperatingSystem.IsWindows())
         {
-            Directory.CreateDirectory(directoryPath);
+            _directoryFsyncCount += created;
         }
     }
 }

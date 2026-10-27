@@ -15,12 +15,14 @@
 //
 
 global using System;
+global using System.Buffers;
 global using System.Collections.Generic;
 global using System.IO;
 global using System.Text;
 global using System.Threading;
 global using System.Threading.Tasks;
 
+global using Boutquin.Domain.ValueObjects;
 global using Boutquin.Storage.Domain.Enums;
 global using Boutquin.Storage.Domain.Interfaces;
 global using Boutquin.Storage.Domain.ValueObjects;

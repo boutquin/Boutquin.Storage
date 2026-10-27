@@ -13,31 +13,36 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+using Boutquin.Storage.Domain.ValueObjects.LsmTree;
+
 namespace Boutquin.Storage.Infrastructure.LsmTree;
 
 /// <summary>
-/// Full compaction strategy: merges all segments into a single segment when the segment count
-/// reaches a configurable threshold.
+/// Merges every segment into a single compacted segment once the segment count reaches a
+/// configurable threshold.
 /// </summary>
+/// <typeparam name="TKey">Key type — carried only so the strategy satisfies
+/// <see cref="ICompactionStrategy{TKey}"/>; full compaction ignores key ranges.</typeparam>
 /// <remarks>
 /// <para>
-/// This is the simplest compaction strategy. When triggered, it selects all segments for merging.
-/// The result is always a single compacted segment. This minimizes read amplification (O(1) after
-/// compaction) but maximizes write amplification (every entry is rewritten during each compaction).
+/// <b>Theory:</b> DDIA 2e p. 122–123 notes full compaction as the simplest option: one pass,
+/// one output segment. Post-compaction read amplification is O(1), write amplification is the
+/// highest of any strategy (every entry is rewritten on every cycle).
 /// </para>
 /// <para>
-/// <b>When to use:</b> Suitable for workloads with moderate write rates where read latency
-/// is the primary concern, or as a reference implementation for testing.
+/// <b>When to use:</b> read-heavy workloads where read latency dominates, or as a reference
+/// baseline for comparing against <see cref="SizeTieredCompactionStrategy{TKey}"/> and
+/// <see cref="LeveledCompactionStrategy{TKey}"/>.
 /// </para>
 /// </remarks>
-public sealed class FullCompactionStrategy : ICompactionStrategy
+public sealed class FullCompactionStrategy<TKey> : ICompactionStrategy<TKey>
 {
     private readonly int _threshold;
 
     /// <summary>
-    /// Initializes a new instance with the specified threshold.
+    /// Creates a strategy that triggers compaction at <paramref name="threshold"/> segments.
     /// </summary>
-    /// <param name="threshold">The segment count that triggers compaction. Must be at least 2.</param>
+    /// <param name="threshold">Must be at least 2 — a single segment has nothing to merge.</param>
     public FullCompactionStrategy(int threshold)
     {
         if (threshold < 2)
@@ -49,12 +54,18 @@ public sealed class FullCompactionStrategy : ICompactionStrategy
     }
 
     /// <inheritdoc/>
-    public bool ShouldCompact(int segmentCount) => segmentCount >= _threshold;
+    public bool ShouldCompact(IReadOnlyList<SegmentMetadata<TKey>> segments)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        return segments.Count >= _threshold;
+    }
 
     /// <inheritdoc/>
-    public IReadOnlyList<int> SelectSegments(int segmentCount)
+    public IReadOnlyList<SegmentMetadata<TKey>> SelectSegments(
+        IReadOnlyList<SegmentMetadata<TKey>> segments)
     {
-        // Select all segments.
-        return Enumerable.Range(0, segmentCount).ToList();
+        ArgumentNullException.ThrowIfNull(segments);
+        // Full compaction: every segment is selected, oldest → newest preserved.
+        return segments.ToList();
     }
 }

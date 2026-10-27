@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <!-- Packed inside Boutquin.Storage.SourceGenerator's nupkg (not as its own package) so
+         Roslyn discovers both DLLs side-by-side under analyzers/dotnet/cs. The analyzer
+         discovery scans the folder, not individual packages. -->
+    <IsPackable>false</IsPackable>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <!-- netstandard2.0 + Polyfill triggers CS1591 on generator projects. Match generator. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Boutquin.Storage.SourceGenerator.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
+    <PackageReference Include="Polyfill" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

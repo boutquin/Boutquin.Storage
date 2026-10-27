@@ -63,4 +63,4 @@ namespace Boutquin.Storage.Infrastructure.Indexing;
 /// for managing a large number of keys and their associated file locations.</para>
 /// </remarks>
 public sealed class InMemoryFileIndex<TKey> :
-    InMemoryStorageIndex<TKey, FileLocation>, IFileStorageIndex<TKey> where TKey : IComparable<TKey>;
+    InMemoryStorageIndex<TKey, FileLocation>, IFileStorageIndex<TKey> where TKey : IComparable<TKey>, IEquatable<TKey>;

@@ -20,18 +20,29 @@ namespace Boutquin.Storage.Infrastructure.Events;
 /// <summary>
 /// Volatile, concurrent-safe in-memory event log for testing and composition.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing": append-only event logs.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing": append-only event logs.</para>
 /// </summary>
 /// <typeparam name="TEvent">The event type.</typeparam>
 public sealed class InMemoryEventLog<TEvent> : IEventLog<TEvent>
 {
     private readonly List<TEvent> _events = [];
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <inheritdoc />
     public ValueTask<long> AppendAsync(TEvent @event, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
+
+        // A null event would occupy a position that every consumer (CDC source, stream,
+        // projections) dereferences on replay, so the log would fail through it for its whole
+        // lifetime. Reject it before a position is assigned, matching AppendOnlyEventLog. (`is null`
+        // rather than ThrowIfNull so a value-type TEvent is not boxed on the append path.)
+        if (@event is null)
+        {
+            throw new ArgumentNullException(nameof(@event));
+        }
+
         lock (_lock)
         {
             var position = (long)_events.Count;
@@ -44,19 +55,38 @@ public sealed class InMemoryEventLog<TEvent> : IEventLog<TEvent>
     public async IAsyncEnumerable<(long Position, TEvent Event)> ReadFromAsync(
         long position, [EnumeratorCancellation] CancellationToken ct = default)
     {
-        // Snapshot the current count to avoid holding the lock during enumeration
-        List<TEvent> snapshot;
+        // Snapshot only the tail starting at `position` to avoid cloning the full list
+        // on every call — for a 1M-event log this is a huge allocation.
+        ArgumentOutOfRangeException.ThrowIfNegative(position);
+
+        TEvent[] snapshot;
+        long startIndex;
         lock (_lock)
         {
-            snapshot = [.. _events];
+            if (position >= _events.Count)
+            {
+                snapshot = [];
+                startIndex = position;
+            }
+            else
+            {
+                var start = (int)position;
+                var count = _events.Count - start;
+                snapshot = new TEvent[count];
+                _events.CopyTo(start, snapshot, 0, count);
+                startIndex = position;
+            }
         }
 
-        for (var i = position; i < snapshot.Count; i++)
+        for (var i = 0; i < snapshot.Length; i++)
         {
             ct.ThrowIfCancellationRequested();
-            yield return (i, snapshot[(int)i]);
+            yield return (startIndex + i, snapshot[i]);
         }
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        // AC-8.7 (F-46): removed the no-op `await Task.CompletedTask.ConfigureAwait(false)`
+        // that was here. An async iterator does not need a no-op await to satisfy the compiler —
+        // the `yield return` statements make the method an async iterator already. The no-op
+        // added a synthetic state-machine transition on every call with an empty range.
     }
 }

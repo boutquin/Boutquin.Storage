@@ -45,7 +45,7 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <b>Clear:</b> O(m) — resets all bits in the bit array.</para>
 /// <para>- <b>Space:</b> O(m) — the bit array dominates memory usage.</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
 /// section on LSM-tree optimizations. Bloom filters reduce unnecessary disk reads by quickly ruling out keys
 /// that are definitely not present in an SSTable.</para>
 ///
@@ -60,7 +60,19 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// </code>
 /// </summary>
 /// <typeparam name="T">The type of elements to be stored in the Bloom filter.</typeparam>
-public interface IBloomFilter<T>
+/// <remarks>
+/// <para>
+/// <b>Disposable.</b> Implementations may own a per-instance scratch <see cref="System.IO.MemoryStream"/>
+/// (used by the streaming-serializer constructor path on <c>BloomFilter&lt;T&gt;</c> and
+/// <c>CountingBloomFilter&lt;T&gt;</c> to avoid per-call <c>byte[]</c> allocations). The buffer
+/// grows to fit the largest serialised key and is never shrunk during the instance's lifetime;
+/// long-lived consumers that produce occasional oversize keys, or that construct and discard
+/// many bloom filters, MUST call <see cref="System.IDisposable.Dispose"/> to release the
+/// scratch buffer. After dispose, every public method throws
+/// <see cref="System.ObjectDisposedException"/>.
+/// </para>
+/// </remarks>
+public interface IBloomFilter<T> : IDisposable
 {
     /// <summary>
     /// Adds an element to the Bloom filter.

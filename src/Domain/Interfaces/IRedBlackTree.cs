@@ -56,13 +56,13 @@ namespace Boutquin.Storage.Domain.Interfaces;
 /// <para>- <b>ClearAsync:</b> O(1) — nulls the root reference.</para>
 /// <para>- <b>Space:</b> O(n).</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 3 — "Storage and Retrieval",
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 4 — "Storage and Retrieval",
 /// section on LSM-trees and memtables. The memtable is an in-memory balanced tree (e.g., red-black tree) that buffers
 /// writes before flushing to sorted on-disk segments (SSTables).</para>
 /// </remarks>
 public interface IRedBlackTree<TKey, TValue>
     : IMemTable<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Gets a value indicating whether the red-black tree (MemTable) is full.

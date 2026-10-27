@@ -63,11 +63,12 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
         // Act: Write the key-value pair to the stream.
         await storageEngine.SetAsync(key, value);
 
-        // Assert: Verify that the stream contains the expected serialized key-value pair.
-        await using var fileStream = File.OpenRead(TestFilePath);
-        var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
-        Assert.Equal(1, reader.ReadInt32());
-        Assert.Equal("value1", reader.ReadString());
+        // Assert: round-trip the written file through the same entry serializer and compare
+        // values. Raw-byte BinaryReader assertions would couple this test to the wrapper's
+        // internal wire format; the engine contract we care about is "write-then-read" fidelity.
+        var entry = Assert.Single(AppendOnlyFrames.ReadEntries(entrySerializer, TestFilePath));
+        Assert.Equal(key.Value, entry.Key.Value);
+        Assert.Equal(value.Value, entry.Value.Value);
     }
 
     /// <summary>
@@ -226,8 +227,10 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     [Fact]
     public async Task TryGetValueAsync_ShouldThrowExceptionIfStorageFileThrowsException()
     {
-        // Arrange: Create a storage file mock that throws an exception.
+        // Arrange: Create a storage file mock that exists but throws on read — a transient
+        // I/O failure on a present file must propagate, not read as an empty store.
         var storageFileMock = new Mock<IStorageFile>();
+        storageFileMock.Setup(sf => sf.Exists()).Returns(true);
         storageFileMock.Setup(sf => sf.ReadAllBytesAsync(It.IsAny<CancellationToken>())).Throws<IOException>();
 
         var entrySerializer = new Mock<IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>>().Object;
@@ -274,14 +277,42 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
         // Act: Append multiple key-value pairs to the storage file.
         await storageEngine.SetBulkAsync(items);
 
-        // Assert: Verify that the stream contains the expected serialized key-value pairs.
-        await using var fileStream = File.OpenRead(TestFilePath);
-        var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
-        foreach (var item in items)
+        // Assert: round-trip via the same entry serializer rather than raw BinaryReader bytes,
+        // which would be coupled to the wrapper's internal wire format.
+        var entries = AppendOnlyFrames.ReadEntries(entrySerializer, TestFilePath);
+        Assert.Equal(items.Count, entries.Count);
+        for (var i = 0; i < items.Count; i++)
         {
-            Assert.Equal(item.Key.Value, reader.ReadInt32());
-            Assert.Equal(item.Value.Value, reader.ReadString());
+            Assert.Equal(items[i].Key.Value, entries[i].Key.Value);
+            Assert.Equal(items[i].Value.Value, entries[i].Value.Value);
         }
+    }
+
+    /// <summary>
+    /// A bulk write whose LATER item is invalid must be rejected as a whole before any byte is
+    /// written: no earlier item of the rejected call may become readable, through this instance or
+    /// a reopened one.
+    /// </summary>
+    [Fact]
+    public async Task SetBulkAsync_LaterItemInvalid_RejectsTheWholeBatchBeforeWritingAnything()
+    {
+        var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
+            new StorageFile(_testFileLocation, _testFileName), entrySerializer);
+        var items = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>
+        {
+            new(new SerializableWrapper<int>(1), new SerializableWrapper<string>("a")),
+            new(new SerializableWrapper<int>(2), new SerializableWrapper<string>("b")),
+            new(null, new SerializableWrapper<string>("c")),
+        };
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => storageEngine.SetBulkAsync(items));
+
+        var (_, found1) = await storageEngine.TryGetValueAsync(new SerializableWrapper<int>(1));
+        Assert.False(found1, "an item of a rejected batch must not become readable");
+        Assert.Empty(await storageEngine.GetAllItemsAsync());
+        Assert.True(!File.Exists(TestFilePath) || new FileInfo(TestFilePath).Length == 0,
+            "a rejected batch must not leave bytes in the log");
     }
 
     /// <summary>
@@ -333,6 +364,124 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     }
 
     /// <summary>
+    /// DDIA 2e Ch. 4: a crashed write "could contain incomplete records … these issues are
+    /// typically detected by including checksums in the log and discarding corrupted or
+    /// incomplete log entries" — discarding the TORN entry, not failing every read of the
+    /// fully durable entries before it. A torn final record (crash mid-append) must be
+    /// treated as end-of-log, not poison the whole file.
+    /// </summary>
+    [Fact]
+    public async Task TryGetValueAsync_WithTornFinalRecord_StillReadsEarlierEntries()
+    {
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
+        var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
+
+        await storageEngine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1"));
+
+        // Simulate a crash mid-append: the first bytes of a real frame (a partial header).
+        var torn = AppendOnlyFrames.Encode(entrySerializer, new SerializableWrapper<int>(2), new SerializableWrapper<string>("value2"));
+        using (var fs = new FileStream(TestFilePath, FileMode.Append, FileAccess.Write))
+        {
+            fs.Write(torn.AsSpan(0, 7));
+        }
+
+        var (value, found) = await storageEngine.TryGetValueAsync(new SerializableWrapper<int>(1));
+        Assert.True(found, "a torn tail must not make durable earlier entries unreadable");
+        Assert.Equal("value1", value.Value);
+
+        var items = await storageEngine.GetAllItemsAsync();
+        Assert.Single(items);
+    }
+
+    /// <summary>
+    /// The CSV serializer signals a torn final record with <see cref="DeserializationException"/>
+    /// (corrupt Base64 / wrong field count), not <see cref="EndOfStreamException"/>. A crash that
+    /// leaves an incomplete final CSV line must still be treated as end-of-log so the durable
+    /// earlier entries remain readable — same DDIA 2e Ch. 4 torn-tail contract as the binary path.
+    /// </summary>
+    [Fact]
+    public async Task GetAllItemsAsync_WithTornFinalCsvRecord_StillReadsEarlierEntries()
+    {
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
+        var entrySerializer = new CsvEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
+
+        await storageEngine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1"));
+        await storageEngine.SetAsync(new SerializableWrapper<int>(2), new SerializableWrapper<string>("value2"));
+
+        // Simulate a crash mid-append: a CSV frame whose payload reached disk only in part
+        // (valid header, payload short at end-of-file).
+        var torn = AppendOnlyFrames.Encode(entrySerializer, new SerializableWrapper<int>(3), new SerializableWrapper<string>("value3"));
+        using (var fs = new FileStream(TestFilePath, FileMode.Append, FileAccess.Write))
+        {
+            fs.Write(torn.AsSpan(0, torn.Length - 5));
+        }
+
+        var items = (await storageEngine.GetAllItemsAsync()).ToList();
+        Assert.Equal(2, items.Count);
+        Assert.Contains(items, i => i.Key.Value == 1 && i.Value.Value == "value1");
+        Assert.Contains(items, i => i.Key.Value == 2 && i.Value.Value == "value2");
+
+        var (value, found) = await storageEngine.TryGetValueAsync(new SerializableWrapper<int>(2));
+        Assert.True(found, "a torn CSV tail must not make durable earlier entries unreadable");
+        Assert.Equal("value2", value.Value);
+    }
+
+    /// <summary>
+    /// The torn-tail tolerance must NOT swallow genuine mid-file corruption: a corrupt record with
+    /// valid complete records after it is real data loss (disk rot), not a crash-truncated tail —
+    /// mirroring ValueLogWriter.ThrowIfValidFrameFollows and the FileRaftLog.Replay mid-file guard.
+    /// Recovery must fail loud rather than silently drop the records before the corruption.
+    /// </summary>
+    [Fact]
+    public async Task GetAllItemsAsync_WithMidFileCorruption_StillThrows()
+    {
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
+        var entrySerializer = new CsvEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
+
+        await storageEngine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1"));
+
+        // Inject a checksum-valid frame whose CSV payload is not a key-value line BEFORE a valid
+        // trailing record — mid-file corruption, not a torn tail, and must surface as an error.
+        using (var fs = new FileStream(TestFilePath, FileMode.Append, FileAccess.Write))
+        {
+            fs.Write(AppendOnlyFrames.Encode(Encoding.UTF8.GetBytes("!!corrupt-midfile-line\n")));
+        }
+
+        await storageEngine.SetAsync(new SerializableWrapper<int>(2), new SerializableWrapper<string>("value2"));
+
+        // Mid-file corruption surfaces uniformly as InvalidDataException regardless of which
+        // serializer raised the underlying parse fault (the CSV path's DeserializationException is
+        // carried as the inner exception). A checksum-valid frame the serializer cannot decode is
+        // never a torn tail.
+        var ex = await Assert.ThrowsAsync<InvalidDataException>(() => storageEngine.GetAllItemsAsync());
+        Assert.IsType<DeserializationException>(ex.InnerException);
+    }
+
+    /// <summary>
+    /// Reads after ClearAsync must observe an empty store — not throw
+    /// <see cref="FileNotFoundException"/> until the next write happens to recreate the file.
+    /// </summary>
+    [Fact]
+    public async Task TryGetValueAsync_AfterClear_ReturnsNotFoundWithoutThrowing()
+    {
+        var storageFile = new StorageFile(_testFileLocation, _testFileName);
+        var entrySerializer = new BinaryEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>();
+        var storageEngine = new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(storageFile, entrySerializer);
+
+        await storageEngine.SetAsync(new SerializableWrapper<int>(1), new SerializableWrapper<string>("value1"));
+        await storageEngine.ClearAsync();
+
+        var (_, found) = await storageEngine.TryGetValueAsync(new SerializableWrapper<int>(1));
+        Assert.False(found);
+
+        var items = await storageEngine.GetAllItemsAsync();
+        Assert.Empty(items);
+    }
+
+    /// <summary>
     /// Test to ensure that the ClearAsync method throws an exception when an IStorageFile method throws an exception.
     /// </summary>
     [Fact]
@@ -379,10 +528,9 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
             _output.WriteLine($"Key: {item.Key}, Value: {item.Value}");
         }
 #endif
-        await using var fileStream = File.OpenRead(TestFilePath);
-        var reader = new BinaryReader(fileStream, Encoding.UTF8, leaveOpen: true);
-        Assert.Equal(1, reader.ReadInt32());
-        Assert.Equal("value2", reader.ReadString());
+        var entry = Assert.Single(AppendOnlyFrames.ReadEntries(entrySerializer, TestFilePath));
+        Assert.Equal(1, entry.Key.Value);
+        Assert.Equal("value2", entry.Value.Value);
     }
 
     /// <summary>
@@ -391,9 +539,12 @@ public sealed class AppendOnlyFileStorageEngineTests : IDisposable
     [Fact]
     public async Task CompactAsync_ShouldThrowExceptionIfStorageFileThrowsException()
     {
-        // Arrange: Create a storage file mock that throws an exception.
+        // Arrange: a storage file whose atomic replace fails. Compaction serializes the deduplicated
+        // entries in memory and replaces the file via WriteAllBytesAsync (crash-atomic temp+rename),
+        // so a failure there must propagate to the caller.
         var storageFileMock = new Mock<IStorageFile>();
-        storageFileMock.Setup(sf => sf.Open(It.IsAny<FileMode>())).Throws<IOException>();
+        storageFileMock.Setup(sf => sf.WriteAllBytesAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new IOException());
 
         var entrySerializer = new Mock<IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>>().Object;
 

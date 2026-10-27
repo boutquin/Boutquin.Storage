@@ -4,56 +4,125 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: write
+
 jobs:
   publish:
     name: Publish NuGet packages
+    if: github.repository == 'boutquin/Boutquin.Storage'
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
+    env:
+      DOTNET_PROCESSOR_COUNT: 2
     steps:
-      - uses: actions/checkout@v4
+      - name: Read release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Expected a v-prefixed semantic version tag."
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v7
         with:
-          fetch-depth: 0 # Full history needed for MinVer
+          fetch-depth: 0
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.401
+
+      - name: Check release tooling and public export
+        run: |
+          python3 -m unittest discover -s scripts/tests -v
+          python3 scripts/check-public-export.py --revision HEAD
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          key: ${{ runner.os }}-nuget-10.0.401-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props', 'nuget.config') }}
 
-      - name: dotnet restore
-        run: dotnet restore
+      - name: Restore public dependencies
+        run: dotnet restore Boutquin.Storage.slnx --configfile nuget.config
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build Boutquin.Storage.slnx --configuration Release -m:1 --no-restore --no-incremental -p:MinVerVersionOverride="$PACKAGE_VERSION"
 
-      - name: Test
-        run: dotnet test --configuration Release --no-build
+      - name: Test with coverage
+        # Match the qualified shared-runner budget for instrumented graph workloads.
+        run: >-
+          dotnet test Boutquin.Storage.slnx --configuration Release -m:1 --no-build
+          --collect:"XPlat Code Coverage"
+          --logger "console;verbosity=normal"
+          --logger trx
+          --blame-hang --blame-hang-timeout 5m --blame-hang-dump-type mini
+          --results-directory ./coverage
 
-      - name: Verify version matches tag
+      - name: Verify process-termination recovery
+        run: python3 scripts/verify-io-process-crash.py --output coverage/process-crash
+
+      - name: Upload test diagnostics and coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: Verify formatting
         run: |
-          TAG=${GITHUB_REF#refs/tags/v}
-          # Extract version from the built Domain .nupkg filename (MinVer sets it at build time)
-          NUPKG=$(find src/Domain/bin/Release -name 'Boutquin.Storage.Domain.*.nupkg' ! -name '*.symbols.nupkg' | head -1)
-          if [ -z "$NUPKG" ]; then
-            echo "::error::No .nupkg found — build may have failed"
+          dotnet format Boutquin.Storage.slnx --no-restore --verify-no-changes
+          dotnet format tests/IoCrashProbe/Boutquin.Storage.IoCrashProbe.csproj --no-restore --verify-no-changes
+
+      - name: Pack all public packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for project in Domain Infrastructure SourceGenerator; do
+            dotnet pack "src/$project/Boutquin.Storage.$project.csproj" \
+              --configuration Release --no-build --no-restore \
+              -p:MinVerVersionOverride="$PACKAGE_VERSION" --output artifacts/packages
+          done
+
+      - name: Verify package identities and fresh consumer
+        run: python3 scripts/verify-packages.py --packages artifacts/packages --version "$PACKAGE_VERSION" --commit "$GITHUB_SHA"
+
+      - name: Extract release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk -v hdr="## [$PACKAGE_VERSION]" '
+            index($0, hdr) == 1 { flag=1; next }
+            /^## \[/ && flag { exit }
+            flag
+          ' CHANGELOG.md > artifacts/release-notes.md
+          if ! grep -q '[^[:space:]]' artifacts/release-notes.md; then
+            echo "::error::CHANGELOG.md has no release notes for $PACKAGE_VERSION."
             exit 1
           fi
-          VERSION=$(basename "$NUPKG" | sed 's/^Boutquin\.Storage\.Domain\.\(.*\)\.nupkg$/\1/')
-          echo "Tag version: $TAG"
-          echo "Package version: $VERSION"
-          if [ "$TAG" != "$VERSION" ]; then
-            echo "::error::Tag version ($TAG) does not match package version ($VERSION)"
-            exit 1
-          fi
 
-      - name: Push to NuGet
+      - name: Push verified packages to NuGet
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        shell: bash
         run: |
-          dotnet nuget push "src/Domain/bin/Release/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-          dotnet nuget push "src/Infrastructure/bin/Release/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          set -euo pipefail
+          for package in Domain Infrastructure SourceGenerator; do
+            dotnet nuget push "artifacts/packages/Boutquin.Storage.$package.$PACKAGE_VERSION.nupkg" \
+              --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: artifacts/release-notes.md
+          make_latest: true
+          files: |
+            artifacts/packages/*.nupkg
+            artifacts/packages/*.snupkg

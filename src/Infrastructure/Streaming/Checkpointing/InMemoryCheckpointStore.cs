@@ -20,18 +20,23 @@ namespace Boutquin.Storage.Infrastructure.Streaming.Checkpointing;
 /// <summary>
 /// Volatile, concurrent-safe in-memory checkpoint store for testing and composition.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 11 — "Stream Processing": checkpointing consumer offsets.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 12 — "Stream Processing": checkpointing consumer offsets.</para>
 /// </summary>
 public sealed class InMemoryCheckpointStore : ICheckpointStore
 {
     private readonly ConcurrentDictionary<string, (long Offset, byte[] State)> _store = new();
 
     /// <inheritdoc />
-    public ValueTask SaveAsync(string processorId, long offset, ReadOnlyMemory<byte> state, CancellationToken ct = default)
+    // AC-8.7 (F-49, DR-6): `state` changed from ReadOnlyMemory<byte> to byte[] to match
+    // the storage representation and LoadAsync's return type.
+    public ValueTask SaveAsync(string processorId, long offset, byte[] state, CancellationToken ct = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
+        // Sibling contract parity — same id contract as FileCheckpointStore.
+        FileCheckpointStore.ValidateProcessorId(processorId);
+        ArgumentNullException.ThrowIfNull(state);
         ct.ThrowIfCancellationRequested();
+        // Defensive copy so the caller can't mutate the stored state after Save.
         _store[processorId] = (offset, state.ToArray());
         return default;
     }
@@ -39,7 +44,8 @@ public sealed class InMemoryCheckpointStore : ICheckpointStore
     /// <inheritdoc />
     public ValueTask<(long Offset, byte[] State)?> LoadAsync(string processorId, CancellationToken ct = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(processorId);
+        // Sibling contract parity — same id contract as FileCheckpointStore.
+        FileCheckpointStore.ValidateProcessorId(processorId);
         ct.ThrowIfCancellationRequested();
 
         if (_store.TryGetValue(processorId, out var checkpoint))

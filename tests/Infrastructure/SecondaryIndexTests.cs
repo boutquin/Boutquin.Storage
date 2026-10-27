@@ -247,4 +247,125 @@ public sealed class SecondaryIndexTests
         Assert.Throws<ArgumentNullException>(
             () => new SecondaryIndex<SerializableWrapper<int>, string, SerializableWrapper<string>>(null!));
     }
+
+    /// <summary>
+    /// AC-7.3: SecondaryIndex must implement IDisposable and dispose its internal SemaphoreSlim
+    /// without throwing. A second Dispose call must also be idempotent.
+    /// </summary>
+    [Fact]
+    public void Dispose_ReleasesResourcesWithoutThrowing()
+    {
+        // Arrange
+        var index = new SecondaryIndex<SerializableWrapper<int>, string, SerializableWrapper<string>>(
+            v => new SerializableWrapper<string>(v));
+
+        // Act & Assert: first dispose must not throw
+        var ex = Record.Exception(index.Dispose);
+        Assert.Null(ex);
+
+        // Second dispose must also not throw (idempotent)
+        ex = Record.Exception(index.Dispose);
+        Assert.Null(ex);
+    }
+
+    /// <summary>
+    /// AC-7.3: SecondaryIndex (via ISecondaryIndex) must be assignable to IDisposable —
+    /// i.e. the interface inherits IDisposable.
+    /// </summary>
+    [Fact]
+    public void SecondaryIndex_IsAssignableToIDisposable()
+    {
+        var index = new SecondaryIndex<SerializableWrapper<int>, string, SerializableWrapper<string>>(
+            v => new SerializableWrapper<string>(v));
+
+        Assert.IsAssignableFrom<IDisposable>(index);
+    }
+
+    /// <summary>
+    /// AC-7.2: A value-type primary key implementing IEquatable&lt;TKey&gt; must satisfy the
+    /// IEquatable constraint added to SecondaryIndex and ISecondaryIndex.
+    /// </summary>
+    [Fact]
+    public async Task ValueTypeKey_ImplementingIEquatable_CanBeIndexedAndLooked_Up()
+    {
+        // Arrange: use EquatableIntKey which implements both IComparable<T> and IEquatable<T>.
+        var index = new SecondaryIndex<EquatableIntKey, string, string>(v => v.Split(':')[0]);
+
+        // Act
+        await index.IndexAsync(new EquatableIntKey(1), "dept:Alice");
+        await index.IndexAsync(new EquatableIntKey(2), "dept:Bob");
+
+        var results = (await index.LookupAsync("dept")).ToList();
+
+        // Assert
+        Assert.Equal(2, results.Count);
+        Assert.Contains(new EquatableIntKey(1), results);
+        Assert.Contains(new EquatableIntKey(2), results);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // B4: Non-atomic Dispose + missing disposed-guards
+    // ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Regression guard: before the fix <c>_disposed</c> was a <c>bool</c> and the guard
+    /// was a non-atomic check-then-set. Two threads could both see <c>false</c> and both
+    /// call <c>_semaphore.Dispose()</c>. After the fix, <c>Interlocked.Exchange</c> ensures
+    /// exactly-once disposal.
+    /// </summary>
+    [Fact]
+    public void Dispose_CalledConcurrently_SemaphoreDisposedExactlyOnce()
+    {
+        // Arrange
+        var index = CreateDepartmentIndex();
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+        const int threadCount = 8;
+        var barrier = new Barrier(threadCount);
+
+        // Act — all threads race to Dispose simultaneously.
+        Parallel.For(0, threadCount, _ =>
+        {
+            barrier.SignalAndWait();
+            try { index.Dispose(); }
+            catch (Exception ex) { exceptions.Add(ex); }
+        });
+
+        // Assert — no ObjectDisposedException or other exception from double-dispose.
+        Assert.Empty(exceptions);
+
+        // Verify _disposed is int 1, not bool true (the fix changes the field type).
+        var disposedField = typeof(SecondaryIndex<SerializableWrapper<int>, string, SerializableWrapper<string>>)
+            .GetField("_disposed",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        Assert.Equal(1, disposedField.GetValue(index));
+    }
+
+    /// <summary>
+    /// After Dispose, IndexAsync should throw <see cref="ObjectDisposedException"/>.
+    /// </summary>
+    [Fact]
+    public async Task IndexAsync_AfterDispose_ThrowsObjectDisposedException()
+    {
+        var index = CreateDepartmentIndex();
+        index.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            index.IndexAsync(new SerializableWrapper<int>(1), "engineering:Alice"))
+            .ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// After Dispose, LookupAsync should throw <see cref="ObjectDisposedException"/>.
+    /// </summary>
+    [Fact]
+    public async Task LookupAsync_AfterDispose_ThrowsObjectDisposedException()
+    {
+        var index = CreateDepartmentIndex();
+        index.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            index.LookupAsync(new SerializableWrapper<string>("engineering")))
+            .ConfigureAwait(true);
+    }
 }

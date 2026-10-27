@@ -46,7 +46,7 @@ public sealed class NamingConventionTests : BaseArchitectureTest
     {
         // Types that implement IStorageEngine transitively (via IBulkStorageEngine) but
         // are not top-level storage engines: wrappers, internal components, and in-memory stores
-        var result = Types.InAssembly(InfrastructureAssembly)
+        var predicate = Types.InAssembly(InfrastructureAssembly)
             .That()
             .ImplementInterface(typeof(Domain.Interfaces.IStorageEngine<,>))
             .And()
@@ -54,7 +54,14 @@ public sealed class NamingConventionTests : BaseArchitectureTest
             .And()
             .DoNotHaveNameStartingWith("BulkKeyValueStoreWith") // decorator wrapper
             .And()
-            .DoNotHaveNameStartingWith("LogSegmentFile") // internal component of LogSegmentedStorageEngine
+            .DoNotHaveNameStartingWith("LogSegmentFile"); // internal component of LogSegmentedStorageEngine
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "IStorageEngine must have at least one qualifying implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
             .Should()
             .HaveNameEndingWith("StorageEngine")
             .GetResult();
@@ -66,15 +73,22 @@ public sealed class NamingConventionTests : BaseArchitectureTest
     [Fact]
     public void CompactionStrategies_ShouldEndWithStrategy()
     {
-        var result = Types.InAssembly(InfrastructureAssembly)
+        var predicate = Types.InAssembly(InfrastructureAssembly)
             .That()
-            .ImplementInterface(typeof(Domain.Interfaces.ICompactionStrategy))
+            .ImplementInterface(typeof(Domain.Interfaces.ICompactionStrategy<>));
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "ICompactionStrategy must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
             .Should()
             .HaveNameEndingWith("Strategy")
             .GetResult();
 
         result.IsSuccessful.Should().BeTrue(
-            because: $"ICompactionStrategy implementations must end with 'Strategy': [{GetFailingTypes(result)}]");
+            because: $"ICompactionStrategy<TKey> implementations must end with 'Strategy': [{GetFailingTypes(result)}]");
     }
 
     [Fact]
@@ -82,9 +96,16 @@ public sealed class NamingConventionTests : BaseArchitectureTest
     {
         // Hash algorithms should have domain-specific names (Murmur3, XxHash32, Fnv1aHash),
         // not generic suffixes
-        var result = Types.InAssembly(InfrastructureAssembly)
+        var predicate = Types.InAssembly(InfrastructureAssembly)
             .That()
-            .ImplementInterface(typeof(Domain.Interfaces.IHashAlgorithm))
+            .ImplementInterface<Domain.Interfaces.IHashAlgorithm>();
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "IHashAlgorithm must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
             .Should()
             .NotHaveNameEndingWith("Algorithm")
             .GetResult();
@@ -96,9 +117,16 @@ public sealed class NamingConventionTests : BaseArchitectureTest
     [Fact]
     public void ObjectStores_ShouldEndWithObjectStore()
     {
-        var result = Types.InAssembly(InfrastructureAssembly)
+        var predicate = Types.InAssembly(InfrastructureAssembly)
             .That()
-            .ImplementInterface(typeof(Domain.Interfaces.ObjectStore.IObjectStore))
+            .ImplementInterface<Domain.Interfaces.ObjectStore.IObjectStore>();
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "IObjectStore must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
             .Should()
             .HaveNameEndingWith("ObjectStore")
             .GetResult();
@@ -110,9 +138,16 @@ public sealed class NamingConventionTests : BaseArchitectureTest
     [Fact]
     public void CheckpointStores_ShouldEndWithCheckpointStore()
     {
-        var result = Types.InAssembly(InfrastructureAssembly)
+        var predicate = Types.InAssembly(InfrastructureAssembly)
             .That()
-            .ImplementInterface(typeof(Domain.Interfaces.Streaming.ICheckpointStore))
+            .ImplementInterface<Domain.Interfaces.Streaming.ICheckpointStore>();
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "ICheckpointStore must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
             .Should()
             .HaveNameEndingWith("CheckpointStore")
             .GetResult();
@@ -124,9 +159,16 @@ public sealed class NamingConventionTests : BaseArchitectureTest
     [Fact]
     public void EventLogs_ShouldEndWithEventLog()
     {
-        var result = Types.InAssembly(InfrastructureAssembly)
+        var predicate = Types.InAssembly(InfrastructureAssembly)
             .That()
-            .ImplementInterface(typeof(Domain.Interfaces.Events.IEventLog<>))
+            .ImplementInterface(typeof(Domain.Interfaces.Events.IEventLog<>));
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "IEventLog must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
             .Should()
             .HaveNameEndingWith("EventLog")
             .GetResult();
@@ -136,11 +178,60 @@ public sealed class NamingConventionTests : BaseArchitectureTest
     }
 
     [Fact]
+    public void TimeSeriesStores_ShouldEndWithTimeSeriesStore()
+    {
+        var predicate = Types.InAssembly(InfrastructureAssembly)
+            .That()
+            .ImplementInterface(typeof(Domain.Interfaces.TimeSeries.ITimeSeriesStore<,>));
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "ITimeSeriesStore must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
+            .Should()
+            .HaveNameEndingWith("TimeSeriesStore")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            because: $"ITimeSeriesStore implementations must end with 'TimeSeriesStore': [{GetFailingTypes(result)}]");
+    }
+
+    [Fact]
+    public void DatasetCoverageIndexes_ShouldEndWithDatasetCoverageIndex()
+    {
+        var predicate = Types.InAssembly(InfrastructureAssembly)
+            .That()
+            .ImplementInterface(typeof(Domain.Interfaces.TimeSeries.IDatasetCoverageIndex<>));
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "IDatasetCoverageIndex must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
+            .Should()
+            .HaveNameEndingWith("DatasetCoverageIndex")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue(
+            because: $"IDatasetCoverageIndex implementations must end with 'DatasetCoverageIndex': [{GetFailingTypes(result)}]");
+    }
+
+    [Fact]
     public void Serializers_ShouldEndWithSerializer()
     {
-        var result = Types.InAssembly(InfrastructureAssembly)
+        var predicate = Types.InAssembly(InfrastructureAssembly)
             .That()
-            .ImplementInterface(typeof(Domain.Interfaces.IEntrySerializer<,>))
+            .ImplementInterface(typeof(Domain.Interfaces.IEntrySerializer<,>));
+
+        predicate.GetTypes()
+            .Should().NotBeEmpty(
+                because: "IEntrySerializer must have at least one implementation in Infrastructure; " +
+                         "an empty selector indicates a rename or namespace move that silently broke the naming guard");
+
+        var result = predicate
             .Should()
             .HaveNameEndingWith("Serializer")
             .GetResult();

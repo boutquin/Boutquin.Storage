@@ -19,7 +19,7 @@ namespace Boutquin.Storage.Domain.Enums;
 /// Represents the state of a node in a Raft consensus cluster.
 ///
 /// <para><b>Reference:</b> Ongaro &amp; Ousterhout (2014), "In Search of an Understandable Consensus Algorithm (Raft)".
-/// Also Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017), Ch. 9 — "Consensus".</para>
+/// Also Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026), Ch. 10 — "Consistency and Consensus".</para>
 /// </summary>
 public enum RaftNodeState
 {

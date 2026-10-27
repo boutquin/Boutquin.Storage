@@ -67,10 +67,10 @@ public sealed class Murmur3 : IHashAlgorithm
         {
             var k = BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(i * 4, 4)); // Read 4 bytes as uint.
             k *= 0xcc9e2d51; // Mix the block with the first constant.
-            k = RotateLeft(k, 15); // Rotate left by 15 bits.
+            k = System.Numerics.BitOperations.RotateLeft(k, 15); // Rotate left by 15 bits.
             k *= 0x1b873593; // Mix the block with the second constant.
             hash ^= k; // XOR the hash with the mixed block.
-            hash = RotateLeft(hash, 13); // Rotate left by 13 bits.
+            hash = System.Numerics.BitOperations.RotateLeft(hash, 13); // Rotate left by 13 bits.
             hash = hash * 5 + 0xe6546b64; // Mix the hash with constants.
         }
 
@@ -83,7 +83,7 @@ public sealed class Murmur3 : IHashAlgorithm
                 k1 ^= (uint)data[i] << ((i & 3) << 3); // Combine remaining bytes into k1.
             }
             k1 *= 0xcc9e2d51; // Mix k1 with the first constant.
-            k1 = RotateLeft(k1, 15); // Rotate left by 15 bits.
+            k1 = System.Numerics.BitOperations.RotateLeft(k1, 15); // Rotate left by 15 bits.
             k1 *= 0x1b873593; // Mix k1 with the second constant.
             hash ^= k1; // XOR the hash with k1.
         }
@@ -92,25 +92,6 @@ public sealed class Murmur3 : IHashAlgorithm
         hash = FMix(hash); // Final mixing of the hash.
 
         return hash; // Return the computed hash value.
-    }
-
-    /// <summary>
-    /// Rotates a 32-bit integer left by the specified number of bits.
-    /// Bitwise rotation ensures that every bit can influence every other bit, contributing to the hash's avalanche effect.
-    /// </summary>
-    /// <param name="value">The value to rotate.</param>
-    /// <param name="count">The number of bits to rotate left.</param>
-    /// <returns>The rotated value.</returns>
-    /// <remarks>
-    /// <para>
-    /// <b>Why AggressiveInlining?</b> This is a hot-path helper method called per block. Inlining
-    /// eliminates call overhead, which matters when hashing millions of keys in a Bloom filter.
-    /// </para>
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static uint RotateLeft(uint value, int count)
-    {
-        return System.Numerics.BitOperations.RotateLeft(value, count);
     }
 
     /// <summary>

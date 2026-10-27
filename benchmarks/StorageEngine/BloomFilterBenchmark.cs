@@ -54,8 +54,8 @@ public class BloomFilterBenchmark
             _nonExistentItems.Add($"missing_{i}");
         }
 
-        _bloomPopulated = new BloomFilter<string>(ItemCount, 0.01);
-        _countingBloomPopulated = new CountingBloomFilter<string>(ItemCount, 0.01);
+        _bloomPopulated = new BloomFilter<string>(ItemCount, 0.01, Encoding.UTF8.GetBytes);
+        _countingBloomPopulated = new CountingBloomFilter<string>(ItemCount, 0.01, Encoding.UTF8.GetBytes);
 
         foreach (var item in _items)
         {
@@ -71,7 +71,7 @@ public class BloomFilterBenchmark
     [BenchmarkCategory("Add")]
     public void BloomFilterAdd()
     {
-        var filter = new BloomFilter<string>(ItemCount, 0.01);
+        var filter = new BloomFilter<string>(ItemCount, 0.01, Encoding.UTF8.GetBytes);
         foreach (var item in _items)
         {
             filter.Add(item);
@@ -85,7 +85,7 @@ public class BloomFilterBenchmark
     [BenchmarkCategory("Add")]
     public void CountingBloomFilterAdd()
     {
-        var filter = new CountingBloomFilter<string>(ItemCount, 0.01);
+        var filter = new CountingBloomFilter<string>(ItemCount, 0.01, Encoding.UTF8.GetBytes);
         foreach (var item in _items)
         {
             filter.Add(item);

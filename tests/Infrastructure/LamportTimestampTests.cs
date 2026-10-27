@@ -73,53 +73,12 @@ public sealed class LamportTimestampTests
         Assert.Equal(11, result);
     }
 
-    /// <summary>
-    /// Test that CompareTo returns negative for lower timestamp.
-    /// </summary>
-    [Fact]
-    public void CompareTo_LowerTimestamp_ReturnsNegative()
-    {
-        // Arrange
-        var clock = new LamportTimestamp("node-1", initialCounter: 5);
-
-        // Act — compare with higher timestamp
-        var result = clock.CompareTo(10, "node-2");
-
-        // Assert
-        Assert.True(result < 0);
-    }
-
-    /// <summary>
-    /// Test that CompareTo returns positive for higher timestamp.
-    /// </summary>
-    [Fact]
-    public void CompareTo_HigherTimestamp_ReturnsPositive()
-    {
-        // Arrange
-        var clock = new LamportTimestamp("node-1", initialCounter: 10);
-
-        // Act — compare with lower timestamp
-        var result = clock.CompareTo(5, "node-2");
-
-        // Assert
-        Assert.True(result > 0);
-    }
-
-    /// <summary>
-    /// Test that CompareTo breaks ties by nodeId (lexicographic).
-    /// </summary>
-    [Fact]
-    public void CompareTo_EqualTimestamps_BrokenByNodeId()
-    {
-        // Arrange
-        var clock = new LamportTimestamp("node-a", initialCounter: 5);
-
-        // Act — same timestamp, different node ID
-        var result = clock.CompareTo(5, "node-b");
-
-        // Assert — "node-a" < "node-b" lexicographically
-        Assert.True(result < 0);
-    }
+    // The racy instance-form `CompareTo(long, string)` was removed; every test that
+    // exercised it has been folded into the static `CompareEvents(long, string, long, string)`
+    // suite further down (timestamp-ordering, antisymmetric, equal-timestamp tie-break,
+    // identical-events-zero, consistency-with-instance-state). DDIA Ch. 9 (p. 342) describes
+    // Lamport ordering as a comparison over two `(counter, nodeId)` pairs; there is no
+    // canonical "current node's timestamp" mutating mid-compare.
 
     /// <summary>
     /// Test thread safety: concurrent increments don't lose updates.
@@ -176,5 +135,107 @@ public sealed class LamportTimestampTests
 
         // Assert
         Assert.Equal("node-1", clock.NodeId);
+    }
+
+    // ========== CompareEvents (static two-event total-ordering form) ==========
+
+    /// <summary>
+    /// CompareEvents orders by timestamp first — earlier timestamp comes first regardless of node.
+    /// </summary>
+    [Fact]
+    public void CompareEvents_DifferentTimestamps_OrdersByTimestamp()
+    {
+        // event at t=5 on node-b vs event at t=10 on node-a
+        var result = LamportTimestamp.CompareEvents(5L, "node-b", 10L, "node-a");
+        Assert.True(result < 0);
+    }
+
+    /// <summary>
+    /// CompareEvents is antisymmetric: swapping arguments negates the sign.
+    /// </summary>
+    [Fact]
+    public void CompareEvents_Antisymmetric_SwappingNegatesSign()
+    {
+        var fwd = LamportTimestamp.CompareEvents(10L, "node-a", 5L, "node-b");
+        var rev = LamportTimestamp.CompareEvents(5L, "node-b", 10L, "node-a");
+        Assert.True(fwd > 0);
+        Assert.True(rev < 0);
+    }
+
+    /// <summary>
+    /// CompareEvents breaks ties by lexicographic node ID.
+    /// </summary>
+    [Fact]
+    public void CompareEvents_EqualTimestamps_BrokenByNodeId()
+    {
+        // same timestamp, "node-a" < "node-b" lexicographically
+        var result = LamportTimestamp.CompareEvents(5L, "node-a", 5L, "node-b");
+        Assert.True(result < 0);
+    }
+
+    /// <summary>
+    /// CompareEvents returns zero for identical (timestamp, nodeId) pairs.
+    /// </summary>
+    [Fact]
+    public void CompareEvents_IdenticalEvents_ReturnsZero()
+    {
+        var result = LamportTimestamp.CompareEvents(7L, "node-x", 7L, "node-x");
+        Assert.Equal(0, result);
+    }
+
+    /// <summary>
+    /// CompareEvents reads on a clock's own (counter, nodeId) pair are consistent with the
+    /// clock's current state — feeding the clock's GetCurrentTimestamp() into the static form
+    /// must produce the same total order as feeding any other event with a higher counter.
+    /// This replaces the earlier instance-form consistency check.
+    /// </summary>
+    [Fact]
+    public void CompareEvents_OwnClockState_OrdersConsistently()
+    {
+        var clock = new LamportTimestamp("node-a", initialCounter: 5);
+        var myTimestamp = clock.GetCurrentTimestamp();
+
+        // (own_counter, own_nodeId) vs (higher counter, different nodeId)
+        var result = LamportTimestamp.CompareEvents(myTimestamp, clock.NodeId, 10L, "node-b");
+
+        Assert.True(result < 0);
+    }
+
+    /// <summary>
+    /// The node id is the total-order tiebreaker, so a null, empty, or whitespace id degrades
+    /// ordering. The sibling convention across src/Distributed (GCounter, ORSet, VectorClock,
+    /// RaftNode, ConsistentHashRing) is ThrowIfNullOrWhiteSpace at construction.
+    /// </summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Constructor_EmptyOrWhitespaceNodeId_ThrowsArgumentException(string nodeId)
+    {
+        var act = () => new LamportTimestamp(nodeId);
+        act.Should().Throw<ArgumentException>(
+            "an empty node id degrades the total-order tiebreak; the repo convention rejects it at construction");
+    }
+    [Fact]
+    public void Update_WithReceivedMaxValue_FailsLoudlyWithoutRegressingTheClock()
+    {
+        var clock = new LamportTimestamp("node-a", initialCounter: 1);
+
+        // max(local, received) + 1 has no representable value; wrapping to long.MinValue would
+        // order every later local event before every earlier one.
+        var act = () => clock.Update(long.MaxValue);
+
+        act.Should().Throw<OverflowException>("the receiver clock cannot exceed long.MaxValue");
+        clock.GetCurrentTimestamp().Should().Be(1, "a rejected update must leave the clock unchanged");
+    }
+
+    [Fact]
+    public void Increment_AtMaxValue_FailsLoudlyWithoutRegressingTheClock()
+    {
+        var clock = new LamportTimestamp("node-a", initialCounter: long.MaxValue);
+
+        Func<long> act = clock.Increment;
+
+        act.Should().Throw<OverflowException>("the next local timestamp is not representable");
+        clock.GetCurrentTimestamp().Should().Be(long.MaxValue, "a rejected increment must leave the clock unchanged");
     }
 }

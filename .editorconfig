@@ -114,8 +114,17 @@ dotnet_diagnostic.CA1018.severity = warning
 # CA1047: Do not declare protected member in sealed type
 dotnet_diagnostic.CA1047.severity = warning
 
+# CA1304: Specify CultureInfo
+dotnet_diagnostic.CA1304.severity = warning
+
 # CA1305: Specify IFormatProvider
 dotnet_diagnostic.CA1305.severity = warning
+
+# CA1310: Specify StringComparison for correctness (locale-varying StartsWith/EndsWith/IndexOf/Compare).
+# The correctness sibling CA1307 (clarity-only, MS-default-off) is intentionally NOT enabled: it fires
+# on every ordinal-intent string.Contains/Replace in test assertions with zero production value
+# (src/ is already clean of culture-sensitive string operations).
+dotnet_diagnostic.CA1310.severity = warning
 
 # CA1507: Use nameof to express symbol names
 dotnet_diagnostic.CA1507.severity = warning
@@ -247,6 +256,16 @@ dotnet_diagnostic.CA2007.severity = warning
 # CA2008: Do not create tasks without passing a TaskScheduler
 dotnet_diagnostic.CA2008.severity = warning
 
+# CA2000 (dispose before losing scope) and CA2213 (disposable fields disposed) are intentionally NOT
+# enabled: every hit in this codebase was a false positive, which is itself a good signal about its
+# disposal hygiene. CA2000 misfired on ownership transfer (BuildSsTable's table is owned and disposed
+# by the SstSegmentReader it is handed to) and on the `await using (fs.ConfigureAwait(false))` pattern
+# it cannot see through. CA2213 misfired on a documented borrowed stream (WindowReadStream._base) and
+# on an injected dependency the type deliberately does not own (BulkKeyValueStoreWithBloomFilter
+# disposes only the semaphore it creates, leaving injected stores/filters to their composer). CA2215
+# (Dispose overrides call base.Dispose) IS enabled below — it had zero hits and guards the Stream
+# subclasses going forward.
+
 # CA2009: Do not call ToImmutableCollection on an ImmutableCollection value
 dotnet_diagnostic.CA2009.severity = warning
 
@@ -262,11 +281,35 @@ dotnet_diagnostic.CA2013.severity = warning
 # CA2014: Do not use stackalloc in loops.
 dotnet_diagnostic.CA2014.severity = warning
 
+# CA1849 (call async methods in an async context) is intentionally NOT enabled as a gate: in this
+# engine it is ~90% noise. Its dominant hit is FileStream.Flush(flushToDisk: true) — the durability
+# fsync — for which it suggests FlushAsync(), but FlushAsync does NOT flush to disk, so "fixing" it
+# would silently break durability (there is no async fsync in .NET). The remaining hits were sync
+# Task-returning methods over in-memory structures (no real blocking). Of the candidates it surfaced,
+# one safe fix was applied (a sync FileStream.Dispose -> DisposeAsync in an async method); a sync
+# ReadBytes on the async read path was NOT changed — awaiting it altered concurrent interleaving and
+# broke a recovery-once race test, proving such fixes need per-site concurrency analysis, not a
+# mechanical rule. Revisit only if a centralized fsync helper makes one suppression cover the
+# Flush(true) sites.
+
+# Microsoft.VisualStudio.Threading.Analyzers (VSTHRD*) was evaluated and NOT adopted. Every hit was
+# noise or a deliberate, documented pattern, with zero real bugs: VSTHRD103 duplicates the CA1849
+# fsync false positive; VSTHRD002 flagged intentional sync-over-async bridges (an in-memory RB-tree
+# drain that completes synchronously, the flusher-loop drain in sync Dispose, and a drain inside the
+# WAL's single-threaded actor loop — none can deadlock in context); VSTHRD200 is Async-suffix naming;
+# VSTHRD011 flagged the Lazy<Task<T>> index-recovery pattern (tested for concurrency correctness),
+# whose recommended fix (AsyncLazy<T>) would add the Microsoft.VisualStudio.Threading RUNTIME
+# dependency to this storage library. Adopting it would mean ~30 suppressions of correct code plus a
+# heavy runtime dependency. ConfigureAwait(false) (CA2007) already mitigates the deadlock class.
+
 # CA2016: Forward the 'CancellationToken' parameter to methods that take one
 dotnet_diagnostic.CA2016.severity = warning
 
 # CA2200: Rethrow to preserve stack details
 dotnet_diagnostic.CA2200.severity = warning
+
+# CA2215: Dispose methods should call base class dispose (zero current hits; guards Stream subclasses)
+dotnet_diagnostic.CA2215.severity = warning
 
 # CA2201: Do not raise reserved exception types
 dotnet_diagnostic.CA2201.severity = warning
@@ -476,3 +519,11 @@ dotnet_diagnostic.IDE0005.severity = silent
 [{*.razor.cs,src/Aspire.Dashboard/Components/**.cs}]
 # CA2007: Consider calling ConfigureAwait on the awaited task
 dotnet_diagnostic.CA2007.severity = silent
+
+# Source-generator output — *.g.cs files are auto-generated partials.
+# IDE0073 must not apply: generated files use their own auto-generated header,
+# not the project file_header_template. CS1591 is suppressed at the compiler
+# level by the .g.cs extension, but listed here for documentation clarity.
+[*.g.cs]
+dotnet_diagnostic.IDE0073.severity = none
+dotnet_diagnostic.CS1591.severity = none

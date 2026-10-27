@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.Interfaces.Schemas;
 /// <summary>
 /// Defines a schema as an ordered list of fields.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": schema definitions in Avro, Protobuf, and Thrift.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": schema definitions in Avro, Protobuf, and Thrift.</para>
 /// </summary>
 public interface ISchema
 {

@@ -14,13 +14,16 @@
 //   limitations under the License.
 //
 
+global using System.Buffers;
 global using System.Buffers.Binary;
 global using System.Collections;
 global using System.Collections.Concurrent;
 global using System.Runtime.CompilerServices;
 global using System.Text;
+global using System.Threading.Channels;
 
 global using Boutquin.Domain.Helpers;
+global using Boutquin.Domain.ValueObjects;
 global using Boutquin.Storage.Domain.Enums;
 global using Boutquin.Storage.Domain.Exceptions;
 global using Boutquin.Storage.Domain.Interfaces;

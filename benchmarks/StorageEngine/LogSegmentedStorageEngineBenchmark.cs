@@ -34,14 +34,13 @@ public class LogSegmentedStorageEngineBenchmark : StorageEngineBenchmark<Seriali
         var directory = Directory.GetCurrentDirectory();
         var prefix = "LogSegment_";
         long maxSegmentSize = 1024; // For example, 1 KB per segment file.
-        Func<string, string, IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>>, long, IFileBasedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>> storageEngineFactory =
-            (fileLocation, fileName, serializer, maxSize) => new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(new StorageFile(fileLocation, fileName), serializer);
+        static IFileBasedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>> storageEngineFactory(string fileLocation, string fileName, IEntrySerializer<SerializableWrapper<int>, SerializableWrapper<string>> serializer, long maxSize) => new AppendOnlyFileStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(new StorageFile(fileLocation, fileName), serializer);
 
         SetStore(new LogSegmentedStorageEngine<SerializableWrapper<int>, SerializableWrapper<string>>(
             entrySerializer,
             directory,
             prefix,
             maxSegmentSize,
-            storageEngineFactory));
+storageEngineFactory));
     }
 }

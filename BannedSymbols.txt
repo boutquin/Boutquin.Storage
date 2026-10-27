@@ -1,0 +1,13 @@
+M:System.BitConverter.GetBytes(System.Boolean);Host-endian. Use BinaryPrimitives little-endian for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.Char);Host-endian. Use BinaryPrimitives little-endian for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.Int16);Host-endian. Use BinaryPrimitives.WriteInt16LittleEndian for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.UInt16);Host-endian. Use BinaryPrimitives.WriteUInt16LittleEndian for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.Int32);Host-endian. Use BinaryPrimitives.WriteInt32LittleEndian (or LittleEndianColumnBytes.From) for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.UInt32);Host-endian. Use BinaryPrimitives.WriteUInt32LittleEndian for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.Int64);Host-endian. Use BinaryPrimitives.WriteInt64LittleEndian (or LittleEndianColumnBytes.From) for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.UInt64);Host-endian. Use BinaryPrimitives.WriteUInt64LittleEndian for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.Half);Host-endian. Use BinaryPrimitives.WriteHalfLittleEndian for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.Single);Host-endian. Use BinaryPrimitives.WriteSingleLittleEndian (or LittleEndianColumnBytes.From) for on-disk/wire bytes.
+M:System.BitConverter.GetBytes(System.Double);Host-endian. Use BinaryPrimitives.WriteDoubleLittleEndian (or LittleEndianColumnBytes.From) for on-disk/wire bytes.
+T:System.IO.BinaryWriter;Use BinaryPrimitives little-endian, not host-endian BinaryWriter, for on-disk/wire formats.
+T:System.IO.BinaryReader;Use BinaryPrimitives little-endian, not host-endian BinaryReader, for on-disk/wire formats.

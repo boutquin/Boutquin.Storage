@@ -20,6 +20,7 @@ namespace Boutquin.Storage.SourceGenerator;
 // across compilations and defeat incremental caching.
 internal sealed record DiagnosticInfo(
     string Id,
+    string Title,
     string Message,
     DiagnosticSeverity Severity,
     LocationInfo? Location)
@@ -27,17 +28,26 @@ internal sealed record DiagnosticInfo(
     public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, Location? location, params object[] messageArgs)
     {
         LocationInfo? locationInfo = location is not null ? LocationInfo.From(location) : null;
-        string message = messageArgs.Length > 0
-            ? string.Format(descriptor.MessageFormat.ToString(), messageArgs)
+        var message = messageArgs.Length > 0
+            ? string.Format(System.Globalization.CultureInfo.InvariantCulture, descriptor.MessageFormat.ToString(), messageArgs)
             : descriptor.MessageFormat.ToString();
-        return new DiagnosticInfo(descriptor.Id, message, descriptor.DefaultSeverity, locationInfo);
+        // Capture the descriptor's human-readable Title (a plain string, keeping the record
+        // equatable for incremental caching). Without it, ToDiagnostic reconstructed the
+        // DiagnosticDescriptor with the Id in the title slot, so IDEs showed e.g. "BSSG001"
+        // as the diagnostic title instead of "Unsupported property type".
+        return new DiagnosticInfo(
+            descriptor.Id,
+            descriptor.Title.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            message,
+            descriptor.DefaultSeverity,
+            locationInfo);
     }
 
     public Diagnostic ToDiagnostic()
     {
         var descriptor = new DiagnosticDescriptor(
             Id,
-            Id,
+            Title,
             Message,
             "Boutquin.Storage.SourceGenerator",
             Severity,

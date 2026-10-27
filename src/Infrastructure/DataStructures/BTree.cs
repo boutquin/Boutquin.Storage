@@ -15,6 +15,7 @@
 //
 namespace Boutquin.Storage.Infrastructure.DataStructures;
 
+using Boutquin.Storage.Domain.Helpers;
 using Boutquin.Storage.Domain.Interfaces;
 
 /// <summary>
@@ -23,7 +24,7 @@ using Boutquin.Storage.Domain.Interfaces;
 /// <typeparam name="TKey">The type of the keys in the tree.</typeparam>
 /// <typeparam name="TValue">The type of the values in the tree.</typeparam>
 /// <remarks>
-/// <para>A B-tree of minimum degree <c>t</c> (also called order) has the following properties:</para>
+/// <para>A B-tree of minimum degree <c>t</c> (sometimes loosely called the order, though Knuth's order is the maximum child count 2t) has the following properties:</para>
 /// <para>- Every node has at most <c>2t - 1</c> keys and <c>2t</c> children.</para>
 /// <para>- Every non-root node has at least <c>t - 1</c> keys.</para>
 /// <para>- The root has at least 1 key (when non-empty).</para>
@@ -39,15 +40,15 @@ using Boutquin.Storage.Domain.Interfaces;
 /// into it. This guarantees that when we reach the leaf, it has room for the new key, requiring only a
 /// single pass down the tree. This is the approach described in CLRS (Introduction to Algorithms).</para>
 ///
-/// <para><b>Deletion:</b> Not supported in this implementation (throws <see cref="NotSupportedException"/>),
-/// matching the pattern used by <see cref="RedBlackTree{TKey, TValue}"/> for append-only storage engines.
-/// B-tree deletion is complex (6+ cases with key redistribution and node merging) and not needed when
-/// deletes are handled via tombstone markers in an LSM-tree architecture.</para>
+/// <para><b>Deletion:</b> Not supported in this implementation (throws <see cref="NotSupportedException"/>).
+/// B-tree deletion requires up to six redistribution/merge cases per CLRS and the DDIA 2e p. 127
+/// discussion of deletion complexity in page-oriented storage engines; implementing it correctly in an
+/// in-memory test fixture adds complexity without covering the storage algorithms this library targets.</para>
 ///
 /// <para><b>Thread safety:</b> This class is not thread-safe. External synchronization is required for concurrent access.</para>
 /// </remarks>
 public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
-    where TKey : IComparable<TKey>
+    where TKey : IComparable<TKey>, IEquatable<TKey>
 {
     /// <summary>
     /// Represents a node in the B-tree. Each node contains a list of keys and values,
@@ -79,7 +80,7 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
     /// Initializes a new instance of the <see cref="BTree{TKey, TValue}"/> class.
     /// </summary>
     /// <param name="minimumDegree">
-    /// The minimum degree (order) of the B-tree. Must be at least 2.
+    /// The minimum degree t of the B-tree (every node holds at most 2t − 1 keys). Must be at least 2.
     /// Each node can hold between <c>t - 1</c> and <c>2t - 1</c> keys.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -99,7 +100,7 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
     }
 
     /// <inheritdoc />
-    public int Order => _minimumDegree;
+    public int MinimumDegree => _minimumDegree;
 
     /// <inheritdoc />
     public int Height => _height;
@@ -172,7 +173,12 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
         Guard.AgainstNullOrDefault(() => items);
         foreach (var item in items)
         {
-            Insert(item.Key, item.Value);
+            // Same per-item guards as SetAsync: Insert itself validates nothing.
+            var key = item.Key;
+            var value = item.Value;
+            Guard.AgainstNullOrDefault(() => key);
+            Guard.AgainstNullOrDefault(() => value);
+            Insert(key, value);
         }
 
         await Task.CompletedTask.ConfigureAwait(false);
@@ -211,13 +217,13 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
         {
             // Find the first key greater than or equal to the search key
             var i = 0;
-            while (i < current.Keys.Count && key.CompareTo(current.Keys[i]) > 0)
+            while (i < current.Keys.Count && KeyOrder<TKey>.Compare(key, current.Keys[i]) > 0)
             {
                 i++;
             }
 
             // If we found the exact key, return the associated value
-            if (i < current.Keys.Count && key.CompareTo(current.Keys[i]) == 0)
+            if (i < current.Keys.Count && KeyOrder<TKey>.Compare(key, current.Keys[i]) == 0)
             {
                 return (current.Values[i], true);
             }
@@ -258,9 +264,16 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
             return;
         }
 
-        // If root is full, split it before descending
+        // If root is full, split it before descending — but a pure UPDATE adds no key
+        // and must not mutate tree shape, so probe for the key first. The extra search
+        // runs only on the rare split-imminent path.
         if (_root.Keys.Count == 2 * _minimumDegree - 1)
         {
+            if (TryUpdateInPlace(_root, key, value))
+            {
+                return;
+            }
+
             var newRoot = new Node();
             newRoot.Children.Add(_root);
             SplitChild(newRoot, 0);
@@ -269,6 +282,108 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
         }
 
         InsertNonFull(_root, key, value);
+    }
+
+    /// <summary>
+    /// Structural invariant checker mirroring the red-black tree's
+    /// <c>SatisfiesRedBlackInvariants</c> precedent: behavioural sorted-iteration tests
+    /// cannot catch a silent balance regression. Validates (a) per-node occupancy bounds
+    /// (non-root: t−1 ≤ keys ≤ 2t−1; root: 1 ≤ keys ≤ 2t−1 when the tree is non-empty),
+    /// (b) internal nodes carry exactly keys+1 children and keys.Count values,
+    /// (c) keys are strictly ascending within every node and across separator boundaries,
+    /// and (d) every leaf sits at the same depth. Test-only via InternalsVisibleTo.
+    /// </summary>
+    internal bool SatisfiesBTreeInvariants()
+    {
+        if (_root is null)
+        {
+            return true;
+        }
+
+        var leafDepth = -1;
+
+        // Bounds are tracked with explicit presence flags — a TKey? null-sentinel collapses
+        // to default(TKey) for value-type keys and falsely constrains the leftmost/rightmost
+        // descent paths.
+        bool Walk(Node node, bool isRoot, int depth, bool hasLower, TKey lowerBound, bool hasUpper, TKey upperBound)
+        {
+            var keyCount = node.Keys.Count;
+            var minKeys = isRoot ? 1 : _minimumDegree - 1;
+            if (keyCount < minKeys || keyCount > 2 * _minimumDegree - 1)
+            {
+                return false;
+            }
+            if (node.Values.Count != keyCount)
+            {
+                return false;
+            }
+            for (var i = 0; i < keyCount; i++)
+            {
+                if (i > 0 && KeyOrder<TKey>.Compare(node.Keys[i - 1], node.Keys[i]) >= 0)
+                {
+                    return false;
+                }
+                if (hasLower && KeyOrder<TKey>.Compare(node.Keys[i], lowerBound) <= 0)
+                {
+                    return false;
+                }
+                if (hasUpper && KeyOrder<TKey>.Compare(node.Keys[i], upperBound) >= 0)
+                {
+                    return false;
+                }
+            }
+
+            if (node.IsLeaf)
+            {
+                if (leafDepth == -1)
+                {
+                    leafDepth = depth;
+                }
+                return leafDepth == depth;
+            }
+
+            if (node.Children.Count != keyCount + 1)
+            {
+                return false;
+            }
+            for (var i = 0; i <= keyCount; i++)
+            {
+                var childHasLower = i > 0 || hasLower;
+                var childLower = i == 0 ? lowerBound : node.Keys[i - 1];
+                var childHasUpper = i < keyCount || hasUpper;
+                var childUpper = i == keyCount ? upperBound : node.Keys[i];
+                if (!Walk(node.Children[i], isRoot: false, depth + 1, childHasLower, childLower, childHasUpper, childUpper))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return Walk(_root, isRoot: true, 0, hasLower: false, default!, hasUpper: false, default!);
+    }
+
+    private static bool TryUpdateInPlace(Node node, TKey key, TValue value)
+    {
+        var current = node;
+        while (true)
+        {
+            var i = 0;
+            while (i < current.Keys.Count && KeyOrder<TKey>.Compare(key, current.Keys[i]) > 0)
+            {
+                i++;
+            }
+            if (i < current.Keys.Count && KeyOrder<TKey>.Compare(key, current.Keys[i]) == 0)
+            {
+                current.Values[i] = value;
+                return true;
+            }
+            if (current.IsLeaf)
+            {
+                return false;
+            }
+            current = current.Children[i];
+        }
     }
 
     /// <summary>
@@ -294,13 +409,13 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
             {
                 // Check for duplicate key in this leaf
                 var insertPos = 0;
-                while (insertPos < current.Keys.Count && key.CompareTo(current.Keys[insertPos]) > 0)
+                while (insertPos < current.Keys.Count && KeyOrder<TKey>.Compare(key, current.Keys[insertPos]) > 0)
                 {
                     insertPos++;
                 }
 
                 // If key already exists, update the value
-                if (insertPos < current.Keys.Count && key.CompareTo(current.Keys[insertPos]) == 0)
+                if (insertPos < current.Keys.Count && KeyOrder<TKey>.Compare(key, current.Keys[insertPos]) == 0)
                 {
                     current.Values[insertPos] = value;
                     return;
@@ -313,13 +428,13 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
             }
 
             // Find the child that will receive the new key
-            while (i >= 0 && key.CompareTo(current.Keys[i]) < 0)
+            while (i >= 0 && KeyOrder<TKey>.Compare(key, current.Keys[i]) < 0)
             {
                 i--;
             }
 
             // Check for duplicate key in this internal node
-            if (i >= 0 && key.CompareTo(current.Keys[i]) == 0)
+            if (i >= 0 && KeyOrder<TKey>.Compare(key, current.Keys[i]) == 0)
             {
                 current.Values[i] = value;
                 return;
@@ -333,14 +448,14 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
                 SplitChild(current, i);
 
                 // After splitting, determine which of the two children to descend into
-                if (key.CompareTo(current.Keys[i]) == 0)
+                if (KeyOrder<TKey>.Compare(key, current.Keys[i]) == 0)
                 {
                     // The median key from the split matches our key — update the value
                     current.Values[i] = value;
                     return;
                 }
 
-                if (key.CompareTo(current.Keys[i]) > 0)
+                if (KeyOrder<TKey>.Compare(key, current.Keys[i]) > 0)
                 {
                     i++;
                 }
@@ -413,7 +528,7 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
     /// <param name="items">The list to collect the key-value pairs into.</param>
     /// <remarks>
     /// <para>For a B-tree node with keys [k0, k1, ..., kn-1] and children [c0, c1, ..., cn],
-    /// the in-order traversal visits: c0, k0, c1, k1, ..., cn-1, kn-1, cn.</para>
+    /// the in-minimumDegree traversal visits: c0, k0, c1, k1, ..., cn-1, kn-1, cn.</para>
     ///
     /// <para>B-tree depth is O(log_t n). With minimum degree t = 2, a tree with 1 billion elements
     /// has at most ~30 levels. Stack overflow from recursion is not a practical concern for B-trees,
@@ -438,5 +553,108 @@ public sealed class BTree<TKey, TValue> : IBTree<TKey, TValue>
         {
             InOrderTraversal(node.Children[node.Keys.Count], items);
         }
+    }
+}
+
+/// <summary>
+/// The key order shared by every in-memory ordered structure in this assembly (<see cref="BTree{TKey, TValue}"/>,
+/// <see cref="BPlusTree{TKey, TValue}"/>, <see cref="RedBlackTree{TKey, TValue}"/>,
+/// <see cref="SkipListMemTable{TKey, TValue}"/> and <see cref="Indexing.InMemoryStorageIndex{TKey, TValue}"/>):
+/// the key's own <see cref="IComparable{T}"/> order, except that a string — alone, or as a tuple component,
+/// nested tuples included — compares by Unicode code point.
+/// </summary>
+/// <remarks>
+/// <para><b>Why not <c>key.CompareTo</c> for strings?</b> <see cref="string.CompareTo(string)"/> is the
+/// current-culture comparison. It reports ordinally distinct strings (a soft hyphen, an embedded NUL,
+/// canonically equivalent forms) as equal, so a structure that identifies keys by a zero comparison merges two
+/// keys into one and returns one key's value for the other; and it orders keys by the calling thread's culture,
+/// so two processes iterate the same keys differently. Code-point order is
+/// <see cref="OrderedByteHelpers.CompareStringByteLex"/> — the UTF-8 byte order the on-disk key formats and
+/// <see cref="SerializableWrapper{T}"/> already use — under which zero means the same string.</para>
+/// <para>A tuple's own comparison orders its string components with the same culture comparison; its
+/// structural comparison takes the component comparer as an argument, so the code-point relation reaches every
+/// component.</para>
+/// </remarks>
+/// <typeparam name="TKey">The key type.</typeparam>
+internal static class KeyOrder<TKey>
+    where TKey : IComparable<TKey>
+{
+    private static readonly bool s_isTuple =
+        typeof(ITuple).IsAssignableFrom(typeof(TKey)) && typeof(IStructuralComparable).IsAssignableFrom(typeof(TKey));
+
+    /// <summary>The key order as an <see cref="IComparer{T}"/>, for the BCL sorted collections.</summary>
+    internal static IComparer<TKey> Comparer { get; } = Comparer<TKey>.Create(Compare);
+
+    /// <summary>Compares two non-null keys in the shared key order.</summary>
+    /// <param name="left">The first key.</param>
+    /// <param name="right">The second key.</param>
+    /// <returns>A negative value, zero, or a positive value as <paramref name="left"/> orders before, is the same
+    /// key as, or orders after <paramref name="right"/>.</returns>
+    internal static int Compare(TKey left, TKey right)
+    {
+        // typeof tests on TKey are JIT-time constants, so a value-type key keeps its direct CompareTo call.
+        if (typeof(TKey) == typeof(string))
+        {
+            return OrderedByteHelpers.CompareStringByteLex((string)(object)left!, (string)(object)right!);
+        }
+
+        return s_isTuple
+            ? CodePointComponentComparer.Instance.Compare(left, right)
+            : left.CompareTo(right);
+    }
+}
+
+/// <summary>
+/// Compares tuple components in their natural order, except that strings compare by Unicode code point and
+/// nested tuples recurse with this comparer (see <see cref="KeyOrder{TKey}"/>).
+/// </summary>
+internal sealed class CodePointComponentComparer : IComparer
+{
+    private static readonly ConcurrentDictionary<Type, IComparer> s_typedComparers = new();
+
+    private CodePointComponentComparer()
+    {
+    }
+
+    internal static CodePointComponentComparer Instance { get; } = new();
+
+    public int Compare(object? x, object? y)
+    {
+        if (ReferenceEquals(x, y))
+        {
+            return 0;
+        }
+
+        if (x is null)
+        {
+            return -1;
+        }
+
+        if (y is null)
+        {
+            return 1;
+        }
+
+        if (x is string left && y is string right)
+        {
+            return OrderedByteHelpers.CompareStringByteLex(left, right);
+        }
+
+        if (x is ITuple && x is IStructuralComparable structural)
+        {
+            return structural.CompareTo(y, this);
+        }
+
+        if (x is IComparable)
+        {
+            return System.Collections.Comparer.Default.Compare(x, y);
+        }
+
+        // A component comparable only through IComparable<T>: use the same Comparer<T>.Default the tuple's own
+        // CompareTo would have used.
+        return s_typedComparers
+            .GetOrAdd(x.GetType(), static type =>
+                (IComparer)typeof(Comparer<>).MakeGenericType(type).GetProperty(nameof(Comparer<object>.Default))!.GetValue(null)!)
+            .Compare(x, y);
     }
 }

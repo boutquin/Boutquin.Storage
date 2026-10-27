@@ -41,14 +41,20 @@ namespace Boutquin.Storage.Infrastructure.KeyValueStore;
 /// (<see cref="Task.CompletedTask"/> / <see cref="Task.FromResult{TResult}"/>) to avoid async
 /// state machine overhead while honoring the interface contract.
 /// </para>
+/// <para>
+/// <b>Bulk writes are all-or-nothing.</b> <see cref="SetBulkAsync"/> enumerates the batch exactly
+/// once (so a consuming or one-shot sequence is safe) and validates every entry before storing any,
+/// matching the LSM and append-only engines: a batch rejected for a null or default key or value
+/// leaves the store unchanged.
+/// </para>
 /// </remarks>
 public sealed class InMemoryKeyValueStore<TKey, TValue> :
     IBulkStorageEngine<TKey, TValue>
-    where TKey : IComparable<TKey>, ISerializable<TKey>, new()
+    where TKey : IStorageKey<TKey>, new()
     where TValue : ISerializable<TValue>, new()
 {
     // SortedDictionary to store key-value pairs in sorted order by key.
-    private readonly SortedDictionary<TKey, TValue> _store = new();
+    private readonly SortedDictionary<TKey, TValue> _store = [];
 
     /// <inheritdoc/>
     /// <example>
@@ -184,13 +190,31 @@ public sealed class InMemoryKeyValueStore<TKey, TValue> :
     /// </example>
     public Task SetBulkAsync(IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken = default)
     {
-        Guard.AgainstEmptyOrNullEnumerable(() => items);
+        Guard.AgainstNullOrDefault(() => items);
         cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (var item in items)
+        // Snapshot unconditionally, exactly once: the emptiness guard, the validate pass and the
+        // apply pass must all see the same elements. A consuming or one-shot sequence
+        // (BlockingCollection consuming enumerable, a lazily produced batch) would otherwise lose
+        // its first element to the guard's probe, and a live IReadOnlyCollection (ConcurrentQueue,
+        // ConcurrentDictionary) takes a fresh moment-in-time view on every enumeration, so an entry
+        // arriving between the passes would be applied without having been validated.
+        IEnumerable<KeyValuePair<TKey, TValue>> batch = items.ToList();
+        Guard.AgainstEmptyOrNullEnumerable(() => batch);
+
+        // Validate-before-apply: reject the WHOLE batch on the first null/default key or value,
+        // before mutating the store — the same all-or-nothing guarantee as LsmStorageEngine and
+        // AppendOnlyFileStorageEngine, so a caller treats the exception as "nothing written".
+        foreach (var item in batch)
         {
-            Guard.AgainstNullOrDefault(() => item.Key);
-            Guard.AgainstNullOrDefault(() => item.Value);
+            var key = item.Key;
+            var value = item.Value;
+            Guard.AgainstNullOrDefault(() => key);
+            Guard.AgainstNullOrDefault(() => value);
+        }
+
+        foreach (var item in batch)
+        {
             _store[item.Key] = item.Value;
         }
         return Task.CompletedTask;

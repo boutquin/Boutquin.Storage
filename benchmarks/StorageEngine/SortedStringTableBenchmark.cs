@@ -35,7 +35,7 @@ public class SortedStringTableBenchmark
     public int ItemCount;
 
     private string _tempDir = null!;
-    private List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>> _sortedItems = null!;
+    private List<(SerializableWrapper<int> Key, SerializableWrapper<string> Value, ulong SequenceNumber)> _sortedItems = null!;
     private List<SerializableWrapper<int>> _searchKeys = null!;
 
     /// <summary>
@@ -48,19 +48,20 @@ public class SortedStringTableBenchmark
         Directory.CreateDirectory(_tempDir);
 
         // Generate sorted items (SSTable requires strictly ascending key order).
-        _sortedItems = new List<KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>>(ItemCount);
+        _sortedItems = new List<(SerializableWrapper<int>, SerializableWrapper<string>, ulong)>(ItemCount);
         _searchKeys = new List<SerializableWrapper<int>>(ItemCount);
 
         for (var i = 0; i < ItemCount; i++)
         {
-            _sortedItems.Add(new KeyValuePair<SerializableWrapper<int>, SerializableWrapper<string>>(
+            _sortedItems.Add((
                 new SerializableWrapper<int>(i),
-                new SerializableWrapper<string>($"Value {i}")));
+                new SerializableWrapper<string>($"Value {i}"),
+                (ulong)(i + 1)));
             _searchKeys.Add(new SerializableWrapper<int>(i));
         }
 
         // Pre-write a table for the read benchmark.
-        var readTable = new SsTable(_tempDir, "read_bench.dat", sparseIndexInterval: 4);
+        var readTable = new SsTable(_tempDir, "read_bench.dat", restartInterval: 4);
         readTable.Write(_sortedItems);
     }
 
@@ -71,7 +72,7 @@ public class SortedStringTableBenchmark
     [BenchmarkCategory("Write")]
     public void WriteSsTable()
     {
-        var table = new SsTable(_tempDir, $"write_{Guid.NewGuid():N}.dat", sparseIndexInterval: 4);
+        var table = new SsTable(_tempDir, $"write_{Guid.NewGuid():N}.dat", restartInterval: 4);
         table.Write(_sortedItems);
     }
 
@@ -83,7 +84,7 @@ public class SortedStringTableBenchmark
     public void ReadSsTable()
     {
         // Reconstruct to pick up the sparse index from the file written in Setup.
-        var table = new SsTable(_tempDir, "read_bench.dat", sparseIndexInterval: 4);
+        var table = new SsTable(_tempDir, "read_bench.dat", restartInterval: 4);
 
         for (var i = 0; i < _searchKeys.Count; i++)
         {

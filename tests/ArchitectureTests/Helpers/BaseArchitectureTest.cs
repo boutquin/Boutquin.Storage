@@ -33,9 +33,18 @@ public abstract class BaseArchitectureTest
     protected static Assembly InfrastructureAssembly =>
         typeof(Infrastructure.DataStructures.BloomFilter<>).Assembly;
 
+    /// <summary>
+    /// Gets the Distributed assembly — in-process reference primitives (Raft, replication,
+    /// MVCC/Snapshot Isolation, CRDTs, gossip, Merkle). Project-reference only, not published to NuGet.
+    /// See <see href="../../../src/Distributed/README.md"><c>src/Distributed/README.md</c></see>
+    /// for the assembly's scope statement.
+    /// </summary>
+    protected static Assembly DistributedAssembly =>
+        typeof(Distributed.Consensus.RaftNode<>).Assembly;
+
     /// <summary>All source assemblies.</summary>
     protected static IEnumerable<Assembly> AllAssemblies =>
-        [DomainAssembly, InfrastructureAssembly];
+        [DomainAssembly, InfrastructureAssembly, DistributedAssembly];
 
     /// <summary>
     /// Returns a comma-separated list of failing type names from a test result.

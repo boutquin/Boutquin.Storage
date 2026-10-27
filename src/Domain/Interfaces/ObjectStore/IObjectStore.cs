@@ -37,9 +37,9 @@ namespace Boutquin.Storage.Domain.Interfaces.ObjectStore;
 /// <para>- <b>WriteAsync:</b> O(N) where N is the content size, plus atomic rename overhead.</para>
 /// <para>- <b>DeleteAsync:</b> O(1) amortized for file-system implementations (unlink call).</para>
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 10 — "Batch Processing": object storage as the interchange format for batch outputs;
-/// Ch. 12 — "The Future of Data Systems": immutable append-to-object-store as a durable log sink.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 11 — "Batch Processing": object storage as the interchange format for batch outputs;
+/// Ch. 13 — "A Philosophy of Streaming Systems": immutable append-to-object-store as a durable log sink.</para>
 /// </summary>
 public interface IObjectStore
 {

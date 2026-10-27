@@ -18,8 +18,8 @@ namespace Boutquin.Storage.Domain.Interfaces.Schemas;
 /// <summary>
 /// Checks whether a candidate schema is compatible with an existing schema under a given mode.
 ///
-/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2017),
-/// Ch. 4 — "Encoding and Evolution": compatibility rules for schema evolution.</para>
+/// <para><b>Reference:</b> Kleppmann, <i>Designing Data-Intensive Applications</i> (O'Reilly, 2nd ed., 2026),
+/// Ch. 5 — "Encoding and Evolution": compatibility rules for schema evolution.</para>
 /// </summary>
 public interface ISchemaCompatibilityChecker
 {

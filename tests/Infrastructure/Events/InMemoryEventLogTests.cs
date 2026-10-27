@@ -157,4 +157,61 @@ public sealed class InMemoryEventLogTests
 
         events.Should().HaveCount(100);
     }
+
+    // AC-8.8 (test gap): cancellation-token coverage for InMemoryEventLog.
+    [Fact]
+    public async Task AppendAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var log = new InMemoryEventLog<string>();
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () => await log.AppendAsync("event", cts.Token).ConfigureAwait(true);
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task ReadFromAsync_CancelledToken_ThrowsOperationCanceled()
+    {
+        var log = new InMemoryEventLog<string>();
+        await log.AppendAsync("event-0").ConfigureAwait(true);
+        await log.AppendAsync("event-1").ConfigureAwait(true);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var act = async () =>
+        {
+            await foreach (var _ in log.ReadFromAsync(0, cts.Token).ConfigureAwait(true))
+            {
+            }
+        };
+
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(true);
+    }
+
+    [Fact]
+    public async Task AppendAsync_NullEvent_IsRejectedBeforeAnyPositionIsAcknowledged()
+    {
+        var log = new InMemoryEventLog<string?>();
+        await log.AppendAsync("e0").ConfigureAwait(true);
+
+        var appendNull = async () => await log.AppendAsync(null).ConfigureAwait(true);
+
+        await appendNull.Should().ThrowAsync<ArgumentNullException>(
+            "a null event would occupy a position that every downstream replay dereferences and fails on")
+            .ConfigureAwait(true);
+
+        var next = await log.AppendAsync("e1").ConfigureAwait(true);
+        next.Should().Be(1, "a rejected append must not consume a position");
+
+        var replay = new List<(long Position, string? Event)>();
+        await foreach (var item in log.ReadFromAsync(0).ConfigureAwait(true))
+        {
+            replay.Add(item);
+        }
+
+        replay.Should().Equal((0L, "e0"), (1L, "e1"));
+    }
 }

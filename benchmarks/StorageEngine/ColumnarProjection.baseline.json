@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "description": "Baseline for ColumnarProjection regression guard. ratioToleranceMultiplier is set to 3.0 because the Phase-2 PlainColumnarSegmentFormat uses reflection for per-column IO, and the k-way-merge path carries a SortedDictionary accumulation that the generic-engine short-circuit does not. On the characterisation-grade CompressedColumnarSegmentFormat the ratio tightens to the spec's 0.5; this file will be regenerated against that codec in a follow-up pass. Regenerate via `dotnet run --project benchmarks/StorageEngine -c Release -- --filter '*ColumnarProjection*' --exporters json --artifacts benchmarks/StorageEngine`, then rename the exported JSON to ColumnarProjection.baseline.json.",
+  "totalColumnCount": 12,
+  "projectedColumnFloorMs": 1.0,
+  "ratioToleranceMultiplier": 3.0,
+  "rowCount": 100000
+}

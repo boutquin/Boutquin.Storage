@@ -2,7 +2,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <NoWarn>$(NoWarn);NU5104</NoWarn>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);NU5104;CS1591;CS1573</NoWarn>
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -17,6 +19,7 @@
     <NeutralLanguage>en</NeutralLanguage>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Release notes: https://github.com/boutquin/Boutquin.Storage/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <PackageIcon>icon.png</PackageIcon>
     <PackageVersion>$(PackageVersion)$(MinVerBuildMetadata)</PackageVersion>
     <Version>$(PackageVersion)</Version>
@@ -33,5 +36,43 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+    <!-- Declarative API bans (RS0030). Locks in the repository's host-independence and
+         on-disk-format conventions: no host-endian BitConverter.GetBytes and no BinaryWriter/
+         BinaryReader on any serialization path. Test and benchmark projects NoWarn RS0030 — they
+         round-trip self-authored data on a single host where host-endian is self-consistent. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="All" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
+  <!-- MinVer 7 deliberately emits 0.0.0.0 for every pre-1.0 build. Boutquin packages
+       instead bind within the current pre-1.0 minor line, where SemVer permits breaking
+       changes, and return to major-line binding at 1.0. This must run after MinVer writes
+       its values and before the SDK consumes AssemblyVersion. -->
+  <Target Name="ApplyBoutquinAssemblyVersionPolicy"
+          AfterTargets="MinVer"
+          BeforeTargets="GetAssemblyVersion"
+          Condition="'$(IsPackable)' == 'true'
+                     and '$(MinVerSkip)' != 'true'
+                     and '$(MinVerMajor)' != ''">
+    <PropertyGroup>
+      <AssemblyVersion Condition="'$(MinVerMajor)' == '0'">0.$(MinVerMinor).0.0</AssemblyVersion>
+      <AssemblyVersion Condition="'$(MinVerMajor)' != '0'">$(MinVerMajor).0.0.0</AssemblyVersion>
+    </PropertyGroup>
+  </Target>
+
+  <!-- A Storage candidate is tested as one family. Prevent NuGet from silently
+       substituting a different Domain package beneath Infrastructure. -->
+  <Target Name="PinBoutquinProjectReferencePackageVersions"
+          AfterTargets="_GetProjectReferenceVersions"
+          Condition="'$(IsPackable)' == 'true'
+                     and '@(_ProjectReferencesWithVersions)' != ''">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Update="@(_ProjectReferencesWithVersions)">
+        <ProjectVersion>[%(_ProjectReferencesWithVersions.ProjectVersion)]</ProjectVersion>
+      </_ProjectReferencesWithVersions>
+    </ItemGroup>
+  </Target>
 </Project>
