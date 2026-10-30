@@ -1,0 +1,43 @@
+name: Publish qualified Storage 2.0.1
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: storage-qualified-2.0.1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'boutquin/Boutquin.Storage' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6.0.0
+        with:
+          dotnet-version: 10.0.403
+      - name: Download the original qualified release archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download v2.0.1 --repo "$GITHUB_REPOSITORY" --dir release-assets --pattern 'Boutquin.Storage.*.2.0.1.*pkg'
+      - name: Verify exact archives and qualified source tag
+        run: python3 scripts/verify-qualified-release.py release-assets "$(git rev-parse 'refs/tags/v2.0.1^{commit}')"
+      - name: Publish verified packages without rebuilding
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$NUGET_API_KEY"
+          for package in Domain Infrastructure SourceGenerator; do
+            dotnet nuget push "release-assets/Boutquin.Storage.$package.2.0.1.nupkg" --no-symbols --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+          done
+          for package in Domain Infrastructure; do
+            dotnet nuget push "release-assets/Boutquin.Storage.$package.2.0.1.snupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+          done
