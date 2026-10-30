@@ -168,7 +168,7 @@ def _read_package_metadata(package_path: Path) -> tuple[PackageMetadata, tuple[s
 def _validate_dependency_contract(metadata: PackageMetadata, expected_version: str) -> None:
     required_dependency: tuple[str, str] | None = None
     if metadata.package_id == "Boutquin.Storage.Domain":
-        required_dependency = ("Boutquin.Domain", "[1.0.0]")
+        required_dependency = ("Boutquin.Domain", "[1.0.1]")
     elif metadata.package_id == "Boutquin.Storage.Infrastructure":
         required_dependency = ("Boutquin.Storage.Domain", f"[{expected_version}]")
 

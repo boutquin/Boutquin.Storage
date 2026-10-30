@@ -8,19 +8,19 @@ release candidate has been exported there. It prepares the three public packages
 - `Boutquin.Storage.Infrastructure`
 - `Boutquin.Storage.SourceGenerator`
 
-The external `Boutquin.Domain` dependency is published on NuGet at 1.0.0. Release validation
-must restore it from the public feeds configured in `nuget.config`; no sibling checkout or private
-candidate feed is required.
+The external `Boutquin.Domain` dependency is pinned to 1.0.1. Public release validation
+requires that exact version to be available from the public feeds configured in `nuget.config`;
+a private preparation feed does not qualify public package delivery. No sibling checkout is required.
 
 ## Prepare a clean release build
 
-Use the repository SDK (10.0.401) and one version override for every build and pack operation.
+Use the repository SDK (10.0.403) and one version override for every build and pack operation.
 Build without incremental outputs before packing so package metadata and assembly identities cannot
 come from different builds.
 
 ```sh
-dotnet --version  # 10.0.401
-PACKAGE_VERSION=2.0.0
+dotnet --version  # 10.0.403
+PACKAGE_VERSION=2.0.1
 RELEASE_COMMIT="$(git rev-parse HEAD)"
 
 dotnet restore Boutquin.Storage.slnx --configfile nuget.config
@@ -67,7 +67,7 @@ missing check as a failed release gate.
 ## Publish
 
 Package validation does not publish anything. After the verified commit is on the public
-`boutquin/Boutquin.Storage` `main` branch, create the `v2.0.0` tag from that exact public commit and
+`boutquin/Boutquin.Storage` `main` branch, create the `v2.0.1` tag from that exact public commit and
 push the tag through the normal maintainer release process. Package SourceLink and repository
 commit URLs must resolve to this public commit. The tag-triggered publish workflow is the
 publication boundary; confirm all three packages on NuGet before announcing the release.

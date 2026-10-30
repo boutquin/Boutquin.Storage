@@ -25,7 +25,7 @@ jobs:
         shell: bash
     env:
       DOTNET_PROCESSOR_COUNT: 2
-      PACKAGE_VERSION: 2.0.0-ci.${{ github.run_id }}.${{ github.run_attempt }}
+      PACKAGE_VERSION: 2.0.1-ci.${{ github.run_id }}.${{ github.run_attempt }}
     steps:
       - name: Enable Windows long paths
         if: runner.os == 'Windows'
@@ -38,7 +38,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.401
+          dotnet-version: 10.0.403
 
       - name: Check release tooling and public export
         run: |
@@ -49,7 +49,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-10.0.401-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props', 'nuget.config') }}
+          key: ${{ runner.os }}-nuget-10.0.403-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props', 'nuget.config') }}
 
       - name: Restore public dependencies
         run: dotnet restore Boutquin.Storage.slnx --configfile nuget.config

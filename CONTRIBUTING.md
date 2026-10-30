@@ -26,6 +26,9 @@ This project adheres to the Contributor Covenant [Code of Conduct](CODE_OF_CONDU
 
 ### Reporting Bugs
 
+For suspected vulnerabilities, follow the private reporting process in the
+[security policy](SECURITY.md). Do not include sensitive details in public issues.
+
 If you find a bug in the project, please report it by opening an issue on the [Issues](https://github.com/Boutquin/Boutquin.Storage/issues) page. Make sure to include the following information:
 
 - A clear and descriptive title.
