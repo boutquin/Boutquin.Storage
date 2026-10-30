@@ -34,7 +34,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.401
+          dotnet-version: 10.0.403
 
       - name: Check release tooling and public export
         run: |
@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-10.0.401-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props', 'nuget.config') }}
+          key: ${{ runner.os }}-nuget-10.0.403-${{ hashFiles('**/*.csproj', '**/Directory.Build.props', '**/Directory.Packages.props', 'nuget.config') }}
 
       - name: Restore public dependencies
         run: dotnet restore Boutquin.Storage.slnx --configfile nuget.config

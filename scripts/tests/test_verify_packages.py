@@ -109,7 +109,7 @@ class VerifyPackagesTests(unittest.TestCase):
         write_package(
             directory,
             "Boutquin.Storage.Domain",
-            dependencies=(("Boutquin.Domain", "[1.0.0]"),),
+            dependencies=(("Boutquin.Domain", "[1.0.1]"),),
         )
         write_package(
             directory,
@@ -185,7 +185,7 @@ class VerifyPackagesTests(unittest.TestCase):
             write_package(
                 feed,
                 "Boutquin.Storage.Domain",
-                dependencies=(("Boutquin.Domain", "[1.0.0]"),),
+                dependencies=(("Boutquin.Domain", "[1.0.1]"),),
             )
             write_package(
                 feed,
@@ -210,7 +210,7 @@ class VerifyPackagesTests(unittest.TestCase):
             write_package(
                 feed,
                 "Boutquin.Storage.Domain",
-                dependencies=(("Boutquin.Domain", "[1.0.0]"),),
+                dependencies=(("Boutquin.Domain", "[1.0.1]"),),
                 release_notes="See CHANGELOG.md for release notes.",
             )
             write_package(
@@ -259,13 +259,35 @@ class VerifyPackagesTests(unittest.TestCase):
                     identity_inspector=stale_identity,
                 )
 
+    def test_previous_domain_dependency_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            feed = Path(temporary_directory)
+            write_package(
+                feed,
+                "Boutquin.Storage.Domain",
+                dependencies=(("Boutquin.Domain", "[1.0.0]"),),
+            )
+            write_package(
+                feed,
+                "Boutquin.Storage.Infrastructure",
+                dependencies=(("Boutquin.Storage.Domain", f"[{VERSION}]"),),
+            )
+            write_package(feed, "Boutquin.Storage.SourceGenerator")
+            with self.assertRaisesRegex(
+                verify_packages.VerificationError,
+                r"Boutquin\.Domain.*\[1\.0\.1\]",
+            ):
+                verify_packages.verify_package_archives(
+                    feed, VERSION, COMMIT, identity_inspector=good_identity
+                )
+
     def test_storage_dependency_ranges_must_be_exact(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             feed = Path(temporary_directory)
             write_package(
                 feed,
                 "Boutquin.Storage.Domain",
-                dependencies=(("Boutquin.Domain", "1.0.0"),),
+                dependencies=(("Boutquin.Domain", "1.0.1"),),
             )
             write_package(
                 feed,
@@ -276,7 +298,7 @@ class VerifyPackagesTests(unittest.TestCase):
 
             with self.assertRaisesRegex(
                 verify_packages.VerificationError,
-                r"Boutquin\.Domain.*\[1\.0\.0\]",
+                r"Boutquin\.Domain.*\[1\.0\.1\]",
             ):
                 verify_packages.verify_package_archives(
                     feed,
@@ -292,7 +314,7 @@ class VerifyPackagesTests(unittest.TestCase):
                 feed,
                 "Boutquin.Storage.Domain",
                 dependencies=(
-                    ("Boutquin.Domain", "[1.0.0]"),
+                    ("Boutquin.Domain", "[1.0.1]"),
                     ("Boutquin.Experimental", "[3.0.0-beta.1]"),
                 ),
             )

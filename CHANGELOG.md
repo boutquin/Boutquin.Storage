@@ -5,6 +5,20 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-30
+
+### Changed
+
+- Pin Boutquin.Domain 1.0.1 and enforce that exact dependency in package verification.
+
+- Refresh runtime dependencies to System.IO.Hashing 10.0.14 and filesystem
+  abstractions 22.3.0, which resolves Testably filesystem interfaces 10.4.0.
+- Update build and test tooling and pin .NET SDK 10.0.403 in local and CI builds.
+
+### Added
+
+- Security reporting guidance, default code ownership, and issue and pull request templates.
+
 ## [2.0.0] - 2026-10-26
 
 This section describes the prepared 2.0.0 release. Package availability is determined by

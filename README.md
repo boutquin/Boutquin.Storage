@@ -6,7 +6,7 @@
 
 A collection of data storage algorithms and engines implemented in C#, inspired by Martin Kleppmann and Chris Riccomini's [Designing Data-Intensive Applications](https://dataintensive.net/). Built with clean architecture, .NET 10, and strict code quality standards.
 
-> **Version:** this documentation describes Storage 2.0.0. The package badge reflects the latest published package; the installation commands below explicitly target 2.0.0. Check NuGet for package availability.
+> **Version:** this documentation describes Storage 2.0.1. The package badge reflects the latest published package; the installation commands below explicitly target 2.0.1. Check NuGet for package availability.
 
 The [concept coverage map](docs/DDIA-COVERAGE-MAP.md), [trade-off guide](docs/TRADEOFFS.md),
 [runnable examples](docs/SAMPLES.md), and [delivery status](docs/ROADMAP.md) connect the components
@@ -178,9 +178,9 @@ For a source build, reference the repository projects or locally packed packages
 requires a Roslyn 5.9 or newer compiler host. Use the SDK selected by `global.json`; other hosts must meet that compiler requirement.
 
 ```sh
-dotnet add package Boutquin.Storage.Domain --version 2.0.0
-dotnet add package Boutquin.Storage.Infrastructure --version 2.0.0
-dotnet add package Boutquin.Storage.SourceGenerator --version 2.0.0
+dotnet add package Boutquin.Storage.Domain --version 2.0.1
+dotnet add package Boutquin.Storage.Infrastructure --version 2.0.1
+dotnet add package Boutquin.Storage.SourceGenerator --version 2.0.1
 ```
 
 ### LSM Storage Engine

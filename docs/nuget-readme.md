@@ -1,4 +1,4 @@
-# Boutquin.Storage 2.0.0
+# Boutquin.Storage 2.0.1
 
 Storage engines, serialization and data processing components for .NET 10, inspired by
 *Designing Data-Intensive Applications*.
@@ -14,14 +14,14 @@ Storage engines, serialization and data processing components for .NET 10, inspi
 Install matching versions for an application that uses generated serializers:
 
 ```sh
-dotnet add package Boutquin.Storage.Domain --version 2.0.0
-dotnet add package Boutquin.Storage.Infrastructure --version 2.0.0
-dotnet add package Boutquin.Storage.SourceGenerator --version 2.0.0
+dotnet add package Boutquin.Storage.Domain --version 2.0.1
+dotnet add package Boutquin.Storage.Infrastructure --version 2.0.1
+dotnet add package Boutquin.Storage.SourceGenerator --version 2.0.1
 ```
 
 The runtime targets .NET 10. The generator needs a Roslyn 5.9 or newer compiler host;
-.NET SDK 10.0.401 satisfies this requirement. The external `Boutquin.Domain` dependency
-is available on nuget.org at 1.0.0.
+.NET SDK 10.0.403 satisfies this requirement. The external `Boutquin.Domain` dependency
+is pinned to 1.0.1.
 
 ## Documentation
 

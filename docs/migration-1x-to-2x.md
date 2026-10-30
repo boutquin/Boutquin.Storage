@@ -368,7 +368,8 @@ plan around them:
 
 ## Runtime dependencies
 
-`Boutquin.Storage.Domain` depends on the public `Boutquin.Domain` 1.0.0 package.
+`Boutquin.Storage.Domain` 2.0.0 depends on `Boutquin.Domain` 1.0.0; the 2.0.1
+patch pins `Boutquin.Domain` 1.0.1.
 Infrastructure depends on Domain plus `K4os.Compression.LZ4`, `Google.Protobuf`,
 `System.IO.Hashing` and `TestableIO.System.IO.Abstractions`; versions are pinned in
 `Directory.Packages.props`. Choosing `GZipCodec`, `BrotliCodec`, or
