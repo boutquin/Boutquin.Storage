@@ -1,4 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
+  <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup><ProjectReference Include="../Infrastructure/Boutquin.Storage.Infrastructure.csproj" /></ItemGroup>
 </Project>

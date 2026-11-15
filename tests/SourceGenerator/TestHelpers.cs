@@ -34,6 +34,10 @@ internal static class TestHelpers
 
     static TestHelpers()
     {
+        // The explicit language selection adds redundant metadata in newer Roslyn.
+        // Keep LanguageVersion and generated source in the snapshot contract.
+        VerifyTests.VerifierSettings.IgnoreMember<CSharpParseOptions>(options => options.SpecifiedLanguageVersion);
+
         // Verify scrubs object property values before writing their names, so a rendered
         // "FilePath: ..." regex never sees the path in object snapshots. Convert this typed
         // metadata member instead; ordinary strings and generated C# stay byte-checked.
@@ -142,20 +146,22 @@ internal static class TestHelpers
     public static CSharpCompilation CreateCompilation(
         string source,
         string? assemblyName = null,
-        IEnumerable<MetadataReference>? additionalReferences = null)
+        IEnumerable<MetadataReference>? additionalReferences = null,
+        LanguageVersion languageVersion = LanguageVersion.Latest)
     {
         var sources = new[] { AttributeSource, source };
-        return CreateCompilationFromSources(sources, assemblyName, additionalReferences);
+        return CreateCompilationFromSources(sources, assemblyName, additionalReferences, languageVersion);
     }
 
     /// <summary>Creates a CSharpCompilation from multiple source strings.</summary>
     public static CSharpCompilation CreateCompilationFromSources(
         IEnumerable<string> sources,
         string? assemblyName = null,
-        IEnumerable<MetadataReference>? additionalReferences = null)
+        IEnumerable<MetadataReference>? additionalReferences = null,
+        LanguageVersion languageVersion = LanguageVersion.Latest)
     {
         var syntaxTrees = sources
-            .Select(s => CSharpSyntaxTree.ParseText(s, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest)))
+            .Select(s => CSharpSyntaxTree.ParseText(s, CSharpParseOptions.Default.WithLanguageVersion(languageVersion)))
             .ToArray();
 
         var references = GetBaseReferences()
@@ -194,10 +200,11 @@ internal static class TestHelpers
         string source,
         string? assemblyName = null)
     {
-        var compilation = CreateCompilation(source, assemblyName);
+        var compilation = CreateCompilation(source, assemblyName, languageVersion: LanguageVersion.CSharp14);
         var generator = new StorageSourceGenerator();
         var driver = CSharpGeneratorDriver
             .Create(generator)
+            .WithUpdatedParseOptions(CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp14))
             .RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out _);
 
         return ((CSharpCompilation)outputCompilation, driver.GetRunResult());

@@ -1,5 +1,9 @@
 # Boutquin.Storage
 
+## Supported target frameworks
+
+Runtime libraries target both .NET 10 and .NET 11. Build with the .NET 11 SDK selected by `global.json`; install both runtimes to run the full test suite. Compiler tooling retains its .NET Standard target. The .NET 11 target uses the latest stable third-party dependencies verified on NuGet.org on November 14, 2026; target-specific pins preserve the .NET 10 dependency contract.
+
 [![NuGet](https://img.shields.io/nuget/v/Boutquin.Storage.Domain.svg)](https://www.nuget.org/packages/Boutquin.Storage.Domain)
 [![License](https://img.shields.io/github/license/boutquin/Boutquin.Storage)](https://github.com/boutquin/Boutquin.Storage/blob/main/LICENSE.txt)
 [![Build](https://github.com/boutquin/Boutquin.Storage/actions/workflows/pr-verify.yml/badge.svg)](https://github.com/boutquin/Boutquin.Storage/actions/workflows/pr-verify.yml)
