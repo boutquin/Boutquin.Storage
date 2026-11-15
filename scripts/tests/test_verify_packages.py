@@ -56,7 +56,7 @@ def nuspec(
     <projectUrl>{REPOSITORY_URL}</projectUrl>
     <releaseNotes>{release_notes}</releaseNotes>
     <repository type="git" url="{REPOSITORY_URL}" commit="{COMMIT}" />
-    <dependencies><group targetFramework="net10.0">{dependency_xml}</group></dependencies>
+    <dependencies><group targetFramework="net10.0">{dependency_xml}</group><group targetFramework="net11.0">{dependency_xml}</group></dependencies>
   </metadata>
 </package>
 """
@@ -74,9 +74,11 @@ def write_package(
     payloads = {
         "Boutquin.Storage.Domain": (
             "lib/net10.0/Boutquin.Storage.Domain.dll",
+            "lib/net11.0/Boutquin.Storage.Domain.dll",
         ),
         "Boutquin.Storage.Infrastructure": (
             "lib/net10.0/Boutquin.Storage.Infrastructure.dll",
+            "lib/net11.0/Boutquin.Storage.Infrastructure.dll",
         ),
         "Boutquin.Storage.SourceGenerator": (
             "analyzers/dotnet/cs/Boutquin.Storage.SourceGenerator.dll",
@@ -152,7 +154,18 @@ class VerifyPackagesTests(unittest.TestCase):
                     "Boutquin.Storage.SourceGenerator",
                 },
             )
-            self.assertEqual(len(result.identities), 4)
+            self.assertEqual(len(result.identities), 6)
+
+    def test_net11_dependency_group_cannot_reuse_an_incorrect_range(self) -> None:
+        metadata = verify_packages.PackageMetadata(
+            path=Path("fixture.nupkg"), package_id="Boutquin.Storage.Domain", version=VERSION,
+            repository_url=REPOSITORY_URL, repository_commit=COMMIT,
+            dependencies=(("Boutquin.Domain", "[1.0.1]"), ("Boutquin.Domain", "[1.0.0]")),
+            dependency_groups=(("net10.0", (("Boutquin.Domain", "[1.0.1]"),)),
+                               ("net11.0", (("Boutquin.Domain", "[1.0.0]"),))),
+        )
+        with self.assertRaisesRegex(verify_packages.VerificationError, "net11.0: dependency"):
+            verify_packages._validate_dependency_contract(metadata, VERSION)
 
     def test_prerelease_candidate_keeps_stable_managed_version_components(self) -> None:
         candidate = "2.0.0-ci.12345.2"
