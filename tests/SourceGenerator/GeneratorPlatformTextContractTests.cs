@@ -23,7 +23,7 @@ public sealed class GeneratorPlatformTextContractTests
         // Exercise Verify's real object-property serialization, where global string scrubbers
         // receive each value before its FilePath property name has been written.
         _ = TestHelpers.NormalizeSnapshotMetadata("");
-        var tree = CSharpSyntaxTree.ParseText(" ", CSharpParseOptions.Default,
+        var tree = CSharpSyntaxTree.ParseText(" ", CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp14),
             path: @"Generator\Namespace\Value.g.cs", encoding: System.Text.Encoding.UTF8);
         return Verify(new { Tree = tree, Literal = @"C:\records\value" });
     }

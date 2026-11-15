@@ -5,6 +5,11 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- .NET 11 builds alongside .NET 10, with target-specific stable dependency versions and tests for both frameworks.
+
+
 ## [2.0.1] - 2026-10-30
 
 ### Changed

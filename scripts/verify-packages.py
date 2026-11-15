@@ -47,9 +47,11 @@ PUBLIC_RELEASE_NOTES = (
 PACKAGE_DLLS = {
     "Boutquin.Storage.Domain": (
         "lib/net10.0/Boutquin.Storage.Domain.dll",
+        "lib/net11.0/Boutquin.Storage.Domain.dll",
     ),
     "Boutquin.Storage.Infrastructure": (
         "lib/net10.0/Boutquin.Storage.Infrastructure.dll",
+        "lib/net11.0/Boutquin.Storage.Infrastructure.dll",
     ),
     "Boutquin.Storage.SourceGenerator": (
         "analyzers/dotnet/cs/Boutquin.Storage.SourceGenerator.dll",
@@ -78,6 +80,7 @@ class PackageMetadata:
     license_expression: str = ""
     readme: str = ""
     release_notes: str = ""
+    dependency_groups: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -155,6 +158,10 @@ def _read_package_metadata(package_path: Path) -> tuple[PackageMetadata, tuple[s
             repository_url=repository_url,
             repository_commit=repository_commit,
             dependencies=dependencies,
+            dependency_groups=tuple(
+                (group.get("targetFramework", ""), tuple((item.get("id", "").strip(), item.get("version", "").strip()) for item in group.findall("{*}dependency")))
+                for group in metadata.findall("{*}dependencies/{*}group")
+            ),
             project_url=_required_text(metadata, "projectUrl", package_path),
             license_type=license_element.get("type", "").strip(),
             license_expression=(license_element.text or "").strip(),
@@ -186,16 +193,16 @@ def _validate_dependency_contract(metadata: PackageMetadata, expected_version: s
     if required_dependency is None:
         return
     dependency_id, required_range = required_dependency
-    actual_ranges = [
-        version_range
-        for candidate_id, version_range in metadata.dependencies
-        if candidate_id == dependency_id
-    ]
-    if actual_ranges != [required_range]:
-        raise VerificationError(
-            f"{metadata.package_id}: dependency {dependency_id} must occur once at exact "
-            f"range {required_range}; found {actual_ranges or 'none'}"
-        )
+    groups = metadata.dependency_groups or (("direct fixture", metadata.dependencies),)
+    if metadata.dependency_groups and sorted(name for name, _ in groups) != ["net10.0", "net11.0"]:
+        raise VerificationError(f"{metadata.package_id}: require exactly one dependency group per runtime target")
+    for framework, dependencies in groups:
+        actual_ranges = [version_range for candidate_id, version_range in dependencies if candidate_id == dependency_id]
+        if actual_ranges != [required_range]:
+            raise VerificationError(
+                f"{metadata.package_id} {framework}: dependency {dependency_id} must occur once at exact "
+                f"range {required_range}; found {actual_ranges or 'none'}"
+            )
 
 
 def _version_components(version: str) -> tuple[int, int, int]:
@@ -273,7 +280,8 @@ def _extract_payload(
     archive_path: str,
     destination: Path,
 ) -> Path:
-    destination_path = destination / Path(archive_path).name
+    destination_path = destination / archive_path
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         with zipfile.ZipFile(package_path) as archive:
             destination_path.write_bytes(archive.read(archive_path))
@@ -572,27 +580,18 @@ def run_cold_consumer(package_directory: Path, version: str, dotnet: str) -> str
             environment=environment,
             purpose="fresh-cache package consumer restore",
         )
-        completed = _run(
-            [
-                dotnet,
-                "run",
-                "--project",
-                str(consumer / "PackageConsumer.csproj"),
-                "--configuration",
-                "Release",
-                "--no-restore",
-                "--verbosity",
-                "minimal",
-            ],
-            cwd=consumer,
-            environment=environment,
-            purpose="package consumer build and execution",
-        )
-        if CONSUMER_SUCCESS_MARKER not in completed.stdout:
-            raise VerificationError(
-                "package consumer exited successfully without its success marker"
+        outputs = []
+        for framework in ("net10.0", "net11.0"):
+            completed = _run(
+                [dotnet, "run", "--project", str(consumer / "PackageConsumer.csproj"),
+                 "--configuration", "Release", "--framework", framework, "--no-restore", "--verbosity", "minimal"],
+                cwd=consumer, environment=environment,
+                purpose=f"{framework} package consumer build and execution",
             )
-        return completed.stdout.strip()
+            if CONSUMER_SUCCESS_MARKER not in completed.stdout:
+                raise VerificationError(f"{framework} package consumer exited without its success marker")
+            outputs.append(completed.stdout.strip())
+        return "\n".join(outputs)
 
 
 def _resolve_dotnet(dotnet: str) -> str:

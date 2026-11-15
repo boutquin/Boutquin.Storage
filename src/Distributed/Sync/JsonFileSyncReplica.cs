@@ -768,7 +768,7 @@ internal static class FileCoordinationKey
             }
             else
             {
-                expanded.Append(rune.ToString());
+                expanded.Append(rune);
             }
         }
 
